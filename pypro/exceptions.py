@@ -1,0 +1,2 @@
+class LpseVersionError(Exception):
+    pass
