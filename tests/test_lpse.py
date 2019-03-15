@@ -1,7 +1,7 @@
 import unittest
 import re
 
-from pypro.lpse import Lpse
+from pyproc.lpse import Lpse
 
 
 class TestLpse(unittest.TestCase):
@@ -25,9 +25,11 @@ class TestLpse(unittest.TestCase):
         self.assertIsInstance(data, dict)
 
     def test_get_paket_tender_isi(self):
-        data = self.lpse.get_paket_tender(length=5)
+        data = self.lpse.get_paket_tender(length=2)
 
-        self.assertEqual(5, len(data['data']))
+        print(data)
+
+        self.assertEqual(2, len(data['data']))
 
     def test_get_paket_tender_pagination(self):
         data_1 = self.lpse.get_paket_tender(length=5)
