@@ -43,6 +43,15 @@ class TestLpse(unittest.TestCase):
             print(i)
             self.assertEqual(True, keyword.lower() in i[1].lower())
 
+    def test_get_detil_tender(self):
+        data = self.lpse.get_paket_tender(length=1)
+
+        id_paket = data['data'][0][0]
+
+        detil = self.lpse.get_detil(id_paket)
+
+        print(detil)
+
 
 if __name__ == '__main__':
     unittest.main()
