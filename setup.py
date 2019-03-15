@@ -19,14 +19,14 @@ setup(
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
-        'Topic :: WWW/HTTP :: Dynamic Content :: CGI Tools/Libraries',
+        'Topic :: Internet :: WWW/HTTP :: Dynamic Content :: CGI Tools/Libraries',
         'Topic :: Software Development :: Libraries :: Python Modules',
         'Topic :: Utilities',
         'Natural Language :: English',
-        'Natural Language :; Indonesia',
+        'Natural Language :: Indonesian',
         'Operating System :: OS Independent',
         'Programming Language :: Python :: 3.5',
-        'License :: OSI Approved :: MIT'
+        'License :: OSI Approved :: MIT License'
     ],
     python_requires='>=3.5',
     install_requires=[
