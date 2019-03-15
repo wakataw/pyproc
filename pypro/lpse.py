@@ -1,5 +1,6 @@
-from abc import abstractmethod, ABCMeta
+from abc import abstractmethod
 
+import bs4
 import requests
 import re
 
@@ -132,7 +133,7 @@ class Lpse(object):
         """
         return self.get_paket('pl', start, length, data_only, kategori, search_keyword)
 
-    def get_detil(self, id_paket):
+    def detil_paket_tender(self, id_paket):
         """
         Mengambil detil pengadaan
         :param id_paket:
@@ -140,20 +141,43 @@ class Lpse(object):
         """
         return LpseDetil(self, id_paket)
 
+    def detil_paket_non_tender(self, id_paket):
+        return NotImplementedError()
+
     def __del__(self):
         self.session.close()
         del self.session
 
 
 class LpseDetil(object):
+    pengumuman = None
+    peserta = None
+    hasil = None
+    pemenang = None
+    pememang_kontrak = None
 
     def __init__(self, lpse, id_paket):
         self._lpse = lpse
         self.id_paket = id_paket
-        self.get_detil()
 
-    def get_detil(self):
+    def get_all_detil(self):
+        self.get_pengumuman()
+        self.get_peserta()
+
+    def get_pengumuman(self):
         self.pengumuman = LpseDetilPengumumanParser(self._lpse, self.id_paket).get_detil()
+
+        return self.pengumuman
+
+    def get_peserta(self):
+        self.peserta = LpseDetilPesertaParser(self._lpse, self.id_paket).get_detil()
+
+        return self.peserta
+
+    def get_hasil_evaluasi(self):
+        self.hasil = LpseDetilHasilEvaluasiParser(self._lpse, self.id_paket).get_detil()
+
+        return self.hasil
 
     def __str__(self):
         return str(self.todict())
@@ -172,12 +196,18 @@ class BaseLpseDetilParser(object):
 
     def get_detil(self):
         r = self.lpse.session.get(self.lpse.host+self.detil_path)
-        print(r.url)
         return self.parse_detil(r.content)
 
     @abstractmethod
     def parse_detil(self, content):
         pass
+
+    def parse_currency(self, nilai):
+        result = ''.join(re.findall(r'([\d+,])', nilai)).replace(',', '.')
+        try:
+            return float(result)
+        except ValueError:
+            return -1
 
 
 class LpseDetilPengumumanParser(BaseLpseDetilParser):
@@ -246,9 +276,77 @@ class LpseDetilPengumumanParser(BaseLpseDetilParser):
     def parse_lokasi_pekerjaan(self, td_pekerjaan):
         return [' '.join(li.text.strip().split()) for li in td_pekerjaan.find_all('li')]
 
-    def parse_currency(self, nilai):
-        result = ''.join(re.findall(r'([\d+,])', nilai)).replace(',', '.')
-        try:
-            return float(result)
-        except ValueError:
-            return -1
+
+class LpseDetilPesertaParser(BaseLpseDetilParser):
+
+    def __init__(self, lpse, id_paket):
+        super().__init__(lpse, '/lelang/{}/peserta'.format(id_paket))
+
+    def parse_detil(self, content):
+        soup = Bs(content, 'html5lib')
+        table = soup.find('div', {'class': 'content'})\
+            .find('table', {'class': 'table-condensed'})
+
+        raw_data = [[i for i in tr.stripped_strings] for tr in table.find_all('tr')]
+
+        header = ['_'.join(i.strip().split()).lower() for i in raw_data[0]]
+
+        return [dict(zip(header, i)) for i in raw_data[1:]]
+
+
+class LpseDetilHasilEvaluasiParser(BaseLpseDetilParser):
+
+    def __init__(self, lpse, id_paket):
+        super().__init__(lpse, '/evaluasi/{}/hasil'.format(id_paket))
+
+    def parse_detil(self, content):
+        soup = Bs(content, 'html5lib')
+        table = soup.find('div', {'class': 'content'})\
+            .find('table', {'class': 'table-condensed'})
+
+        is_header = True
+        header = []
+        data = []
+
+        for tr in table.find_all('tr'):
+
+            if is_header:
+                header = ['_'.join(i.text.strip().split()).lower() for i in filter(lambda x: type(x) == bs4.element.Tag, tr.children)]
+                is_header = False
+            else:
+                children = [self.parse_icon(i) for i in filter(lambda x: type(x) == bs4.element.Tag, tr.children)]
+                children_dict = self.parse_children(dict(zip(header, children)))
+
+                data.append(children_dict)
+
+        return data
+
+    def parse_children(self, children):
+        for key in ['skorkualifkasi', 'skorpembuktian', 'skorteknis', 'skorharga', 'skorakhir']:
+            try:
+                children[key] = float(children[key])
+            except ValueError:
+                children[key] = 0.0
+
+        for key in ['penawaran', 'penawaran_terkoreksi', 'hasil_negosiasi']:
+            children[key] = self.parse_currency(children[key])
+
+        nama_npwp = children['nama_peserta'].split('-')
+        children['nama_peserta'] = nama_npwp[0].strip()
+        children['npwp'] = nama_npwp[1].strip()
+
+        return children
+
+    def parse_icon(self, child):
+        status = {
+            'fa-check': 1,
+            'fa-close': 0,
+            'fa-minus': None
+        }
+
+        icon = re.findall(r'fa (fa-.*)">', str(child))
+        if icon:
+            return status[icon[0]]
+        elif re.findall(r'star.gif', str(child)):
+            return '*'
+        return child.text.strip()

@@ -46,9 +46,29 @@ class TestLpse(unittest.TestCase):
     def test_get_detil_tender(self):
         data = self.lpse.get_paket_tender(length=1)
         id_paket = data['data'][0][0]
-        detil = self.lpse.get_detil(id_paket)
+        detil = self.lpse.detil_paket_tender(id_paket)
+
+        detil.get_pengumuman()
 
         self.assertEqual(id_paket, detil.pengumuman['kode_tender'])
+
+    def test_get_peserta_tender(self):
+        data = self.lpse.get_paket_tender(length=1)
+        id_paket = data['data'][0][0]
+        detil = self.lpse.detil_paket_tender(id_paket)
+
+        detil.get_peserta()
+
+        self.assertIsInstance(detil.peserta, list)
+
+    def test_get_hasil_evaluasi_tender(self):
+        data = self.lpse.get_paket_tender(length=1)
+        id_paket = data['data'][0][0]
+        detil = self.lpse.detil_paket_tender(id_paket)
+
+        detil.get_hasil_evaluasi()
+
+        self.assertIsInstance(detil.hasil, list)
 
 
 if __name__ == '__main__':
