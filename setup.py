@@ -19,7 +19,6 @@ setup(
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
-        'Topic :: WWW/HTTP :: Dynamic Content :: CGI Tools/Libraries',
         'Topic :: Software Development :: Libraries :; Python Modules',
         'Topic :: Utilities',
         'Natural Language :: English',
