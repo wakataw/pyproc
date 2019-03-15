@@ -133,6 +133,11 @@ class Lpse(object):
         return self.get_paket('pl', start, length, data_only, kategori, search_keyword)
 
     def get_detil(self, id_paket):
+        """
+        Mengambil detil pengadaan
+        :param id_paket:
+        :return:
+        """
         return LpseDetil(self, id_paket)
 
     def __del__(self):
@@ -167,10 +172,11 @@ class BaseLpseDetilParser(object):
 
     def get_detil(self):
         r = self.lpse.session.get(self.lpse.host+self.detil_path)
-        return self._parse_detil(r.content)
+        print(r.url)
+        return self.parse_detil(r.content)
 
     @abstractmethod
-    def _parse_detil(self, content):
+    def parse_detil(self, content):
         pass
 
 
@@ -179,15 +185,15 @@ class LpseDetilPengumumanParser(BaseLpseDetilParser):
     def __init__(self, lpse, id_paket):
         super().__init__(lpse, '/lelang/{}/pengumumanlelang'.format(id_paket))
 
-    def _parse_detil(self, content):
+    def parse_detil(self, content):
         soup = Bs(content, 'html5lib')
 
         content = soup.find('div', {'class': 'content'})
         table = content.find('table', {'class': 'table-bordered'}).find('tbody')
 
-        return self._parse_table(table)
+        return self.parse_table(table)
 
-    def _parse_table(self, table):
+    def parse_table(self, table):
         data = {}
 
         for tr in table.find_all('tr', recursive=False):
@@ -200,12 +206,19 @@ class LpseDetilPengumumanParser(BaseLpseDetilParser):
                 td_sub_table = td.find('table', recursive=False)
 
                 if td_sub_table and data_key == 'rencana_umum_pengadaan':
-                    data_value = self._parse_rup(td_sub_table.find('tbody'))
+                    data_value = self.parse_rup(td_sub_table.find('tbody'))
                 elif data_key == 'syarat_kualifikasi':
                     # TODO: Buat parser syarat kualifikasi, tapi perlu tahu dulu kemungkinan format dan isinya
                     continue
                 elif data_key == 'lokasi_pekerjaan':
-                    data_value = self._parse_lokasi_pekerjaan(td)
+                    data_value = self.parse_lokasi_pekerjaan(td)
+                elif data_key in ('nilai_hps_paket', 'nilai_pagu_paket'):
+                    data_value = self.parse_currency(' '.join(td.text.strip().split()))
+                elif data_key == 'peserta_tender':
+                    try:
+                        data_value = int(td.text.strip().split()[0])
+                    except ValueError:
+                        data_value = -1
                 else:
                     data_value = ' '.join(td.text.strip().split())
 
@@ -215,7 +228,7 @@ class LpseDetilPengumumanParser(BaseLpseDetilParser):
 
         return data
 
-    def _parse_rup(self, tbody_rup):
+    def parse_rup(self, tbody_rup):
         raw_data = []
         for tr in tbody_rup.find_all('tr', recursive=False):
             raw_data.append([' '.join(i.text.strip().split()) for i in tr.children])
@@ -230,5 +243,12 @@ class LpseDetilPengumumanParser(BaseLpseDetilParser):
 
         return data
 
-    def _parse_lokasi_pekerjaan(self, td_pekerjaan):
+    def parse_lokasi_pekerjaan(self, td_pekerjaan):
         return [' '.join(li.text.strip().split()) for li in td_pekerjaan.find_all('li')]
+
+    def parse_currency(self, nilai):
+        result = ''.join(re.findall(r'([\d+,])', nilai)).replace(',', '.')
+        try:
+            return float(result)
+        except ValueError:
+            return -1
