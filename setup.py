@@ -9,7 +9,7 @@ with open(path.join(BASE_DIR, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='pyproc',
-    version='0.1.0a',
+    version='0.1.0a1',
     description='Python SPSEv4 wrapper',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -31,7 +31,8 @@ setup(
     python_requires='>=3.5',
     install_requires=[
         'requests',
-        'BeautifulSoup4'
+        'BeautifulSoup4',
+        'html5lib'
     ],
     project_urls={
         'Bug Reports': 'https://gitlab.com/wakataw/pyproc/issues',
