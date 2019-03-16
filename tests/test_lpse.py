@@ -72,6 +72,25 @@ class TestLpse(unittest.TestCase):
 
         self.assertIsInstance(detil.hasil, list)
 
+    def test_get_pemenang_tender(self):
+        lpse = Lpse('http://lpse.padang.go.id')
+        detil = lpse.detil_paket_tender('2120624')
+        expected_result = {
+            'nama_pemenang': 'PT. PAMULINDO BUANA ABADI',
+            'alamat': 'KOMPLEK PERTOKOAN PAMULANG PERMAI 1 BLOK SH IV/4 - Tangerang Selatan (Kota) - Banten',
+            'npwp': '71.035.593.4-411.000', 'harga_penawaran': 1248500000.0, 'harga_terkoreksi': 1248500000.0,
+            'reverse_auction': 1248500000.0
+        }
+
+        self.assertEqual(detil.get_pemenang(), expected_result)
+        self.assertEqual(detil.pemenang, expected_result)
+
+    def test_get_pemenang_tender_kosong(self):
+        detil = self.lpse.detil_paket_tender('51026064')
+        pemenang = detil.get_pemenang()
+
+        self.assertEqual(pemenang, None)
+
 
 if __name__ == '__main__':
     unittest.main()

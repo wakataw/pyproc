@@ -179,6 +179,11 @@ class LpseDetil(object):
 
         return self.hasil
 
+    def get_pemenang(self):
+        self.pemenang = LpseDetilPemenangParser(self._lpse, self.id_paket).get_detil()
+
+        return self.pemenang
+
     def __str__(self):
         return str(self.todict())
 
@@ -350,3 +355,33 @@ class LpseDetilHasilEvaluasiParser(BaseLpseDetilParser):
         elif re.findall(r'star.gif', str(child)):
             return '*'
         return child.text.strip()
+
+
+class LpseDetilPemenangParser(BaseLpseDetilParser):
+
+    def __init__(self, lpse, id_paket):
+        super().__init__(lpse, '/evaluasi/{}/pemenang'.format(id_paket))
+
+    def parse_detil(self, content):
+        soup = Bs(content, 'html5lib')
+
+        try:
+            table_pemenang = soup.find('div', {'class': 'content'})\
+                .table\
+                .tbody\
+                .find_all('tr', recursive=False)[-1]\
+                .find('table')
+        except AttributeError:
+            return
+
+        if table_pemenang:
+            header = ['_'.join(th.text.strip().split()).lower() for th in table_pemenang.find_all('th')]
+            data = [' '.join(td.text.strip().split()) for td in table_pemenang.find_all('td')]
+
+            if header and data:
+                pemenang = dict()
+                for i, v in zip(header, data):
+                    pemenang[i] = self.parse_currency(v) if v.lower().startswith('rp') else v
+
+                return pemenang
+        return
