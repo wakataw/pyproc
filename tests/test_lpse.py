@@ -106,6 +106,15 @@ class TestLpse(unittest.TestCase):
 
         self.assertEqual(expected_result, detil.pemenang_berkontrak)
 
+    def test_get_jadwal_tender(self):
+        data = self.lpse.get_paket_tender(length=1)
+        detil = self.lpse.detil_paket_tender(data['data'][0][0])
+        detil.get_jadwal()
+        jadwal_key = ['no', 'tahap', 'mulai', 'sampai', 'perubahan']
+
+        self.assertIsInstance(detil.jadwal, list)
+        for key in detil.jadwal[0]:
+            self.assertEqual(True, key in jadwal_key)
 
 if __name__ == '__main__':
     unittest.main()

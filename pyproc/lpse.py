@@ -189,6 +189,11 @@ class LpseDetil(object):
 
         return self.pemenang_berkontrak
 
+    def get_jadwal(self):
+        self.jadwal = LpseDetilJadwalParser(self._lpse, self.id_paket).get_detil()
+
+        return self.jadwal
+
     def __str__(self):
         return str(self.todict())
 
@@ -394,3 +399,30 @@ class LpseDetilPemenangParser(BaseLpseDetilParser):
 class LpseDetilPemenangBerkontrakParser(LpseDetilPemenangParser):
     
     detil_path = '/evaluasi/{}/pemenangberkontrak'
+
+
+class LpseDetilJadwalParser(BaseLpseDetilParser):
+
+    detil_path = '/lelang/{}/jadwal'
+
+    def parse_detil(self, content):
+        soup = Bs(content, 'html5lib')
+        table = soup.find('table')
+
+        if not table:
+            return
+
+        is_header = True
+        header = None
+        jadwal = []
+
+        for tr in table.find_all('tr'):
+
+            if is_header:
+                header = ['_'.join(th.text.strip().split()).lower() for th in tr.find_all('th')]
+                is_header = False
+            else:
+                data = [' '.join(td.text.strip().split()) for td in tr.find_all('td')]
+                jadwal.append(dict(zip(header, data)))
+
+        return jadwal
