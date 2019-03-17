@@ -154,7 +154,7 @@ class LpseDetil(object):
     peserta = None
     hasil = None
     pemenang = None
-    pememang_kontrak = None
+    pemenang_berkontrak = None
 
     def __init__(self, lpse, id_paket):
         self._lpse = lpse
@@ -184,6 +184,11 @@ class LpseDetil(object):
 
         return self.pemenang
 
+    def get_pemenang_berkontrak(self):
+        self.pemenang_berkontrak = LpseDetilPemenangBerkontrakParser(self._lpse, self.id_paket).get_detil()
+
+        return self.pemenang_berkontrak
+
     def __str__(self):
         return str(self.todict())
 
@@ -195,12 +200,14 @@ class LpseDetil(object):
 
 class BaseLpseDetilParser(object):
 
-    def __init__(self, lpse, detil_path):
+    detil_path = None
+
+    def __init__(self, lpse, id_paket):
         self.lpse = lpse
-        self.detil_path = detil_path
+        self.id_paket = id_paket
 
     def get_detil(self):
-        r = self.lpse.session.get(self.lpse.host+self.detil_path)
+        r = self.lpse.session.get(self.lpse.host+self.detil_path.format(self.id_paket))
         return self.parse_detil(r.content)
 
     @abstractmethod
@@ -217,8 +224,7 @@ class BaseLpseDetilParser(object):
 
 class LpseDetilPengumumanParser(BaseLpseDetilParser):
 
-    def __init__(self, lpse, id_paket):
-        super().__init__(lpse, '/lelang/{}/pengumumanlelang'.format(id_paket))
+    detil_path = '/lelang/{}/pengumumanlelang'
 
     def parse_detil(self, content):
         soup = Bs(content, 'html5lib')
@@ -284,8 +290,7 @@ class LpseDetilPengumumanParser(BaseLpseDetilParser):
 
 class LpseDetilPesertaParser(BaseLpseDetilParser):
 
-    def __init__(self, lpse, id_paket):
-        super().__init__(lpse, '/lelang/{}/peserta'.format(id_paket))
+    detil_path = '/lelang/{}/peserta'
 
     def parse_detil(self, content):
         soup = Bs(content, 'html5lib')
@@ -301,8 +306,7 @@ class LpseDetilPesertaParser(BaseLpseDetilParser):
 
 class LpseDetilHasilEvaluasiParser(BaseLpseDetilParser):
 
-    def __init__(self, lpse, id_paket):
-        super().__init__(lpse, '/evaluasi/{}/hasil'.format(id_paket))
+    detil_path = '/evaluasi/{}/hasil'
 
     def parse_detil(self, content):
         soup = Bs(content, 'html5lib')
@@ -359,8 +363,7 @@ class LpseDetilHasilEvaluasiParser(BaseLpseDetilParser):
 
 class LpseDetilPemenangParser(BaseLpseDetilParser):
 
-    def __init__(self, lpse, id_paket):
-        super().__init__(lpse, '/evaluasi/{}/pemenang'.format(id_paket))
+    detil_path = '/evaluasi/{}/pemenang'
 
     def parse_detil(self, content):
         soup = Bs(content, 'html5lib')
@@ -371,6 +374,7 @@ class LpseDetilPemenangParser(BaseLpseDetilParser):
                 .tbody\
                 .find_all('tr', recursive=False)[-1]\
                 .find('table')
+            print(table_pemenang)
         except AttributeError:
             return
 
@@ -385,3 +389,8 @@ class LpseDetilPemenangParser(BaseLpseDetilParser):
 
                 return pemenang
         return
+
+
+class LpseDetilPemenangBerkontrakParser(LpseDetilPemenangParser):
+    
+    detil_path = '/evaluasi/{}/pemenangberkontrak'

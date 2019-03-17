@@ -91,6 +91,21 @@ class TestLpse(unittest.TestCase):
 
         self.assertEqual(pemenang, None)
 
+    def test_get_pemenang_berkontrak_tender(self):
+        lpse = Lpse('http://lpse.padang.go.id')
+        detil = lpse.detil_paket_tender('2096624')
+        detil.get_pemenang_berkontrak()
+
+        expected_result = {
+            'nama_pemenang': 'PT.MEGATAMA CITRA LESTARI',
+            'alamat': 'JL.RAYA KRESEK RUKO KRESEK NO.88 I DURIKOSAMBI - Jakarta Barat (Kota) - DKI Jakarta',
+            'npwp': '66.623.166.7-034.000',
+            'harga_penawaran': 567471410.0,
+            'hasil_negosiasi': ''
+        }
+
+        self.assertEqual(expected_result, detil.pemenang_berkontrak)
+
 
 if __name__ == '__main__':
     unittest.main()
