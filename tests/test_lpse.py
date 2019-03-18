@@ -116,5 +116,22 @@ class TestLpse(unittest.TestCase):
         for key in detil.jadwal[0]:
             self.assertEqual(True, key in jadwal_key)
 
+
+class TestPaketNonTender(unittest.TestCase):
+
+    def setUp(self):
+        self.lpse = Lpse('http://lpse.padang.go.id')
+
+    def test_get_paket_non_tender(self):
+        paket = self.lpse.get_paket_non_tender(length=5)
+
+        print(paket)
+
+    def test_get_detil_pengumuman_non_tender(self):
+        detil = self.lpse.detil_paket_non_tender('2189624')
+        detil.get_pengumuman()
+
+        print(detil.pengumuman)
+
 if __name__ == '__main__':
     unittest.main()

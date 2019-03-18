@@ -106,7 +106,7 @@ class Lpse(object):
         return data.json()
 
     def get_paket_tender(self, start=0, length=0, data_only=False,
-                         kategori=None, search_keyword=None, nama_penyedia=None):
+                         kategori=None, search_keyword=None):
         """
         Wrapper pencarian paket tender
         :param start: index data awal
@@ -120,7 +120,7 @@ class Lpse(object):
         return self.get_paket('lelang', start, length, data_only, kategori, search_keyword)
 
     def get_paket_non_tender(self, start=0, length=0, data_only=False,
-                             kategori=None, search_keyword=None, nama_penyedia=None):
+                             kategori=None, search_keyword=None):
         """
         Wrapper pencarian paket non tender
         :param start: index data awal
@@ -142,7 +142,12 @@ class Lpse(object):
         return LpseDetil(self, id_paket)
 
     def detil_paket_non_tender(self, id_paket):
-        return NotImplementedError()
+        """
+        Mengambil detil pengadaan non tender (penunjukkan langsung)
+        :param id_paket: id_paket non tender
+        :return:
+        """
+        return LpseDetilNonTender(self, id_paket)
 
     def __del__(self):
         self.session.close()
@@ -202,6 +207,33 @@ class LpseDetil(object):
         data.pop('_lpse')
         return data
 
+
+class LpseDetilNonTender(object):
+    pengumuman = None
+    peserta = None
+    hasil = None
+    pemenang = None
+    pemenang_berkontrak = None
+
+    def __init__(self, lpse, id_paket):
+        self._lpse = lpse
+        self.id_paket = id_paket
+
+    def get_all_detil(self):
+        self.get_pengumuman()
+
+    def get_pengumuman(self):
+        self.pengumuman = LpseDetilPengumumanNonTenderParser(self._lpse, self.id_paket).get_detil()
+
+        return self.pengumuman
+
+    def __str__(self):
+        return str(self.todict())
+
+    def todict(self):
+        data = self.__dict__
+        data.pop('_lpse')
+        return data
 
 class BaseLpseDetilParser(object):
 
@@ -426,3 +458,8 @@ class LpseDetilJadwalParser(BaseLpseDetilParser):
                 jadwal.append(dict(zip(header, data)))
 
         return jadwal
+
+
+class LpseDetilPengumumanNonTenderParser(LpseDetilPengumumanParser):
+
+    detil_path = '/nontender/{}/pengumumanpl'
