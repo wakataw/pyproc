@@ -160,6 +160,7 @@ class LpseDetil(object):
     hasil = None
     pemenang = None
     pemenang_berkontrak = None
+    jadwal = None
 
     def __init__(self, lpse, id_paket):
         self._lpse = lpse
@@ -168,6 +169,10 @@ class LpseDetil(object):
     def get_all_detil(self):
         self.get_pengumuman()
         self.get_peserta()
+        self.get_hasil_evaluasi()
+        self.get_pemenang()
+        self.get_pemenang_berkontrak()
+        self.get_jadwal()
 
     def get_pengumuman(self):
         self.pengumuman = LpseDetilPengumumanParser(self._lpse, self.id_paket).get_detil()
@@ -214,6 +219,7 @@ class LpseDetilNonTender(object):
     hasil = None
     pemenang = None
     pemenang_berkontrak = None
+    jadwal = None
 
     def __init__(self, lpse, id_paket):
         self._lpse = lpse
@@ -221,6 +227,11 @@ class LpseDetilNonTender(object):
 
     def get_all_detil(self):
         self.get_pengumuman()
+        self.get_peserta()
+        self.get_hasil_evaluasi()
+        self.get_pemenang()
+        self.get_pemenang_berkontrak()
+        self.get_jadwal()
 
     def get_pengumuman(self):
         self.pengumuman = LpseDetilPengumumanNonTenderParser(self._lpse, self.id_paket).get_detil()
@@ -246,6 +257,11 @@ class LpseDetilNonTender(object):
         self.pemenang_berkontrak = LpseDetilPemenangBerkontrakNonTenderParser(self._lpse, self.id_paket).get_detil()
 
         return self.pemenang_berkontrak
+
+    def get_jadwal(self):
+        self.jadwal = LpseDetilJadwalNonTenderParser(self._lpse, self.id_paket).get_detil()
+
+        return self.jadwal
 
     def __str__(self):
         return str(self.todict())
@@ -528,3 +544,8 @@ class LpseDetilPemenangNonTenderParser(BaseLpseDetilParser):
 class LpseDetilPemenangBerkontrakNonTenderParser(LpseDetilPemenangNonTenderParser):
 
     detil_path = '/evaluasinontender/{}/pemenangberkontrak'
+
+
+class LpseDetilJadwalNonTenderParser(LpseDetilJadwalParser):
+
+    detil_path = '/nontender/{}/jadwal'

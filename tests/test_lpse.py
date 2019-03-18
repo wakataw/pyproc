@@ -204,6 +204,24 @@ class TestPaketNonTender(unittest.TestCase):
         detil.get_pemenang_berkontrak()
         self.assertEqual(detil.pemenang_berkontrak, expected_result)
 
+    def test_get_detil_jadwal_non_tender(self):
+        detil = self.lpse.detil_paket_non_tender('2189624')
+        expected_result = [
+            {'no': '1', 'tahap': 'Upload Dokumen Penawaran', 'mulai': '18 Februari 2019 08:00',
+             'sampai': '20 Februari 2019 15:59', 'perubahan': '1 kali perubahan'},
+            {'no': '2', 'tahap': 'Pembukaan Dokumen Penawaran', 'mulai': '21 Februari 2019 08:00',
+             'sampai': '21 Februari 2019 15:59', 'perubahan': '1 kali perubahan'},
+            {'no': '3', 'tahap': 'Evaluasi Penawaran', 'mulai': '22 Februari 2019 08:00',
+             'sampai': '22 Februari 2019 15:59', 'perubahan': '2 kali perubahan'},
+            {'no': '4', 'tahap': 'Klarifikasi Teknis dan Negosiasi', 'mulai': '25 Februari 2019 08:00',
+             'sampai': '25 Februari 2019 15:59', 'perubahan': '1 kali perubahan'},
+            {'no': '5', 'tahap': 'Penandatanganan Kontrak', 'mulai': '26 Februari 2019 08:00',
+             'sampai': '28 Februari 2019 15:59', 'perubahan': '2 kali perubahan'}
+        ]
+        detil.get_jadwal()
+
+        self.assertEqual(detil.jadwal, expected_result)
+
 
 if __name__ == '__main__':
     unittest.main()
