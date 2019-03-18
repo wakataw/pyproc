@@ -6,6 +6,14 @@ import re
 
 from bs4 import BeautifulSoup as Bs
 from .exceptions import LpseVersionException, LpseHostExceptions
+from enum import Enum
+
+
+class By(Enum):
+    KODE = 0
+    NAMA_PAKET = 1
+    INSTANSI = 2
+    HPS = 4
 
 
 class Lpse(object):
@@ -69,7 +77,8 @@ class Lpse(object):
             self.last_update = last_update[0]
 
     def get_paket(self, jenis_paket, start=0, length=0, data_only=False,
-                  kategori=None, search_keyword=None, nama_penyedia=None):
+                  kategori=None, search_keyword=None, nama_penyedia=None,
+                  order=By.KODE, ascending=False):
         """
         Melakukan pencarian paket pengadaan
         :param jenis_paket: Paket Pengadaan Lelang (lelang) atau Penunjukkan Langsung (pl)
@@ -79,6 +88,8 @@ class Lpse(object):
         :param kategori: kategori pengadaan (lihat di pypro.kategori)
         :param search_keyword: keyword pencarian paket pengadaan
         :param nama_penyedia: filter berdasarkan nama penyedia
+        :param order: Mengurutkan data berdasarkan kolom
+        :param ascending: Ascending, descending jika diset False
         :return: dictionary dari hasil pencarian paket (atau list jika data_only=True)
         """
 
@@ -89,18 +100,26 @@ class Lpse(object):
             'start': start,
             'length': length,
             'search[value]': search_keyword,
-            'search[regex]': False
+            'search[regex]': False,
+            'order[0][column]': order.value,
+            'order[0][dir]': 'asc' if ascending else 'desc',
         }
+
+        for i in range(0, 5):
+            params.update(
+                {
+                    'columns[{}][searchable]'.format(i): 'true' if i != 3 else 'false',
+                    'columns[{}][orderable]'.format(i): 'true' if i != 3 else 'false',
+                    'columns[{}][search][value]'.format(i): '',
+                    'columns[{}][search][regex]'.format(i): 'false'
+                }
+            )
 
         if kategori:
             params.update({'kategori': kategori})
 
         if nama_penyedia:
             params.update({'rkn_nama': nama_penyedia})
-
-        if search_keyword:
-            for i in range(13):
-                params.update({'columns[{}][searchable]'.format(i): 'true'})
 
         data = requests.get(
             self.host + '/dt/' + jenis_paket,
@@ -116,7 +135,8 @@ class Lpse(object):
         return data.json()
 
     def get_paket_tender(self, start=0, length=0, data_only=False,
-                         kategori=None, search_keyword=None):
+                         kategori=None, search_keyword=None, nama_penyedia=None,
+                         order=By.KODE, ascending=False):
         """
         Wrapper pencarian paket tender
         :param start: index data awal
@@ -125,12 +145,15 @@ class Lpse(object):
         :param kategori: kategori pengadaan (lihat di pypro.kategori)
         :param search_keyword: keyword pencarian paket pengadaan
         :param nama_penyedia: filter berdasarkan nama penyedia
+        :param order: Mengurutkan data berdasarkan kolom
+        :param ascending: Ascending, descending jika diset False
         :return: dictionary dari hasil pencarian paket (atau list jika data_only=True)
         """
-        return self.get_paket('lelang', start, length, data_only, kategori, search_keyword)
+        return self.get_paket('lelang', start, length, data_only, kategori, search_keyword, nama_penyedia,
+                              order, ascending)
 
     def get_paket_non_tender(self, start=0, length=0, data_only=False,
-                             kategori=None, search_keyword=None):
+                             kategori=None, search_keyword=None, order=By.KODE, ascending=False):
         """
         Wrapper pencarian paket non tender
         :param start: index data awal
@@ -139,9 +162,11 @@ class Lpse(object):
         :param kategori: kategori pengadaan (lihat di pypro.kategori)
         :param search_keyword: keyword pencarian paket pengadaan
         :param nama_penyedia: filter berdasarkan nama penyedia
+        :param order: Mengurutkan data berdasarkan kolom
+        :param ascending: Ascending, descending jika diset False
         :return: dictionary dari hasil pencarian paket (atau list jika data_only=True)
         """
-        return self.get_paket('pl', start, length, data_only, kategori, search_keyword)
+        return self.get_paket('pl', start, length, data_only, kategori, search_keyword, None, order, ascending)
 
     def detil_paket_tender(self, id_paket):
         """

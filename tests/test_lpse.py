@@ -65,9 +65,7 @@ class TestLpse(unittest.TestCase):
         self.assertIsInstance(detil.peserta, list)
 
     def test_get_hasil_evaluasi_tender(self):
-        data = self.lpse.get_paket_tender(length=1)
-        id_paket = data['data'][0][0]
-        detil = self.lpse.detil_paket_tender(id_paket)
+        detil = self.lpse.detil_paket_tender(50606064)
 
         detil.get_hasil_evaluasi()
 
