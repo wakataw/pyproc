@@ -131,7 +131,35 @@ class TestPaketNonTender(unittest.TestCase):
         detil = self.lpse.detil_paket_non_tender('2189624')
         detil.get_pengumuman()
 
-        print(detil.pengumuman)
+        expected_result = {'kode_paket': '2189624',
+                           'nama_paket': 'Pengadaan fishbox fiber kapasitas 50 liter, 75 liter dan 100 liter',
+                           'tanggal_pembuatan': '11 Februari 2019', 'keterangan': '',
+                           'tahap_paket_saat_ini': 'Paket Sudah Selesai', 'instansi': 'Pemerintah Daerah Kota Padang',
+                           'satuan_kerja': 'DINAS KELAUTAN DAN PERIKANAN', 'kategori': 'Pengadaan Barang',
+                           'metode_pengadaan': 'Pengadaan Langsung', 'tahun_anggaran': 'APBD 2019',
+                           'nilai_pagu_paket': 199490000.0, 'nilai_hps_paket': 199481975.0,
+                           'lokasi_pekerjaan': ['7 Kec. wilayah pesisir Kota Padang - Padang (Kota)'],
+                           'kualifikasi_usaha': 'Perusahaan Kecil'}
+
+        self.assertEqual(detil.pengumuman, expected_result)
+
+    def test_get_detil_peserta_non_tender(self):
+        detil = self.lpse.detil_paket_non_tender('2189624')
+        detil.get_peserta()
+
+        expected_result = [
+            {
+                'no': '1',
+                'nama_peserta': 'cv.samudera fiber',
+                'npwp': '83.134.137.5-202.000',
+                'harga_penawaran': 'Rp 199.280.125,00',
+                'harga_terkoreksi': 'Rp 199.280.125,00'
+            }
+        ]
+
+        print(detil.peserta)
+
+        self.assertEqual(detil.peserta, expected_result)
 
 if __name__ == '__main__':
     unittest.main()

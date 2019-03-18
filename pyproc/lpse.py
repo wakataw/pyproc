@@ -227,6 +227,11 @@ class LpseDetilNonTender(object):
 
         return self.pengumuman
 
+    def get_peserta(self):
+        self.peserta = LpseDetilPesertaNonTenderParser(self._lpse, self.id_paket).get_detil()
+
+        return self.peserta
+
     def __str__(self):
         return str(self.todict())
 
@@ -234,6 +239,7 @@ class LpseDetilNonTender(object):
         data = self.__dict__
         data.pop('_lpse')
         return data
+
 
 class BaseLpseDetilParser(object):
 
@@ -463,3 +469,9 @@ class LpseDetilJadwalParser(BaseLpseDetilParser):
 class LpseDetilPengumumanNonTenderParser(LpseDetilPengumumanParser):
 
     detil_path = '/nontender/{}/pengumumanpl'
+
+
+class LpseDetilPesertaNonTenderParser(LpseDetilPesertaParser):
+
+    detil_path = '/nontender/{}/peserta'
+
