@@ -451,7 +451,6 @@ class LpseDetilPemenangParser(BaseLpseDetilParser):
                 .tbody\
                 .find_all('tr', recursive=False)[-1]\
                 .find('table')
-            print(table_pemenang)
         except AttributeError:
             return
 
