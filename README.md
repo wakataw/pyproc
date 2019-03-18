@@ -1,42 +1,69 @@
 # PyProc
 
-Python Wrapper untuk aplikasi SPSE Versi 4.
+PyProc (Python Procurement) merupakan wrapper untuk API SPSE Versi 4 yang ditulis dalam bahasa Python. Sistem Pengadaan Secara Elektronik (SPSE) SPSE merupakan aplikasi e-Procurement yang dikembangkan oleh LKPP untuk digunakan oleh LPSE di instansi pemerintah seluruh Indonesia (termasuk Kementerian Keuangan).
 
-DANGER: **Perhatian:**
-Paket masih dalam proses pengembangan sehingga perubahan pada API akan sangat mungkin terjadi.
+> **PERHATIAN: PAKET MASIH DALAM PROSES PENGEMBANGAN SEHINGGA PERUBAHAN PADA API AKAN SANGAT MUNGKIN DILAKUKAN**
 
-## Instalasi
+# Quickstart
 
-`pip install pyproc`
+## Pemasangan
+
+Pemasangan PyProc via `pip`:
+```bash
+pip install pyproc
+```
+
+Pemasangan PyProc langsung melalui repository:
+```bash
+pip install git+https://gitlab.com/wakataw/pyproc.git
+```
 
 ## Penggunaan
 
+Untuk dapat menggunakan PyProc, anda harus mengimpornya terlebih dahulu dan menginisiasi objek `Lpse`
+
 ```python
-from pyproc.lpse import Lpse
+from pyproc import Lpse
 
-lpse = Lpse("https://lpse.pu.go.id")
+# Inisiasi objek lpse kementerian pu
+lpse_pu = Lpse('http://lpse.pu.go.id')
 
-print(lpse.version) 
+# Print versi dan last update aplikasi SPSE
+print(lpse_pu.version)
+print(lpse_pu.last_update)
+```
 
-# hasil
-# SPSE v4.XuXXXXXXX
+### Pencarian Daftar Paket Lelang
 
-# mendapatkan detil paket lelang
+```python
+# mendapatkan daftar paket lelang
 daftar_lelang = lpse.get_paket_tender(start=0, length=2)
 print(daftar_lelang)
+```
 
-# hasil
-# {'draw': '1', 'recordsTotal': 31475, 'recordsFiltered': 31475, 'data': [['48658064', "Konsultan Manajemen Provinsi <span class='label label-warning'>Seleksi Ulang</span>", 'Kementerian Pekerjaan Umum dan Perumahan Rakyat', 'Masa Sanggah Hasil Tender', '1,7 M', 'Prakualifikasi Dua File', 'Seleksi', 'Kualitas dan Biaya', 'Jasa Konsultansi Badan Usaha - TA 2019', '3', 'Nilai Kontrak belum dibuat', '1', None, '0'], ['50800064', 'Paket 03 : Perencanaan Teknik Jalan dan Jembatan Semarang dan Kota Besar', 'Kementerian Pekerjaan Umum dan Perumahan Rakyat', 'Pengumuman Prakualifikasi [...]', '1,7 M', 'Prakualifikasi Dua File', 'Seleksi', 'Kualitas dan Biaya', 'Jasa Konsultansi Badan Usaha - TA 2019', '3', 'Nilai Kontrak belum dibuat', None, None, '0']]}
+Pencarian Paket dengan mengurutkan berdasarkan kolom tertentu
+```python
 
-# mendapatkan detil peserta
+from pyproc import Lpse
+from pyproc.lpse import By
+
+lpse = Lpse('http://lpse.padang.go.id')
+
+# pencarian daftar lelang, urutkan berdasarkan Harga Perkiraan Sendiri
+daftar_lelang = lpse.get_paket_tender(start=0, length=30, order=By.HPS)
+```
+
+### Pencarian Detil Paket Lelang
+
+```python
+# mendapatkan semua detil paket lelang
 detil = lpse.detil_paket_tender('48658064')
 detil.get_all_detil()
+print(detil)
 
-print(detil.pengumuman)
-
-## hasil
-## {'kode_tender': '48658064', 'nama_tender': 'Konsultan Manajemen Provinsi Tender Ulang', 'rencana_umum_pengadaan': {'kode_rup': '1238867798', 'nama_paket': 'Konsultan Manajemen Provinsi', 'sumber_dana': 'APBN'}, 'tanggal_pembuatan': '07 Januari 2019', 'keterangan': '', 'tahap_tender_saat_ini': 'Masa Sanggah Hasil Tender', 'instansi': 'Kementerian Pekerjaan Umum dan Perumahan Rakyat', 'satuan_kerja': 'SNVT PENYEDIAAN PERUMAHAN PROVINSI JAMBI', 'kategori': 'Jasa Konsultansi Badan Usaha', 'sistem_pengadaan': 'Seleksi - Prakualifikasi Dua File - Kualitas dan Biaya', 'tahun_anggaran': 'APBN 2019', 'nilai_pagu_paket': 1710000000.0, 'nilai_hps_paket': 1709510000.0, 'jenis_kontrak': 'Harga Satuan', 'lokasi_pekerjaan': ['Wilayah Provinsi Jambi - Jambi (Kota)'], 'peserta_tender': 57}
-
+# mendapatkan hanya pemenang lelang
+pemenang = detil.get_pemenang()
+print(pemenang)
 ```
 
 ## License
