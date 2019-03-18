@@ -5,7 +5,7 @@ import requests
 import re
 
 from bs4 import BeautifulSoup as Bs
-from .exceptions import LpseVersionError
+from .exceptions import LpseVersionException, LpseHostExceptions
 
 
 class Lpse(object):
@@ -25,13 +25,23 @@ class Lpse(object):
         """
         r = self.session.get(url, verify=False)
 
+        if not self._is_spse(r.text):
+            raise LpseHostExceptions("{} sepertinya bukan aplikasi SPSE".format(url))
+
         footer = Bs(r.content, 'html5lib').find('div', {'id': 'footer'}).text.strip()
 
         if not self._is_v4(footer):
-            raise LpseVersionError("Versi SPSE harus >= 4")
+            raise LpseVersionException("Versi SPSE harus >= 4")
 
         self.host = r.url.strip('/')
         self._get_last_update(footer)
+
+    def _is_spse(self, content):
+        text = 'Untuk tampilan aplikasi SPSE yang lebih baik, harap aktifkan fitur javascript pada browser anda'.lower()
+        if text in content.lower():
+            return True
+
+        return False
 
     def _is_v4(self, footer):
         """

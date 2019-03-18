@@ -1,7 +1,8 @@
 import unittest
 import re
 
-from pyproc.lpse import Lpse
+from pyproc import Lpse
+from pyproc.exceptions import LpseHostExceptions
 
 
 class TestLpse(unittest.TestCase):
@@ -221,6 +222,17 @@ class TestPaketNonTender(unittest.TestCase):
         detil.get_jadwal()
 
         self.assertEqual(detil.jadwal, expected_result)
+
+
+class TestLpseHostError(unittest.TestCase):
+
+    def test_host_error(self):
+        host = 'http://www.pajak.go.id'
+
+        with self.assertRaises(LpseHostExceptions) as context:
+            Lpse(host)
+
+        self.assertIn('{} sepertinya bukan aplikasi SPSE'.format(host), str(context.exception))
 
 
 if __name__ == '__main__':
