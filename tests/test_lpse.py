@@ -161,5 +161,11 @@ class TestPaketNonTender(unittest.TestCase):
 
         self.assertEqual(detil.peserta, expected_result)
 
+    def test_get_detil_hasil_non_tender(self):
+        detil = self.lpse.detil_paket_non_tender('2189624')
+        detil.get_hasil_evaluasi()
+
+        print(detil.hasil)
+
 if __name__ == '__main__':
     unittest.main()

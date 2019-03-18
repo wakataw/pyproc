@@ -232,6 +232,11 @@ class LpseDetilNonTender(object):
 
         return self.peserta
 
+    def get_hasil_evaluasi(self):
+        self.hasil = LpseDetilHasilEvaluasiNonTenderParser(self._lpse, self.id_paket).get_detil()
+
+        return self.hasil
+
     def __str__(self):
         return str(self.todict())
 
@@ -374,18 +379,21 @@ class LpseDetilHasilEvaluasiParser(BaseLpseDetilParser):
         return data
 
     def parse_children(self, children):
-        for key in ['skorkualifkasi', 'skorpembuktian', 'skorteknis', 'skorharga', 'skorakhir']:
-            try:
-                children[key] = float(children[key])
-            except ValueError:
-                children[key] = 0.0
+        for key, value in children.items():
+            if key.startswith('skor'):
+                try:
+                    children[key] = float(value)
+                except ValueError:
+                    children[key] = 0.0
+            elif key in ['penawaran', 'penawaran_terkoreksi', 'hasil_negosiasi']:
+                children[key] = self.parse_currency(value)
 
-        for key in ['penawaran', 'penawaran_terkoreksi', 'hasil_negosiasi']:
-            children[key] = self.parse_currency(children[key])
-
-        nama_npwp = children['nama_peserta'].split('-')
-        children['nama_peserta'] = nama_npwp[0].strip()
-        children['npwp'] = nama_npwp[1].strip()
+        try:
+            nama_npwp = children['nama_peserta'].split('-', maxsplit=1)
+            children['nama_peserta'] = nama_npwp[0].strip()
+            children['npwp'] = nama_npwp[1].strip()
+        except KeyError:
+            pass
 
         return children
 
@@ -475,3 +483,6 @@ class LpseDetilPesertaNonTenderParser(LpseDetilPesertaParser):
 
     detil_path = '/nontender/{}/peserta'
 
+class LpseDetilHasilEvaluasiNonTenderParser(LpseDetilHasilEvaluasiParser):
+
+    detil_path = '/evaluasinontender/{}/hasil'
