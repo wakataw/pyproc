@@ -163,9 +163,47 @@ class TestPaketNonTender(unittest.TestCase):
 
     def test_get_detil_hasil_non_tender(self):
         detil = self.lpse.detil_paket_non_tender('2189624')
+        expected_result = [
+            {
+                'no': '1', 'nama_peserta': 'cv.samudera fiber', 'a': 1, 't': 1, 'penawaran': 199280125.0,
+                'penawaran_terkoreksi': 199280125.0, 'h': 1, 'p': '*', 'pk': '*', 'alasan': '',
+                'npwp': '83.134.137.5-202.000'
+            }
+        ]
         detil.get_hasil_evaluasi()
 
         print(detil.hasil)
+
+        self.assertEqual(detil.hasil, expected_result)
+
+    def test_get_detil_pemenang_non_tender(self):
+        detil = self.lpse.detil_paket_non_tender('2189624')
+        expected_result = {
+            'nama_tender': 'Pengadaan fishbox fiber kapasitas 50 liter, 75 liter dan 100 liter',
+            'kategori': 'Pengadaan Barang', 'instansi': 'Pemerintah Daerah Kota Padang',
+            'satker': 'DINAS KELAUTAN DAN PERIKANAN', 'pagu': 199490000.0, 'hps': 199481975.0,
+            'nama_pemenang': 'cv.samudera fiber',
+            'alamat': 'Jorong Ketaping Nagari Lawang Kec. Matur - Agam (Kab.) - Sumatera Barat',
+            'npwp': '83.134.137.5-202.000', 'hasil_negosiasi': 198992750.0
+        }
+        detil.get_pemenang()
+        print(detil.pemenang)
+
+        self.assertEqual(detil.pemenang, expected_result)
+
+    def test_get_detil_pemenang_berkontrak_non_tender(self):
+        detil = self.lpse.detil_paket_non_tender('2189624')
+        expected_result = {
+            'nama_non_tender': 'Pengadaan fishbox fiber kapasitas 50 liter, 75 liter dan 100 liter',
+            'kategori': 'Pengadaan Barang', 'instansi': 'Pemerintah Daerah Kota Padang',
+            'satker': 'DINAS KELAUTAN DAN PERIKANAN', 'pagu': 199490000.0, 'hps': 199481975.0,
+            'nama_pemenang': 'cv.samudera fiber',
+            'alamat': 'Jorong Ketaping Nagari Lawang Kec. Matur - Agam (Kab.) - Sumatera Barat',
+            'npwp': '83.134.137.5-202.000', 'hasil_negosiasi': 198992750.0
+        }
+        detil.get_pemenang_berkontrak()
+        self.assertEqual(detil.pemenang_berkontrak, expected_result)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -237,6 +237,16 @@ class LpseDetilNonTender(object):
 
         return self.hasil
 
+    def get_pemenang(self):
+        self.pemenang = LpseDetilPemenangNonTenderParser(self._lpse, self.id_paket).get_detil()
+
+        return self.pemenang
+
+    def get_pemenang_berkontrak(self):
+        self.pemenang_berkontrak = LpseDetilPemenangBerkontrakNonTenderParser(self._lpse, self.id_paket).get_detil()
+
+        return self.pemenang_berkontrak
+
     def __str__(self):
         return str(self.todict())
 
@@ -483,6 +493,38 @@ class LpseDetilPesertaNonTenderParser(LpseDetilPesertaParser):
 
     detil_path = '/nontender/{}/peserta'
 
+
 class LpseDetilHasilEvaluasiNonTenderParser(LpseDetilHasilEvaluasiParser):
 
     detil_path = '/evaluasinontender/{}/hasil'
+
+
+class LpseDetilPemenangNonTenderParser(BaseLpseDetilParser):
+
+    detil_path = '/evaluasinontender/{}/pemenang'
+
+    def parse_detil(self, content):
+        soup = Bs(content, 'html5lib')
+        table_pemenang = soup.find('table')
+
+        if table_pemenang:
+            data = dict([(key, value) for key, value in self._parse_table_pemenang(table_pemenang)])
+
+            return data
+
+        return
+
+    def _parse_table_pemenang(self, table_pemenang):
+        for tr in table_pemenang.find_all('tr'):
+            key = '_'.join(tr.find('th').text.strip().split()).lower()
+            value = ' '.join(tr.find('td').text.strip().split())
+
+            if key in ['hps', 'pagu', 'hasil_negosiasi']:
+                value = self.parse_currency(value)
+
+            yield (key, value)
+
+
+class LpseDetilPemenangBerkontrakNonTenderParser(LpseDetilPemenangNonTenderParser):
+
+    detil_path = '/evaluasinontender/{}/pemenangberkontrak'
