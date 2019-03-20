@@ -28,8 +28,6 @@ class TestLpse(unittest.TestCase):
     def test_get_paket_tender_isi(self):
         data = self.lpse.get_paket_tender(length=2)
 
-        print(data)
-
         self.assertEqual(2, len(data['data']))
 
     def test_get_paket_tender_pagination(self):
@@ -43,7 +41,6 @@ class TestLpse(unittest.TestCase):
         data = self.lpse.get_paket_tender(length=1, search_keyword=keyword)
 
         for i in data['data']:
-            print(i)
             self.assertEqual(True, keyword.lower() in i[1].lower())
 
     def test_get_detil_tender(self):
@@ -124,7 +121,7 @@ class TestPaketNonTender(unittest.TestCase):
     def test_get_paket_non_tender(self):
         paket = self.lpse.get_paket_non_tender(length=5)
 
-        print(paket)
+        self.assertEqual(len(paket['data']), 5)
 
     def test_get_detil_pengumuman_non_tender(self):
         detil = self.lpse.detil_paket_non_tender('2189624')
@@ -156,8 +153,6 @@ class TestPaketNonTender(unittest.TestCase):
             }
         ]
 
-        print(detil.peserta)
-
         self.assertEqual(detil.peserta, expected_result)
 
     def test_get_detil_hasil_non_tender(self):
@@ -170,8 +165,6 @@ class TestPaketNonTender(unittest.TestCase):
             }
         ]
         detil.get_hasil_evaluasi()
-
-        print(detil.hasil)
 
         self.assertEqual(detil.hasil, expected_result)
 
@@ -186,7 +179,6 @@ class TestPaketNonTender(unittest.TestCase):
             'npwp': '83.134.137.5-202.000', 'hasil_negosiasi': 198992750.0
         }
         detil.get_pemenang()
-        print(detil.pemenang)
 
         self.assertEqual(detil.pemenang, expected_result)
 
@@ -231,6 +223,58 @@ class TestLpseHostError(unittest.TestCase):
             Lpse(host)
 
         self.assertIn('{} sepertinya bukan aplikasi SPSE'.format(host), str(context.exception))
+
+
+class TestLpseDetailKosong(unittest.TestCase):
+
+    def setUp(self):
+        host = 'http://lpse.pu.go.id'
+
+        lpse = Lpse(host)
+        paket = lpse.get_paket_tender(start=0, length=1)['data']
+        self.detil = lpse.detil_paket_tender(paket[0][0])
+
+    def test_hasil_evaluasi_kosong(self):
+        hasil_evaluasi = self.detil.get_hasil_evaluasi()
+
+        self.assertEqual(None, hasil_evaluasi)
+
+    def test_pemenang_kosong(self):
+        pemenang = self.detil.get_pemenang()
+
+        self.assertEqual(None, pemenang)
+
+    def test_pemenang_berkontrak_kosong(self):
+        pemenang_kontrak = self.detil.get_pemenang_berkontrak()
+
+        self.assertEqual(None, pemenang_kontrak)
+
+
+class TestLpseDetailKosongNonTender(unittest.TestCase):
+
+    def setUp(self):
+        host = 'http://lpse.padang.go.id'
+
+        lpse = Lpse(host)
+        paket = lpse.get_paket_non_tender(start=0, length=1)['data']
+        self.detil = lpse.detil_paket_non_tender(paket[0][0])
+
+    def test_hasil_evaluasi(self):
+        hasil_evaluasi = self.detil.get_hasil_evaluasi()
+
+        for row in hasil_evaluasi:
+            for key in ['no', 'nama_peserta', 'npwp']:
+                self.assertEqual(key in row, True)
+
+    def test_pemenang(self):
+        pemenang = self.detil.get_pemenang()
+
+        self.assertEqual(None, pemenang)
+
+    def test_pemenang_berkontrak(self):
+        pemenang_berkontrak = self.detil.get_pemenang_berkontrak()
+
+        self.assertEqual(None, pemenang_berkontrak)
 
 
 if __name__ == '__main__':
