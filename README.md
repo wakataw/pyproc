@@ -18,6 +18,14 @@ Pemasangan PyProc langsung melalui repository:
 pip install git+https://gitlab.com/wakataw/pyproc.git
 ```
 
+## Testing
+
+Anda bisa menjalankan beberapa Test Case untuk memastikan semua fungsi berjalan dengan baik
+
+```bash
+python -m tests.test_lpse
+```
+
 ## Penggunaan
 
 Untuk dapat menggunakan PyProc, anda harus mengimpornya terlebih dahulu dan menginisiasi objek `Lpse`
