@@ -422,6 +422,9 @@ class LpseDetilHasilEvaluasiParser(BaseLpseDetilParser):
         table = soup.find('div', {'class': 'content'})\
             .find('table', {'class': 'table-condensed'})
 
+        if not table:
+            return
+
         is_header = True
         header = []
         data = []
@@ -560,7 +563,7 @@ class LpseDetilPemenangNonTenderParser(BaseLpseDetilParser):
         if table_pemenang:
             data = dict([(key, value) for key, value in self._parse_table_pemenang(table_pemenang)])
 
-            return data
+            return None if not data else data
 
         return
 
