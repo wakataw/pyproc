@@ -389,7 +389,10 @@ class LpseDetilPengumumanParser(BaseLpseDetilParser):
         for row in raw_data[1:]:
             data.update(zip(header, row))
 
-        data.pop('')
+        try:
+            data.pop('')
+        except KeyError:
+            pass
 
         return data
 
