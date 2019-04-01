@@ -34,6 +34,9 @@ setup(
         'BeautifulSoup4',
         'html5lib'
     ],
+    entry_points={
+        'console_scripts': ['pyproc=scripts.downloader:main']
+    },
     project_urls={
         'Bug Reports': 'https://gitlab.com/wakataw/pyproc/issues',
         'Source': 'https://gitlab.com/wakataw/pyproc'
