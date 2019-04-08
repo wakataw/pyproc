@@ -1,12 +1,12 @@
-from abc import abstractmethod
-
 import bs4
 import requests
 import re
 
-from bs4 import BeautifulSoup as Bs
+from bs4 import BeautifulSoup as Bs, NavigableString
 from .exceptions import LpseVersionException, LpseHostExceptions
 from enum import Enum
+from abc import abstractmethod
+from urllib.parse import urlparse
 
 
 class By(Enum):
@@ -23,18 +23,33 @@ class Lpse(object):
     def __init__(self, host):
         self.session = requests.session()
         self.session.verify = False
-        self.update_info(host)
+        self.host = host
 
-    def update_info(self, url):
+        self._check_host()
+        self.update_info()
+
+    def _check_host(self):
+        parsed_url = urlparse(self.host)
+
+        scheme = parsed_url.scheme
+        netloc = parsed_url.netloc
+
+        if parsed_url.scheme == '':
+            scheme = 'http'
+            netloc = parsed_url.path
+
+        self.host = '{}://{}'.format(scheme, netloc)
+
+    def update_info(self):
         """
         Update Informasi mengenai versi SPSE dan waktu update data terakhir
         :param url: url LPSE
         :return:
         """
-        r = self.session.get(url, verify=False)
+        r = self.session.get(self.host, verify=False)
 
         if not self._is_spse(r.text):
-            raise LpseHostExceptions("{} sepertinya bukan aplikasi SPSE".format(url))
+            raise LpseHostExceptions("{} sepertinya bukan aplikasi SPSE".format(self.host))
 
         footer = Bs(r.content, 'html5lib').find('div', {'id': 'footer'}).text.strip()
 
@@ -381,7 +396,7 @@ class LpseDetilPengumumanParser(BaseLpseDetilParser):
     def parse_rup(self, tbody_rup):
         raw_data = []
         for tr in tbody_rup.find_all('tr', recursive=False):
-            raw_data.append([' '.join(i.text.strip().split()) for i in tr.children])
+            raw_data.append([' '.join(i.text.strip().split()) for i in tr.children if not isinstance(i, NavigableString)])
 
         header = ['_'.join(i.split()).lower() for i in raw_data[0]]
         data = {}
@@ -389,7 +404,10 @@ class LpseDetilPengumumanParser(BaseLpseDetilParser):
         for row in raw_data[1:]:
             data.update(zip(header, row))
 
-        data.pop('')
+        try:
+            data.pop('')
+        except KeyError:
+            pass
 
         return data
 
@@ -499,6 +517,9 @@ class LpseDetilPemenangParser(BaseLpseDetilParser):
             if header and data:
                 pemenang = dict()
                 for i, v in zip(header, data):
+                    if 'reverse_auction' in i:
+                        i = 'hasil_negosiasi'
+
                     pemenang[i] = self.parse_currency(v) if v.lower().startswith('rp') else v
 
                 return pemenang
