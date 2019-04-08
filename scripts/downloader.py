@@ -1,9 +1,12 @@
 import csv
+import glob
 import json
 import re
 import os
 import argparse
 from datetime import datetime
+from shutil import copyfile, rmtree
+
 from pyproc import Lpse
 from math import ceil
 from urllib3.exceptions import InsecureRequestWarning
@@ -19,7 +22,6 @@ INFO = '''
 /_/    \__, /_/   /_/   \____/\___/  
       /____/ v{}                        
 SPSE V.4 Downloader
-
 '''.format(VERSION)
 
 FOLDER_NAME = None
@@ -33,8 +35,52 @@ def write_error(error_message):
 
 
 def combine_data():
-    # TODO: Gabungkan detil hasi download
     global FOLDER_NAME
+
+    detil_dir = os.path.join(FOLDER_NAME, 'detil', '*')
+    detil_combined = os.path.join(FOLDER_NAME, 'detil.dat')
+    detil_all = glob.glob(detil_dir)
+
+    pengumuman_keys = {
+        'id_paket': None,
+        'kode_tender': None,
+        'nama_tender': None,
+        'tanggal_pembuatan': None,
+        'keterangan': None,
+        'tahap_tender_saat_ini': None,
+        'instansi': None,
+        'satuan_kerja': None,
+        'kategori': None,
+        'sistem_pengadaan': None,
+        'tahun_anggaran': None,
+        'nilai_pagu_paket': None,
+        'nilai_hps_paket': None,
+        'lokasi_pekerjaan': None,
+        'peserta_tender': None,
+        'npwp': None,
+        'nama_pemenang': None,
+        'alamat': None,
+        'harga_penawaran': None,
+        'harga_terkoreksi': None,
+        'hasil_negosiasi': None,
+    }
+
+    with open(detil_combined, 'w') as csvf:
+        writer = csv.DictWriter(csvf, fieldnames=pengumuman_keys.keys())
+
+        writer.writeheader()
+
+        for detil_file in detil_all:
+            detil = pengumuman_keys.copy()
+            with open(detil_file, 'r') as f:
+                data = json.loads(f.read())
+
+            detil['id_paket'] = data['id_paket']
+            detil.update((k, data['pengumuman'][k]) for k in detil.keys() & data['pengumuman'].keys())
+            detil.update((k, data['pemenang'][k]) for k in detil.keys() & data['pemenang'].keys())
+            detil['lokasi_pekerjaan'] = ', '.join(detil['lokasi_pekerjaan'])
+
+            writer.writerow(detil)
 
 
 def download(host, detil, tahun_stop, fetch_size=30):
@@ -42,7 +88,6 @@ def download(host, detil, tahun_stop, fetch_size=30):
 
     lpse = Lpse(host)
 
-    # buat folder download
     FOLDER_NAME = urlparse(lpse.host).netloc.lower().replace('.', '_')
     os.makedirs(FOLDER_NAME, exist_ok=True)
 
@@ -50,7 +95,7 @@ def download(host, detil, tahun_stop, fetch_size=30):
     batch_size = int(ceil(total_data / fetch_size))
     list_id_paket = []
 
-    with open(os.path.join(FOLDER_NAME, 'index.csv'), 'w', newline='') as f:
+    with open(os.path.join(FOLDER_NAME, 'index.dat'), 'w', newline='') as f:
         print("> Download Daftar Paket")
         csv_writer = csv.writer(f, delimiter='|', quoting=csv.QUOTE_ALL)
         stop = False
@@ -116,17 +161,23 @@ def download(host, detil, tahun_stop, fetch_size=30):
         print("")
         print("Download selesai..")
 
+        print("")
+        print("> Menggabungkan Data")
+        combine_data()
+        print("OK")
+
 
 def main():
     print(INFO)
     disable_warnings(InsecureRequestWarning)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("host")
+    parser.add_argument("host", help="Alamat Website LPSE")
     parser.add_argument("--fetch-size", help="Jumlah row yang didownload per halaman", default=30, type=int)
     parser.add_argument("--simple", help="Download Paket LPSE tanpa detil dan pemenang", action="store_true")
     parser.add_argument("--batas-tahun", help="Batas tahun anggaran untuk didownload", default=0, type=int)
     parser.add_argument("--all", help="Download Data LPSE semua tahun anggaran", action="store_true")
+    parser.add_argument("--keep", help="Tidak menghapus folder cache", action="store_true")
 
     detil = True
     batas_tahun = datetime.now().year
@@ -145,5 +196,16 @@ def main():
     try:
         download(host=args.host, detil=detil, fetch_size=args.fetch_size, tahun_stop=batas_tahun)
     except Exception as e:
-        print(e)
+        print("")
+        print("ERROR: ", e)
         exit(1)
+
+    if args.simple:
+        result = 'index.dat'
+    else:
+        result = 'detil.dat'
+
+    copyfile(os.path.join(FOLDER_NAME, result), FOLDER_NAME + '.csv')
+
+    if not args.keep:
+        rmtree(FOLDER_NAME)
