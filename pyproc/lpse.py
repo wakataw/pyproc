@@ -517,6 +517,9 @@ class LpseDetilPemenangParser(BaseLpseDetilParser):
             if header and data:
                 pemenang = dict()
                 for i, v in zip(header, data):
+                    if 'reverse_auction' in i:
+                        i = 'hasil_negosiasi'
+
                     pemenang[i] = self.parse_currency(v) if v.lower().startswith('rp') else v
 
                 return pemenang
