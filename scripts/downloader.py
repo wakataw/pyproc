@@ -77,7 +77,8 @@ def combine_data():
 
             detil['id_paket'] = data['id_paket']
             detil.update((k, data['pengumuman'][k]) for k in detil.keys() & data['pengumuman'].keys())
-            detil.update((k, data['pemenang'][k]) for k in detil.keys() & data['pemenang'].keys())
+            if data['pemenang']:
+                detil.update((k, data['pemenang'][k]) for k in detil.keys() & data['pemenang'].keys())
             detil['lokasi_pekerjaan'] = ', '.join(detil['lokasi_pekerjaan'])
 
             writer.writerow(detil)
