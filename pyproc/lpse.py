@@ -2,11 +2,12 @@ import bs4
 import requests
 import re
 
-from bs4 import BeautifulSoup as Bs
+from bs4 import BeautifulSoup as Bs, NavigableString
 from .exceptions import LpseVersionException, LpseHostExceptions
 from enum import Enum
 from abc import abstractmethod
 from urllib.parse import urlparse
+
 
 class By(Enum):
     KODE = 0
@@ -395,7 +396,7 @@ class LpseDetilPengumumanParser(BaseLpseDetilParser):
     def parse_rup(self, tbody_rup):
         raw_data = []
         for tr in tbody_rup.find_all('tr', recursive=False):
-            raw_data.append([' '.join(i.text.strip().split()) for i in tr.children])
+            raw_data.append([' '.join(i.text.strip().split()) for i in tr.children if not isinstance(i, NavigableString)])
 
         header = ['_'.join(i.split()).lower() for i in raw_data[0]]
         data = {}
