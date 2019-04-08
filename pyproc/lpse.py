@@ -1,5 +1,3 @@
-from abc import abstractmethod
-
 import bs4
 import requests
 import re
@@ -7,7 +5,8 @@ import re
 from bs4 import BeautifulSoup as Bs
 from .exceptions import LpseVersionException, LpseHostExceptions
 from enum import Enum
-
+from abc import abstractmethod
+from urllib.parse import urlparse
 
 class By(Enum):
     KODE = 0
@@ -23,15 +22,30 @@ class Lpse(object):
     def __init__(self, host):
         self.session = requests.session()
         self.session.verify = False
-        self.update_info(host)
+        self.host = host
 
-    def update_info(self, url):
+        self._check_host()
+        self.update_info()
+
+    def _check_host(self):
+        parsed_url = urlparse(self.host)
+
+        scheme = parsed_url.scheme
+        netloc = parsed_url.netloc
+
+        if parsed_url.scheme == '':
+            scheme = 'http'
+            netloc = parsed_url.path
+
+        self.host = '{}://{}'.format(scheme, netloc)
+
+    def update_info(self):
         """
         Update Informasi mengenai versi SPSE dan waktu update data terakhir
         :param url: url LPSE
         :return:
         """
-        r = self.session.get(url, verify=False)
+        r = self.session.get(self.host, verify=False)
 
         if not self._is_spse(r.text):
             raise LpseHostExceptions("{} sepertinya bukan aplikasi SPSE".format(url))

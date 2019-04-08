@@ -216,6 +216,13 @@ class TestPaketNonTender(unittest.TestCase):
 
 class TestLpseHostError(unittest.TestCase):
 
+    def test_host_without_scheme(self):
+        host = 'lpse.pu.go.id'
+        lpse = Lpse(host)
+
+        self.assertEqual(lpse.host.startswith('http'), True)
+        self.assertEqual(True, host in lpse.host)
+
     def test_host_error(self):
         host = 'http://www.pajak.go.id'
 
