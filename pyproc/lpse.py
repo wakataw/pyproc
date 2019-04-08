@@ -49,7 +49,7 @@ class Lpse(object):
         r = self.session.get(self.host, verify=False)
 
         if not self._is_spse(r.text):
-            raise LpseHostExceptions("{} sepertinya bukan aplikasi SPSE".format(url))
+            raise LpseHostExceptions("{} sepertinya bukan aplikasi SPSE".format(self.host))
 
         footer = Bs(r.content, 'html5lib').find('div', {'id': 'footer'}).text.strip()
 
