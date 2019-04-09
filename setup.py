@@ -10,7 +10,7 @@ with open(path.join(BASE_DIR, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 if os.environ['CI_JOB_STAGE'] == 'deploy':
-    version = os.environ['CI_COMMIT_TAG']
+    version = os.environ['CI_COMMIT_TAG'].strip('v')
 else:
     version = os.environ['PYPROC_VERSION'] + os.environ['CI_JOB_ID']
 
