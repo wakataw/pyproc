@@ -13,11 +13,6 @@ Pemasangan PyProc via `pip`:
 pip install pyproc
 ```
 
-Pemasangan PyProc langsung melalui repository:
-```bash
-pip install git+https://gitlab.com/wakataw/pyproc.git
-```
-
 ## Testing
 
 Anda bisa menjalankan beberapa Test Case untuk memastikan semua fungsi berjalan dengan baik
