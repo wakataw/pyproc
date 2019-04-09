@@ -8,13 +8,13 @@ import time
 from datetime import datetime, timedelta
 from shutil import copyfile, rmtree
 
-from pyproc import Lpse
+from pyproc import Lpse,  __version__
 from math import ceil
 from urllib3.exceptions import InsecureRequestWarning
 from urllib3 import disable_warnings
 from urllib.parse import urlparse
 
-VERSION = '0.1b1'
+VERSION = __version__
 INFO = '''
     ____        ____                 
    / __ \__  __/ __ \_________  _____

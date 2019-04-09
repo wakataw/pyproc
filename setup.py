@@ -24,7 +24,7 @@ setup(
     author='Agung Pratama',
     author_email='agungpratama1001@gmail.com',
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content :: CGI Tools/Libraries',
         'Topic :: Software Development :: Libraries :: Python Modules',
