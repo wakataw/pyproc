@@ -4,7 +4,8 @@ import json
 import re
 import os
 import argparse
-from datetime import datetime
+import time
+from datetime import datetime, timedelta
 from shutil import copyfile, rmtree
 
 from pyproc import Lpse
@@ -80,7 +81,7 @@ def combine_data():
             if data['pemenang']:
                 detil.update((k, data['pemenang'][k]) for k in detil.keys() & data['pemenang'].keys())
 
-            detil['lokasi_pekerjaan'] = ', '.join(detil['lokasi_pekerjaan'])
+            detil['lokasi_pekerjaan'] = ' || '.join(detil['lokasi_pekerjaan'])
             detil['tahap_tender_saat_ini'] = detil['tahap_tender_saat_ini'].strip(r' [...]')
 
             writer.writerow(detil)
@@ -90,6 +91,12 @@ def download(host, detil, tahun_stop, fetch_size=30, pool_size=4):
     global FOLDER_NAME
 
     lpse_pool = [Lpse(host)]*pool_size
+
+    print(lpse_pool[0].host)
+    print("="*len(lpse_pool[0].host))
+    print("Versi SPSE  : ", lpse_pool[0].version)
+    print("Last Update : ", lpse_pool[0].last_update or None)
+    print("")
 
     FOLDER_NAME = urlparse(lpse_pool[0].host).netloc.lower().replace('.', '_')
     os.makedirs(FOLDER_NAME, exist_ok=True)
@@ -143,6 +150,8 @@ def download(host, detil, tahun_stop, fetch_size=30, pool_size=4):
         total = len(list_id_paket)
         current = 0
 
+        start_time = time.time()
+
         for id_paket in list_id_paket:
             lpse = lpse_pool[current % pool_size]
             current += 1
@@ -161,7 +170,9 @@ def download(host, detil, tahun_stop, fetch_size=30, pool_size=4):
             with open(os.path.join(detil_dir, str(id_paket)), 'w', encoding='utf8') as f:
                 f.write(json.dumps(detil_paket.todict()))
 
-            print("{} of {}".format(current, total), end='\r')
+            est_time = timedelta(seconds=int((time.time() - start_time) / current * (total - current)))
+
+            print("{} of {} (est {})".format(current, total, est_time), end='\r')
 
         print("")
         print("Download selesai..")
@@ -200,6 +211,10 @@ def main():
 
     try:
         download(host=args.host, detil=detil, fetch_size=args.fetch_size, tahun_stop=batas_tahun)
+    except KeyboardInterrupt:
+        print("")
+        print("INFO: Proses dibatalkan oleh user, bye!")
+        exit(1)
     except Exception as e:
         print("")
         print("ERROR: ", e)
