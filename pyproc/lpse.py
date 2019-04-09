@@ -17,14 +17,13 @@ class By(Enum):
 
 
 class Lpse(object):
-    version = None
-    last_update = None
-    host = None
 
     def __init__(self, host):
         self.session = requests.session()
         self.session.verify = False
         self.host = host
+        self.version = None
+        self.last_update = None
 
         self._check_host()
         self.update_info()
@@ -206,16 +205,16 @@ class Lpse(object):
 
 
 class LpseDetil(object):
-    pengumuman = None
-    peserta = None
-    hasil = None
-    pemenang = None
-    pemenang_berkontrak = None
-    jadwal = None
 
     def __init__(self, lpse, id_paket):
         self._lpse = lpse
         self.id_paket = id_paket
+        self.pengumuman = None
+        self.peserta = None
+        self.hasil = None
+        self.pemenang = None
+        self.pemenang_berkontrak = None
+        self.jadwal = None
 
     def get_all_detil(self):
         self.get_pengumuman()
@@ -265,16 +264,16 @@ class LpseDetil(object):
 
 
 class LpseDetilNonTender(object):
-    pengumuman = None
-    peserta = None
-    hasil = None
-    pemenang = None
-    pemenang_berkontrak = None
-    jadwal = None
 
     def __init__(self, lpse, id_paket):
         self._lpse = lpse
         self.id_paket = id_paket
+        self.pengumuman = None
+        self.peserta = None
+        self.hasil = None
+        self.pemenang = None
+        self.pemenang_berkontrak = None
+        self.jadwal = None
 
     def get_all_detil(self):
         self.get_pengumuman()
