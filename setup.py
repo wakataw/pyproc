@@ -12,7 +12,7 @@ with open(path.join(BASE_DIR, 'README.md'), encoding='utf-8') as f:
 if os.environ['CI_JOB_STAGE'] == 'deploy':
     version = os.environ['CI_COMMIT_TAG']
 else:
-    version = os.environ['PYPROC_VERSION'] + 'build' + os.environ['CI_JOB_ID']
+    version = os.environ['PYPROC_VERSION'] + os.environ['CI_JOB_ID']
 
 setup(
     name='pyproc',
