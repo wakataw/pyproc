@@ -98,7 +98,7 @@ def download(host, detil, tahun_stop, fetch_size=30, pool_size=4):
     batch_size = int(ceil(total_data / fetch_size))
     list_id_paket = []
 
-    with open(os.path.join(FOLDER_NAME, 'index.dat'), 'w', newline='') as f:
+    with open(os.path.join(FOLDER_NAME, 'index.dat'), 'w', newline='', encoding='utf8') as f:
         print("> Download Daftar Paket")
         csv_writer = csv.writer(f, delimiter='|', quoting=csv.QUOTE_ALL)
         stop = False
@@ -158,7 +158,7 @@ def download(host, detil, tahun_stop, fetch_size=30, pool_size=4):
             except Exception as e:
                 write_error('{}|pemenang|{}'.format(id_paket, str(e)))
 
-            with open(os.path.join(detil_dir, str(id_paket)), 'w') as f:
+            with open(os.path.join(detil_dir, str(id_paket)), 'w', encoding='utf8') as f:
                 f.write(json.dumps(detil_paket.todict()))
 
             print("{} of {}".format(current, total), end='\r')
