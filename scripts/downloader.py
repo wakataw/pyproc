@@ -14,7 +14,7 @@ from urllib3.exceptions import InsecureRequestWarning
 from urllib3 import disable_warnings
 from urllib.parse import urlparse
 
-VERSION = '0.1b'
+VERSION = '0.1b1'
 INFO = '''
     ____        ____                 
    / __ \__  __/ __ \_________  _____
