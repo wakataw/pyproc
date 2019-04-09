@@ -18,6 +18,7 @@ class By(Enum):
 
 class Lpse(object):
     version = None
+    last_update = None
     host = None
 
     def __init__(self, host):
