@@ -30,7 +30,7 @@ python -m tests.test_lpse
 
 ```bash
 usage: pyproc [-h] [--fetch-size FETCH_SIZE] [--batas-tahun BATAS_TAHUN] 
-              [--simple] [--all] [--keep]
+              [--simple] [--all] [--keep] [--non-tender]
               host
 
 ```
@@ -45,6 +45,7 @@ argumen | diperlukan | keterangan
 `--simple` | optional, default `false` | Hanya download daftar paket lelang (tanpa detil pengumuman dan pemenang)
 `--all` | optional, default `false` | Secara default, `pyproc` hanya mendownload data tahun berjalan atau sampai dengan batas tahun tertentu apabila argumen `--batas-tahun` digunakan. Untuk mendownload semua tahun anggaran, gunakan `--all`
 `--keep` | optional, default `false` | saat download berjalan, `pyproc` akan membentuk sebuah folder yang digunakan sebagai *working directory* dan akan dihapus jika proses download telah selesai. Gunakan argumen `--keep` apabila tidak ingin menghapus *working directory* `pyproc`.
+`--non-tender` | optional, default `false` | Download paket non tender
 
 **Contoh**
 
@@ -61,6 +62,11 @@ $ pyproc --batas-tahun 2017 lpse.pu.go.id
 Download daftar paket lelang tanpa detil untuk semua tahun anggaran, dengan fetch size 20 row per halaman, dan tidak menghapus *working directory*
 ```bash
 $ pyproc --all --simple --fetch-size 20 --keep lpse.pu.go.id 
+```
+
+Download paket pengadaan non tender (penunjukkan langsung)
+```bash
+$ pyproc --all --non-tender lpse.jakarta.go.id
 ```
 
 ## Penggunaan PyProc Sebagai Package
