@@ -86,15 +86,15 @@ def combine_data():
             writer.writerow(detil)
 
 
-def download(host, detil, tahun_stop, fetch_size=30):
+def download(host, detil, tahun_stop, fetch_size=30, pool_size=4):
     global FOLDER_NAME
 
-    lpse = Lpse(host)
+    lpse_pool = [Lpse(host)]*pool_size
 
-    FOLDER_NAME = urlparse(lpse.host).netloc.lower().replace('.', '_')
+    FOLDER_NAME = urlparse(lpse_pool[0].host).netloc.lower().replace('.', '_')
     os.makedirs(FOLDER_NAME, exist_ok=True)
 
-    total_data = lpse.get_paket_tender()['recordsTotal']
+    total_data = lpse_pool[0].get_paket_tender()['recordsTotal']
     batch_size = int(ceil(total_data / fetch_size))
     list_id_paket = []
 
@@ -104,6 +104,7 @@ def download(host, detil, tahun_stop, fetch_size=30):
         stop = False
 
         for page in range(batch_size):
+            lpse = lpse_pool[page % pool_size]
 
             print("Batch {} of {}".format(page+1, batch_size), end='\r')
             data = lpse.get_paket_tender(start=page*fetch_size, length=fetch_size, data_only=True)
@@ -143,6 +144,7 @@ def download(host, detil, tahun_stop, fetch_size=30):
         current = 0
 
         for id_paket in list_id_paket:
+            lpse = lpse_pool[current % pool_size]
             current += 1
             detil_paket = lpse.detil_paket_tender(id_paket=id_paket)
 
