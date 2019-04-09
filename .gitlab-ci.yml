@@ -1,0 +1,45 @@
+image: python:latest
+
+stages:
+  - build
+  - test
+  - deploy
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+cache:
+  paths:
+    - .cache/pip
+    - venv/
+
+before_script:
+  - python -V
+  - pip install virtualenv
+  - virtualenv venv
+  - source venv/bin/activate
+  - pip install twine
+
+build:
+  stage: build
+  script:
+    - python setup.py sdist
+    - pip install . --upgrade --force-reinstall
+  artifacts:
+    paths:
+      - dist/*.tar.gz
+
+test:
+  stage: test
+  script:
+    - python setup.py test
+
+deploy_production:
+  stage: deploy
+  variables:
+    TWINE_USERNAME: $PYPI_USERNAME
+    TWINE_PASSWORD: $PYPI_PASSWORD
+  script:
+    - twine upload dist/* --verbose
+  only:
+    - tags
