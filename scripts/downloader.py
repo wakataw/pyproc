@@ -35,12 +35,33 @@ def write_error(error_message):
         f.write('\n')
 
 
-def combine_data():
+def combine_data(tender=True):
     global FOLDER_NAME
 
     detil_dir = os.path.join(FOLDER_NAME, 'detil', '*')
     detil_combined = os.path.join(FOLDER_NAME, 'detil.dat')
     detil_all = glob.glob(detil_dir)
+
+    pengumuman_nontender_keys = {
+        'id_paket': None,
+        'kode_paket': None,
+        'nama_paket': None,
+        'tanggal_pembuatan': None,
+        'keterangan': None,
+        'tahap_paket_saat_ini': None,
+        'instansi': None,
+        'satuan_kerja': None,
+        'kategori': None,
+        'metode_pengadaan': None,
+        'tahun_anggaran': None,
+        'nilai_pagu_paket': None,
+        'nilai_hps_paket': None,
+        'lokasi_pekerjaan': None,
+        'npwp': None,
+        'nama_pemenang': None,
+        'alamat': None,
+        'hasil_negosiasi': None,
+    }
 
     pengumuman_keys = {
         'id_paket': None,
@@ -57,7 +78,6 @@ def combine_data():
         'nilai_pagu_paket': None,
         'nilai_hps_paket': None,
         'lokasi_pekerjaan': None,
-        'peserta_tender': None,
         'npwp': None,
         'nama_pemenang': None,
         'alamat': None,
@@ -67,29 +87,39 @@ def combine_data():
     }
 
     with open(detil_combined, 'w') as csvf:
-        writer = csv.DictWriter(csvf, fieldnames=pengumuman_keys.keys())
+        writer = csv.DictWriter(csvf, fieldnames=pengumuman_keys.keys() if tender else pengumuman_nontender_keys.keys())
 
         writer.writeheader()
 
         for detil_file in detil_all:
-            detil = pengumuman_keys.copy()
+            detil = pengumuman_keys.copy() if tender else pengumuman_nontender_keys.copy()
+
             with open(detil_file, 'r') as f:
                 data = json.loads(f.read())
 
             detil['id_paket'] = data['id_paket']
             detil.update((k, data['pengumuman'][k]) for k in detil.keys() & data['pengumuman'].keys())
+
             if data['pemenang']:
                 detil.update((k, data['pemenang'][k]) for k in detil.keys() & data['pemenang'].keys())
 
             detil['lokasi_pekerjaan'] = ' || '.join(detil['lokasi_pekerjaan'])
-            detil['tahap_tender_saat_ini'] = detil['tahap_tender_saat_ini'].strip(r' [...]')
+
+            if tender:
+                tahap = 'tahap_tender_saat_ini'
+            else:
+                tahap = 'tahap_paket_saat_ini'
+
+            if detil[tahap]:
+                detil[tahap] = detil[tahap].strip(r' [...]')
 
             writer.writerow(detil)
 
 
-def download(host, detil, tahun_stop, fetch_size=30, pool_size=4):
+def download(host, detil, tahun_stop, fetch_size=30, pool_size=4, tender=True):
     global FOLDER_NAME
 
+    jenis = 'tender' if tender else 'non_tender'
     lpse_pool = [Lpse(host)]*pool_size
 
     print(lpse_pool[0].host)
@@ -98,10 +128,14 @@ def download(host, detil, tahun_stop, fetch_size=30, pool_size=4):
     print("Last Update : ", lpse_pool[0].last_update or None)
     print("")
 
-    FOLDER_NAME = urlparse(lpse_pool[0].host).netloc.lower().replace('.', '_')
+    FOLDER_NAME = urlparse(lpse_pool[0].host).netloc.lower().replace('.', '_') + '_' + jenis
     os.makedirs(FOLDER_NAME, exist_ok=True)
 
-    total_data = lpse_pool[0].get_paket_tender()['recordsTotal']
+    if tender:
+        total_data = lpse_pool[0].get_paket_tender()['recordsTotal']
+    else:
+        total_data = lpse_pool[0].get_paket_non_tender()['recordsTotal']
+
     batch_size = int(ceil(total_data / fetch_size))
     list_id_paket = []
 
@@ -114,11 +148,15 @@ def download(host, detil, tahun_stop, fetch_size=30, pool_size=4):
             lpse = lpse_pool[page % pool_size]
 
             print("Batch {} of {}".format(page+1, batch_size), end='\r')
-            data = lpse.get_paket_tender(start=page*fetch_size, length=fetch_size, data_only=True)
+
+            if tender:
+                data = lpse.get_paket_tender(start=page*fetch_size, length=fetch_size, data_only=True)
+            else:
+                data = lpse.get_paket_non_tender(start=page*fetch_size, length=fetch_size, data_only=True)
 
             for row in data:
 
-                ta = re.findall(r'TA (\d+)', row[8])
+                ta = re.findall(r'(20\d{2})', row[8] if tender else row[6])
 
                 if ta and tahun_stop is not None:
                     ta.sort(reverse=True)
@@ -155,7 +193,10 @@ def download(host, detil, tahun_stop, fetch_size=30, pool_size=4):
         for id_paket in list_id_paket:
             lpse = lpse_pool[current % pool_size]
             current += 1
-            detil_paket = lpse.detil_paket_tender(id_paket=id_paket)
+            if tender:
+                detil_paket = lpse.detil_paket_tender(id_paket=id_paket)
+            else:
+                detil_paket = lpse.detil_paket_non_tender(id_paket=id_paket)
 
             try:
                 detil_paket.get_pengumuman()
@@ -179,7 +220,7 @@ def download(host, detil, tahun_stop, fetch_size=30, pool_size=4):
 
         print("")
         print("> Menggabungkan Data")
-        combine_data()
+        combine_data(tender=tender)
         print("OK")
 
 
@@ -194,11 +235,12 @@ def main():
     parser.add_argument("--batas-tahun", help="Batas tahun anggaran untuk didownload", default=0, type=int)
     parser.add_argument("--all", help="Download Data LPSE semua tahun anggaran", action="store_true")
     parser.add_argument("--keep", help="Tidak menghapus folder cache", action="store_true")
+    parser.add_argument("--non-tender", help="Download paket non tender (penunjukkan langsung)", action="store_true")
 
     detil = True
     batas_tahun = datetime.now().year
-
     args = parser.parse_args()
+    tender = False if args.non_tender else True
 
     if args.batas_tahun > 0:
         batas_tahun = args.batas_tahun
@@ -210,7 +252,7 @@ def main():
         batas_tahun = None
 
     try:
-        download(host=args.host, detil=detil, fetch_size=args.fetch_size, tahun_stop=batas_tahun)
+        download(host=args.host, detil=detil, fetch_size=args.fetch_size, tahun_stop=batas_tahun, tender=tender)
     except KeyboardInterrupt:
         print("")
         print("INFO: Proses dibatalkan oleh user, bye!")
