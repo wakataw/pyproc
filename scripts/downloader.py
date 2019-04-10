@@ -4,10 +4,11 @@ import json
 import re
 import os
 import argparse
-import time
-from datetime import datetime, timedelta
-from shutil import copyfile, rmtree
+import threading
 
+from datetime import datetime
+from shutil import copyfile, rmtree
+from queue import Queue
 from pyproc import Lpse,  __version__
 from math import ceil
 from urllib3.exceptions import InsecureRequestWarning
@@ -98,7 +99,9 @@ def combine_data(tender=True):
                 data = json.loads(f.read())
 
             detil['id_paket'] = data['id_paket']
-            detil.update((k, data['pengumuman'][k]) for k in detil.keys() & data['pengumuman'].keys())
+
+            if data['pengumuman']:
+                detil.update((k, data['pengumuman'][k]) for k in detil.keys() & data['pengumuman'].keys())
 
             if data['pemenang']:
                 detil.update((k, data['pemenang'][k]) for k in detil.keys() & data['pemenang'].keys())
@@ -116,8 +119,62 @@ def combine_data(tender=True):
             writer.writerow(detil)
 
 
+downloaded_detil = 0
+total_detil = 0
+
+
+def run_detil(lpse, list_paket, tender, detil_dir, workers=8):
+    lock = threading.Lock()
+    q = Queue()
+
+    os.makedirs(detil_dir, exist_ok=True)
+
+    def get_detil(id_paket):
+        global downloaded_detil
+        global total_detil
+        if tender:
+            detil_paket = lpse.detil_paket_tender(id_paket=id_paket)
+        else:
+            detil_paket = lpse.detil_paket_non_tender(id_paket=id_paket)
+
+        try:
+            detil_paket.get_pengumuman()
+        except Exception as e:
+            with lock:
+                write_error('{}|pengumuman|{}'.format(id_paket, str(e)))
+
+        try:
+            detil_paket.get_pemenang()
+        except Exception as e:
+            with lock:
+                write_error('{}|pemenang|{}'.format(id_paket, str(e)))
+
+        with lock:
+            downloaded_detil += 1
+            with open(os.path.join(detil_dir, str(id_paket)), 'w', encoding='utf8') as f:
+                f.write(json.dumps(detil_paket.todict()))
+
+            print("{} of {} downloaded".format(downloaded_detil, total_detil), end='\r')
+
+    def worker():
+        while True:
+            id_paket = q.get()
+            get_detil(id_paket)
+            q.task_done()
+
+    for x in range(workers):
+        t = threading.Thread(target=worker, daemon=True)
+        t.start()
+
+    for id_paket in list_paket:
+        q.put(id_paket)
+
+    q.join()
+
+
 def download(host, detil, tahun_stop, fetch_size=30, pool_size=4, tender=True):
     global FOLDER_NAME
+    global total_detil
 
     jenis = 'tender' if tender else 'non_tender'
     lpse_pool = [Lpse(host)]*pool_size
@@ -179,41 +236,11 @@ def download(host, detil, tahun_stop, fetch_size=30, pool_size=4, tender=True):
         print("Download selesai..")
 
     if detil:
+        total_detil = len(list_id_paket)
         print("")
         print("> Download Detil")
 
-        detil_dir = os.path.join(FOLDER_NAME, 'detil')
-        os.makedirs(detil_dir, exist_ok=True)
-
-        total = len(list_id_paket)
-        current = 0
-
-        start_time = time.time()
-
-        for id_paket in list_id_paket:
-            lpse = lpse_pool[current % pool_size]
-            current += 1
-            if tender:
-                detil_paket = lpse.detil_paket_tender(id_paket=id_paket)
-            else:
-                detil_paket = lpse.detil_paket_non_tender(id_paket=id_paket)
-
-            try:
-                detil_paket.get_pengumuman()
-            except Exception as e:
-                write_error('{}|pengumuman|{}'.format(id_paket, str(e)))
-
-            try:
-                detil_paket.get_pemenang()
-            except Exception as e:
-                write_error('{}|pemenang|{}'.format(id_paket, str(e)))
-
-            with open(os.path.join(detil_dir, str(id_paket)), 'w', encoding='utf8') as f:
-                f.write(json.dumps(detil_paket.todict()))
-
-            est_time = timedelta(seconds=int((time.time() - start_time) / current * (total - current)))
-
-            print("{} of {} (est {})".format(current, total, est_time), end='\r')
+        run_detil(lpse_pool[0], list_id_paket, tender, os.path.join(FOLDER_NAME, 'detil'))
 
         print("")
         print("Download selesai..")
@@ -233,6 +260,7 @@ def main():
     parser.add_argument("--fetch-size", help="Jumlah row yang didownload per halaman", default=30, type=int)
     parser.add_argument("--simple", help="Download Paket LPSE tanpa detil dan pemenang", action="store_true")
     parser.add_argument("--batas-tahun", help="Batas tahun anggaran untuk didownload", default=0, type=int)
+    parser.add_argument("--workers", help="Jumlah worker untuk download detil paket", default=8, type=int)
     parser.add_argument("--all", help="Download Data LPSE semua tahun anggaran", action="store_true")
     parser.add_argument("--keep", help="Tidak menghapus folder cache", action="store_true")
     parser.add_argument("--non-tender", help="Download paket non tender (penunjukkan langsung)", action="store_true")
