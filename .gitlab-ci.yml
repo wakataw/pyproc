@@ -23,6 +23,7 @@ before_script:
 build:
   stage: build
   script:
+    - rm -rf ./dist
     - python setup.py sdist
     - pip install . --upgrade --force-reinstall
   artifacts:
@@ -32,15 +33,14 @@ build:
 test:
   stage: test
   script:
-    - python setup.py test
+  - python setup.py test
 
 deploy_production:
   stage: deploy
   variables:
-    CI_JOB_STAGE: "deploy"
     TWINE_USERNAME: $PYPI_USERNAME
     TWINE_PASSWORD: $PYPI_PASSWORD
   script:
-    - twine upload dist/* --verbose
+    - twine upload dist/*
   only:
     - tags
