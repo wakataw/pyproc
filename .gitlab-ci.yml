@@ -37,6 +37,7 @@ test:
 deploy_production:
   stage: deploy
   variables:
+    CI_JOB_STAGE: "deploy"
     TWINE_USERNAME: $PYPI_USERNAME
     TWINE_PASSWORD: $PYPI_PASSWORD
   script:
