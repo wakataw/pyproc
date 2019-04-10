@@ -1,5 +1,3 @@
-import os
-
 from setuptools import setup, find_packages
 from os import path
 
@@ -9,16 +7,9 @@ BASE_DIR = path.abspath(path.dirname(__file__))
 with open(path.join(BASE_DIR, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
-CI_COMMIT_TAG = os.getenv('CI_COMMIT_TAG')
-
-if CI_COMMIT_TAG is not None:
-    version = CI_COMMIT_TAG.strip('v')
-else:
-    version = os.environ['PYPROC_VERSION'] + os.environ['CI_JOB_ID']
-
 setup(
     name='pyproc',
-    version=version,
+    version='0.1b',
     description='Python SPSEv4 wrapper',
     long_description=long_description,
     long_description_content_type='text/markdown',
