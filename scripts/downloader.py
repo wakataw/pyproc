@@ -103,18 +103,18 @@ def combine_data(tender=True):
             if data['pengumuman']:
                 detil.update((k, data['pengumuman'][k]) for k in detil.keys() & data['pengumuman'].keys())
 
+                detil['lokasi_pekerjaan'] = ' || '.join(detil['lokasi_pekerjaan'])
+
+                if tender:
+                    tahap = 'tahap_tender_saat_ini'
+                else:
+                    tahap = 'tahap_paket_saat_ini'
+
+                if detil[tahap]:
+                    detil[tahap] = detil[tahap].strip(r' [...]')
+
             if data['pemenang']:
                 detil.update((k, data['pemenang'][k]) for k in detil.keys() & data['pemenang'].keys())
-
-            detil['lokasi_pekerjaan'] = ' || '.join(detil['lokasi_pekerjaan'])
-
-            if tender:
-                tahap = 'tahap_tender_saat_ini'
-            else:
-                tahap = 'tahap_paket_saat_ini'
-
-            if detil[tahap]:
-                detil[tahap] = detil[tahap].strip(r' [...]')
 
             writer.writerow(detil)
 
