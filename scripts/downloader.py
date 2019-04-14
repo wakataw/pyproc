@@ -137,7 +137,7 @@ def get_detil(host, file_name, tender, detil_dir, total, workers=8):
     downloader.queue.join()
 
 
-def download(host, detil, tahun_stop, fetch_size=30, pool_size=4, tender=True):
+def download(host, detil, tahun_stop, fetch_size=30, pool_size=2, tender=True):
     global FOLDER_NAME
     global total_detil
 
@@ -219,22 +219,27 @@ def download(host, detil, tahun_stop, fetch_size=30, pool_size=4, tender=True):
 
 
 def main():
-    print(INFO)
     disable_warnings(InsecureRequestWarning)
 
     parser = argparse.ArgumentParser()
     parser.add_argument("host", help="Alamat Website LPSE")
-    parser.add_argument("--fetch-size", help="Jumlah row yang didownload per halaman", default=30, type=int)
     parser.add_argument("--simple", help="Download Paket LPSE tanpa detil dan pemenang", action="store_true")
     parser.add_argument("--batas-tahun", help="Batas tahun anggaran untuk didownload", default=0, type=int)
-    parser.add_argument("--workers", help="Jumlah worker untuk download detil paket", default=8, type=int)
+    parser.add_argument("--workers", help="Jumlah worker untuk download detil paket", default=4, type=int)
+    parser.add_argument("--pool-size", help="Jumlah koneksi pada pool untuk download index paket", default=2, type=int)
+    parser.add_argument("--fetch-size", help="Jumlah row yang didownload per halaman", default=30, type=int)
     parser.add_argument("--all", help="Download Data LPSE semua tahun anggaran", action="store_true")
     parser.add_argument("--keep", help="Tidak menghapus folder cache", action="store_true")
     parser.add_argument("--non-tender", help="Download paket non tender (penunjukkan langsung)", action="store_true")
+    parser.add_argument("--no-logo", help="Tidak menampilkan logo PyProc", action="store_true")
+
+    args = parser.parse_args()
+
+    if not args.no_logo:
+        print(INFO)
 
     detil = True
     batas_tahun = datetime.now().year
-    args = parser.parse_args()
     tender = False if args.non_tender else True
 
     if args.batas_tahun > 0:
@@ -247,7 +252,8 @@ def main():
         batas_tahun = None
 
     try:
-        download(host=args.host, detil=detil, fetch_size=args.fetch_size, tahun_stop=batas_tahun, tender=tender)
+        download(host=args.host, detil=detil, fetch_size=args.fetch_size, tahun_stop=batas_tahun, tender=tender,
+                 pool_size=args.pool_size)
     except KeyboardInterrupt:
         print("")
         print("INFO: Proses dibatalkan oleh user, bye!")
@@ -265,4 +271,6 @@ def main():
     copyfile(os.path.join(FOLDER_NAME, result), FOLDER_NAME + '.csv')
 
     if not args.keep:
+        if os.path.isfile(os.path.join(FOLDER_NAME, 'detil.err')):
+            os.rename(os.path.join(FOLDER_NAME, 'detil.err'), FOLDER_NAME+'_error.log')
         rmtree(FOLDER_NAME)

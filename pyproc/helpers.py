@@ -3,7 +3,10 @@ import os
 import threading
 from abc import abstractmethod
 from queue import Queue
-from pyproc import Lpse
+
+import requests
+
+from .lpse import Lpse
 
 
 class BaseDownloader(object):
@@ -17,6 +20,7 @@ class BaseDownloader(object):
         self.is_tender = is_tender
         self.error_log = 'error.log'
         self.download_dir = ''
+        self.max_retry = 3
 
     @abstractmethod
     def download(self, *args, **kwargs):
@@ -44,7 +48,7 @@ class DetilDownloader(BaseDownloader):
         self.total = 0
         super(DetilDownloader, self).__init__(*args, **kwargs)
 
-    def download(self, *args, **kwargs):
+    def download(self, retry=0, *args, **kwargs):
 
         id_paket = kwargs['id_paket']
 
@@ -54,27 +58,26 @@ class DetilDownloader(BaseDownloader):
             detil = self.lpse.detil_paket_non_tender(id_paket)
 
         try:
-            try:
-                detil.get_pengumuman()
-            except Exception as e:
-                self.write_error("{}|pengumuman|{}".format(id_paket, str(e)))
-
-            try:
-                detil.get_pemenang()
-            except Exception as e:
-                self.write_error("{}|pemenang|{}".format(id_paket, str(e)))
-
+            detil.get_pengumuman()
+            detil.get_pemenang()
         except Exception as e:
-            error = "{}|general|{}".format(id_paket, e)
+
+            if retry < self.max_retry:
+                with self.lock:
+                    self.lpse.session = requests.session()
+                    self.lpse.session.verify = False
+
+                return self.download(retry=retry+1, id_paket=id_paket)
+
+            error = "{}|{}".format(id_paket, e)
             self.write_error(error)
 
-        finally:
-            with open(os.path.join(self.download_dir, id_paket), 'w') as result_file:
-                result_file.write(json.dumps(detil.todict()))
+        with open(os.path.join(self.download_dir, id_paket), 'w') as result_file:
+            result_file.write(json.dumps(detil.todict()))
 
-            with self.lock:
-                self.downloaded += 1
-                print(self.downloaded, "of", self.total, end='\r')
+        with self.lock:
+            self.downloaded += 1
+            print(self.downloaded, "of", self.total, end='\r')
 
     def worker(self):
         while True:
