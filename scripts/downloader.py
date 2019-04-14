@@ -4,16 +4,15 @@ import json
 import re
 import os
 import argparse
-import threading
-
 from datetime import datetime
 from shutil import copyfile, rmtree
-from queue import Queue
 from pyproc import Lpse,  __version__
 from math import ceil
 from urllib3.exceptions import InsecureRequestWarning
 from urllib3 import disable_warnings
 from urllib.parse import urlparse
+
+from pyproc.helpers import DetilDownloader
 
 VERSION = __version__
 INFO = '''
@@ -26,7 +25,7 @@ INFO = '''
 SPSE V.4 Downloader
 '''.format(VERSION)
 
-FOLDER_NAME = None
+FOLDER_NAME = ""
 
 
 def write_error(error_message):
@@ -119,57 +118,23 @@ def combine_data(tender=True):
             writer.writerow(detil)
 
 
-downloaded_detil = 0
-total_detil = 0
-
-
-def run_detil(lpse, list_paket, tender, detil_dir, workers=8):
-    lock = threading.Lock()
-    q = Queue()
+def get_detil(host, file_name, tender, detil_dir, total, workers=8):
+    downloader = DetilDownloader(host, workers=workers)
+    downloader.spawn_worker()
+    downloader.download_dir = detil_dir
+    downloader.error_log = detil_dir+".err"
+    downloader.is_tender = tender
+    downloader.total = total
 
     os.makedirs(detil_dir, exist_ok=True)
 
-    def get_detil(id_paket):
-        global downloaded_detil
-        global total_detil
-        if tender:
-            detil_paket = lpse.detil_paket_tender(id_paket=id_paket)
-        else:
-            detil_paket = lpse.detil_paket_non_tender(id_paket=id_paket)
+    with open(file_name, 'r') as f:
+        reader = csv.reader(f, delimiter='|')
 
-        try:
-            detil_paket.get_pengumuman()
-        except Exception as e:
-            with lock:
-                write_error('{}|pengumuman|{}'.format(id_paket, str(e)))
+        for row in reader:
+            downloader.queue.put(row[0])
 
-        try:
-            detil_paket.get_pemenang()
-        except Exception as e:
-            with lock:
-                write_error('{}|pemenang|{}'.format(id_paket, str(e)))
-
-        with lock:
-            downloaded_detil += 1
-            with open(os.path.join(detil_dir, str(id_paket)), 'w', encoding='utf8') as f:
-                f.write(json.dumps(detil_paket.todict()))
-
-            print("{} of {} downloaded".format(downloaded_detil, total_detil), end='\r')
-
-    def worker():
-        while True:
-            id_paket = q.get()
-            get_detil(id_paket)
-            q.task_done()
-
-    for x in range(workers):
-        t = threading.Thread(target=worker, daemon=True)
-        t.start()
-
-    for id_paket in list_paket:
-        q.put(id_paket)
-
-    q.join()
+    downloader.queue.join()
 
 
 def download(host, detil, tahun_stop, fetch_size=30, pool_size=4, tender=True):
@@ -194,7 +159,7 @@ def download(host, detil, tahun_stop, fetch_size=30, pool_size=4, tender=True):
         total_data = lpse_pool[0].get_paket_non_tender()['recordsTotal']
 
     batch_size = int(ceil(total_data / fetch_size))
-    list_id_paket = []
+    total_detil = 0
 
     with open(os.path.join(FOLDER_NAME, 'index.dat'), 'w', newline='', encoding='utf8') as f:
         print("> Download Daftar Paket")
@@ -227,7 +192,7 @@ def download(host, detil, tahun_stop, fetch_size=30, pool_size=4, tender=True):
                 csv_writer.writerow(row)
 
                 if detil:
-                    list_id_paket.append(row[0])
+                    total_detil += 1
 
             if stop:
                 break
@@ -236,11 +201,13 @@ def download(host, detil, tahun_stop, fetch_size=30, pool_size=4, tender=True):
         print("Download selesai..")
 
     if detil:
-        total_detil = len(list_id_paket)
         print("")
         print("> Download Detil")
 
-        run_detil(lpse_pool[0], list_id_paket, tender, os.path.join(FOLDER_NAME, 'detil'))
+        get_detil(
+            lpse_pool[0].host, os.path.join(FOLDER_NAME, 'index.dat'), tender,
+            os.path.join(FOLDER_NAME, 'detil'), total_detil
+        )
 
         print("")
         print("Download selesai..")
