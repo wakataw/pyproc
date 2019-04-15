@@ -24,6 +24,7 @@ class Lpse(object):
         self.host = host
         self.version = None
         self.last_update = None
+        self.timeout = None
 
         self._check_host()
         self.update_info()
@@ -46,7 +47,7 @@ class Lpse(object):
         :param url: url LPSE
         :return:
         """
-        r = self.session.get(self.host, verify=False)
+        r = self.session.get(self.host, verify=False, timeout=self.timeout)
 
         if not self._is_spse(r.text):
             raise LpseHostExceptions("{} sepertinya bukan aplikasi SPSE".format(self.host))
@@ -139,7 +140,8 @@ class Lpse(object):
         data = requests.get(
             self.host + '/dt/' + jenis_paket,
             params=params,
-            verify=False
+            verify=False,
+            timeout=self.timeout
         )
 
         data.encoding = 'UTF-8'
@@ -331,7 +333,7 @@ class BaseLpseDetilParser(object):
         self.id_paket = id_paket
 
     def get_detil(self):
-        r = self.lpse.session.get(self.lpse.host+self.detil_path.format(self.id_paket))
+        r = self.lpse.session.get(self.lpse.host+self.detil_path.format(self.id_paket), timeout=self.lpse.timeout)
         return self.parse_detil(r.content)
 
     @abstractmethod
