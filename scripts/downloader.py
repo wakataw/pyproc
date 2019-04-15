@@ -86,7 +86,7 @@ def combine_data(tender=True):
         'hasil_negosiasi': None,
     }
 
-    with open(detil_combined, 'w') as csvf:
+    with open(detil_combined, 'w', encoding='utf8', errors="ignore") as csvf:
         writer = csv.DictWriter(csvf, fieldnames=pengumuman_keys.keys() if tender else pengumuman_nontender_keys.keys())
 
         writer.writeheader()
@@ -94,7 +94,7 @@ def combine_data(tender=True):
         for detil_file in detil_all:
             detil = pengumuman_keys.copy() if tender else pengumuman_nontender_keys.copy()
 
-            with open(detil_file, 'r') as f:
+            with open(detil_file, 'r', encoding='utf8', errors="ignore") as f:
                 data = json.loads(f.read())
 
             detil['id_paket'] = data['id_paket']
