@@ -125,6 +125,7 @@ def get_detil(host, file_name, tender, detil_dir, total, workers=8):
     downloader.error_log = detil_dir+".err"
     downloader.is_tender = tender
     downloader.total = total
+    downloader.workers = workers
 
     os.makedirs(detil_dir, exist_ok=True)
 
@@ -137,7 +138,7 @@ def get_detil(host, file_name, tender, detil_dir, total, workers=8):
     downloader.queue.join()
 
 
-def download(host, detil, tahun_stop, fetch_size=30, pool_size=2, tender=True):
+def download(host, detil, tahun_stop, fetch_size=30, pool_size=2, tender=True, workers=8):
     global FOLDER_NAME
     global total_detil
 
@@ -206,7 +207,7 @@ def download(host, detil, tahun_stop, fetch_size=30, pool_size=2, tender=True):
 
         get_detil(
             lpse_pool[0].host, os.path.join(FOLDER_NAME, 'index.dat'), tender,
-            os.path.join(FOLDER_NAME, 'detil'), total_detil
+            os.path.join(FOLDER_NAME, 'detil'), total_detil, workers=workers
         )
 
         print("")
@@ -225,7 +226,7 @@ def main():
     parser.add_argument("host", help="Alamat Website LPSE")
     parser.add_argument("--simple", help="Download Paket LPSE tanpa detil dan pemenang", action="store_true")
     parser.add_argument("--batas-tahun", help="Batas tahun anggaran untuk didownload", default=0, type=int)
-    parser.add_argument("--workers", help="Jumlah worker untuk download detil paket", default=4, type=int)
+    parser.add_argument("--workers", help="Jumlah worker untuk download detil paket", default=8, type=int)
     parser.add_argument("--pool-size", help="Jumlah koneksi pada pool untuk download index paket", default=2, type=int)
     parser.add_argument("--fetch-size", help="Jumlah row yang didownload per halaman", default=30, type=int)
     parser.add_argument("--all", help="Download Data LPSE semua tahun anggaran", action="store_true")
@@ -253,7 +254,7 @@ def main():
 
     try:
         download(host=args.host, detil=detil, fetch_size=args.fetch_size, tahun_stop=batas_tahun, tender=tender,
-                 pool_size=args.pool_size)
+                 pool_size=args.pool_size, workers=args.workers)
     except KeyboardInterrupt:
         print("")
         print("INFO: Proses dibatalkan oleh user, bye!")
