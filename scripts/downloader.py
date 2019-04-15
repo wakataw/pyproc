@@ -118,8 +118,8 @@ def combine_data(tender=True):
             writer.writerow(detil)
 
 
-def get_detil(host, file_name, tender, detil_dir, total, workers=8):
-    downloader = DetilDownloader(host, workers=workers)
+def get_detil(host, file_name, tender, detil_dir, total, workers=8, timeout=None):
+    downloader = DetilDownloader(host, workers=workers, timeout=timeout)
     downloader.spawn_worker()
     downloader.download_dir = detil_dir
     downloader.error_log = detil_dir+".err"
@@ -138,12 +138,15 @@ def get_detil(host, file_name, tender, detil_dir, total, workers=8):
     downloader.queue.join()
 
 
-def download(host, detil, tahun_stop, fetch_size=30, pool_size=2, tender=True, workers=8):
+def download(host, detil, tahun_stop, fetch_size=30, pool_size=2, tender=True, workers=8, timeout=None):
     global FOLDER_NAME
     global total_detil
 
     jenis = 'tender' if tender else 'non_tender'
     lpse_pool = [Lpse(host)]*pool_size
+
+    for l in lpse_pool:
+        l.timeout = timeout
 
     print(lpse_pool[0].host)
     print("="*len(lpse_pool[0].host))
@@ -207,7 +210,7 @@ def download(host, detil, tahun_stop, fetch_size=30, pool_size=2, tender=True, w
 
         get_detil(
             lpse_pool[0].host, os.path.join(FOLDER_NAME, 'index.dat'), tender,
-            os.path.join(FOLDER_NAME, 'detil'), total_detil, workers=workers
+            os.path.join(FOLDER_NAME, 'detil'), total_detil, workers=workers, timeout=timeout
         )
 
         print("")
@@ -229,6 +232,7 @@ def main():
     parser.add_argument("--workers", help="Jumlah worker untuk download detil paket", default=8, type=int)
     parser.add_argument("--pool-size", help="Jumlah koneksi pada pool untuk download index paket", default=2, type=int)
     parser.add_argument("--fetch-size", help="Jumlah row yang didownload per halaman", default=30, type=int)
+    parser.add_argument("--timeout", help="Set timeout", default=None, type=int)
     parser.add_argument("--all", help="Download Data LPSE semua tahun anggaran", action="store_true")
     parser.add_argument("--keep", help="Tidak menghapus folder cache", action="store_true")
     parser.add_argument("--non-tender", help="Download paket non tender (penunjukkan langsung)", action="store_true")

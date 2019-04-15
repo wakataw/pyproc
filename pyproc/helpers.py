@@ -11,10 +11,11 @@ from .lpse import Lpse
 
 class BaseDownloader(object):
 
-    def __init__(self, host, is_tender=True, workers=4):
+    def __init__(self, host, is_tender=True, workers=4, timeout=None):
         self.queue = Queue()
         self.lock = threading.Lock()
         self.lpse = Lpse(host)
+        self.lpse.timeout = timeout
         self.downloaded = 0
         self.workers = workers
         self.is_tender = is_tender
