@@ -25,19 +25,14 @@ INFO = '''
 SPSE V.4 Downloader
 '''.format(VERSION)
 
-FOLDER_NAME = ""
 
-
-def write_error(error_message):
-    global FOLDER_NAME
-    with open(os.path.join(FOLDER_NAME, 'detil-error.log'), 'a') as f:
+def write_error(error_message, filename='error.log'):
+    with open(os.path.join(filename), 'a', encoding='utf8') as f:
         f.write(error_message)
         f.write('\n')
 
 
-def combine_data(tender=True):
-    global FOLDER_NAME
-
+def combine_data(FOLDER_NAME, tender=True):
     detil_dir = os.path.join(FOLDER_NAME, 'detil', '*')
     detil_combined = os.path.join(FOLDER_NAME, 'detil.dat')
     detil_all = glob.glob(detil_dir)
@@ -117,6 +112,8 @@ def combine_data(tender=True):
 
             writer.writerow(detil)
 
+            del detil
+
 
 def get_detil(host, file_name, tender, detil_dir, total, workers=8, timeout=None):
     downloader = DetilDownloader(host, workers=workers, timeout=timeout)
@@ -129,7 +126,7 @@ def get_detil(host, file_name, tender, detil_dir, total, workers=8, timeout=None
 
     os.makedirs(detil_dir, exist_ok=True)
 
-    with open(file_name, 'r') as f:
+    with open(file_name, 'r', encoding='utf8', errors="ignore") as f:
         reader = csv.reader(f, delimiter='|')
 
         for row in reader:
@@ -137,17 +134,29 @@ def get_detil(host, file_name, tender, detil_dir, total, workers=8, timeout=None
 
     downloader.queue.join()
 
+    del downloader
+
+
+def copy_result(FOLDER_NAME, result):
+    copyfile(os.path.join(FOLDER_NAME, result), FOLDER_NAME + '.csv')
+
+    if os.path.isfile(os.path.join(FOLDER_NAME, 'detil.err')):
+        copyfile(os.path.join(FOLDER_NAME, 'detil.err'), FOLDER_NAME + '_error.log')
+    rmtree(FOLDER_NAME)
+
 
 def download(host, detil, tahun_stop, fetch_size=30, pool_size=2, tender=True, workers=8, timeout=None):
-    global FOLDER_NAME
     global total_detil
+
+    print("")
+    print("Processing "+host)
 
     jenis = 'tender' if tender else 'non_tender'
     lpse_pool = [Lpse(host)]*pool_size
 
     for l in lpse_pool:
         l.timeout = timeout
-
+    print("="*len(lpse_pool[0].host))
     print(lpse_pool[0].host)
     print("="*len(lpse_pool[0].host))
     print("Versi SPSE  : ", lpse_pool[0].version)
@@ -165,7 +174,7 @@ def download(host, detil, tahun_stop, fetch_size=30, pool_size=2, tender=True, w
     batch_size = int(ceil(total_data / fetch_size))
     total_detil = 0
 
-    with open(os.path.join(FOLDER_NAME, 'index.dat'), 'w', newline='', encoding='utf8') as f:
+    with open(os.path.join(FOLDER_NAME, 'index.dat'), 'w', newline='', encoding='utf8', errors="ignore") as f:
         print("> Download Daftar Paket")
         csv_writer = csv.writer(f, delimiter='|', quoting=csv.QUOTE_ALL)
         stop = False
@@ -204,6 +213,8 @@ def download(host, detil, tahun_stop, fetch_size=30, pool_size=2, tender=True, w
         print("")
         print("Download selesai..")
 
+    result_name = 'index.dat'
+
     if detil:
         print("")
         print("> Download Detil")
@@ -218,15 +229,20 @@ def download(host, detil, tahun_stop, fetch_size=30, pool_size=2, tender=True, w
 
         print("")
         print("> Menggabungkan Data")
-        combine_data(tender=tender)
+        combine_data(FOLDER_NAME, tender=tender)
         print("OK")
+
+        result_name = 'detil.dat'
+
+    copy_result(FOLDER_NAME, result_name)
 
 
 def main():
     disable_warnings(InsecureRequestWarning)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("host", help="Alamat Website LPSE")
+    parser.add_argument("--host", help="Alamat Website LPSE", default=None, type=str)
+    parser.add_argument("-r", "--read", help="Membaca host dari file", default=None, type=str)
     parser.add_argument("--simple", help="Download Paket LPSE tanpa detil dan pemenang", action="store_true")
     parser.add_argument("--batas-tahun", help="Batas tahun anggaran untuk didownload", default=0, type=int)
     parser.add_argument("--workers", help="Jumlah worker untuk download detil paket", default=8, type=int)
@@ -243,7 +259,7 @@ def main():
     if not args.no_logo:
         print(INFO)
 
-    detil = True
+    download_detil = True
     batas_tahun = datetime.now().year
     tender = False if args.non_tender else True
 
@@ -251,31 +267,41 @@ def main():
         batas_tahun = args.batas_tahun
 
     if args.simple:
-        detil = False
+        download_detil = False
 
     if args.all:
         batas_tahun = None
 
-    try:
-        download(host=args.host, detil=detil, fetch_size=args.fetch_size, tahun_stop=batas_tahun, tender=tender,
-                 pool_size=args.pool_size, workers=args.workers)
-    except KeyboardInterrupt:
-        print("")
-        print("INFO: Proses dibatalkan oleh user, bye!")
-        exit(1)
-    except Exception as e:
-        print("")
-        print("ERROR: ", e)
-        exit(1)
-
-    if args.simple:
-        result = 'index.dat'
+    if args.host is not None:
+        list_host = args.host.strip().split(',')
+    elif args.read is not None:
+        with open(args.read, 'r', encoding="utf8", errors="ignore") as host_file:
+            list_host = host_file.read().strip().split()
     else:
-        result = 'detil.dat'
+        print(parser.print_help())
+        print("ERROR: argument host or read not found")
+        exit(1)
 
-    copyfile(os.path.join(FOLDER_NAME, result), FOLDER_NAME + '.csv')
+    for host_name in list_host:
+        try:
+            download(host=host_name, detil=download_detil, fetch_size=args.fetch_size, tahun_stop=batas_tahun, tender=tender,
+                     pool_size=args.pool_size, workers=args.workers)
+        except KeyboardInterrupt:
+            print("")
+            print("INFO: Proses dibatalkan oleh user, bye!")
+            exit(1)
+        except Exception as e:
+            print("")
+            print("ERROR: ", e)
 
-    if not args.keep:
-        if os.path.isfile(os.path.join(FOLDER_NAME, 'detil.err')):
-            os.rename(os.path.join(FOLDER_NAME, 'detil.err'), FOLDER_NAME+'_error.log')
-        rmtree(FOLDER_NAME)
+            error = "{} {}".format(host_name, e)
+
+            write_error(error)
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except Exception as e:
+        print(e)
+

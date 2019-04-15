@@ -24,7 +24,7 @@ class Lpse(object):
         self.host = host
         self.version = None
         self.last_update = None
-        self.timeout = None
+        self.timeout = 10
 
         self._check_host()
         self.update_info()

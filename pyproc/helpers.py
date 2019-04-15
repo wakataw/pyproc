@@ -38,9 +38,13 @@ class BaseDownloader(object):
 
     def write_error(self, error):
         with self.lock:
-            with open(self.error_log, 'a') as error_f:
+            with open(self.error_log, 'a', encoding='utf8', errors='ignore') as error_f:
                 error_f.write(error)
                 error_f.write('\n')
+
+    def __del__(self):
+        self.lpse.session.close()
+        del self.lpse
 
 
 class DetilDownloader(BaseDownloader):
@@ -73,12 +77,14 @@ class DetilDownloader(BaseDownloader):
             error = "{}|{}".format(id_paket, e)
             self.write_error(error)
 
-        with open(os.path.join(self.download_dir, id_paket), 'w') as result_file:
+        with open(os.path.join(self.download_dir, id_paket), 'w', encoding='utf8', errors="ignore") as result_file:
             result_file.write(json.dumps(detil.todict()))
 
         with self.lock:
             self.downloaded += 1
             print(self.downloaded, "of", self.total, end='\r')
+
+        del detil
 
     def worker(self):
         while True:
