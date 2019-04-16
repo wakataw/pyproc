@@ -303,7 +303,6 @@ def main():
         except Exception as e:
             print("ERROR:", e)
             error_writer("{}|{}".format(host, str(e)))
-            raise e
 
 
 def download():
