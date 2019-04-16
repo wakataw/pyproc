@@ -21,8 +21,8 @@ def print_info():
   / /_/ / / / / /_/ / ___/ __ \/ ___/
  / ____/ /_/ / ____/ /  / /_/ / /__  
 /_/    \__, /_/   /_/   \____/\___/  
-      /____/ v{}                        
-SPSE V.4 Downloader
+      /____/                        
+SPSE4 Downloader
 ''')
 
 
@@ -46,16 +46,16 @@ def get_index_path(host, jenis_paket):
     return os.path.join(index_dir, 'index')
 
 
-def download_index(host, pool_size, fetch_size, timeout, non_tender):
-    lpse_pool = [Lpse(host)]*pool_size
+def download_index(host, pool_size, fetch_size, timeout, non_tender, host_check_timeout=10):
+    _lpse = Lpse(host=host, timeout=host_check_timeout)
+    _lpse.update_info()
+    _lpse.timeout = timeout
+    lpse_pool = [_lpse]*pool_size
     jenis_paket = 'non_tender' if non_tender else 'tender'
     print("url SPSE       :", lpse_pool[0].host)
     print("versi SPSE     :", lpse_pool[0].version)
     print("last update    :", lpse_pool[0].last_update)
     print("\nIndexing Data")
-
-    for i in lpse_pool:
-        i.timeout = timeout
 
     if non_tender:
         total_data = lpse_pool[0].get_paket_non_tender()['recordsTotal']
@@ -88,19 +88,16 @@ def download_index(host, pool_size, fetch_size, timeout, non_tender):
     del lpse_pool
 
 
-def get_detil(host, timeout, jenis_paket, total, workers, tahun_anggaran):
-    detail_dir = os.path.join(get_folder_name(host, jenis_paket), 'detil')
-    index_path = get_index_path(host, jenis_paket)
+def get_detil(downloader, jenis_paket, total, tahun_anggaran):
+    detail_dir = os.path.join(get_folder_name(downloader.lpse.host, jenis_paket), 'detil')
+    index_path = get_index_path(downloader.lpse.host, jenis_paket)
 
     os.makedirs(detail_dir, exist_ok=True)
 
-    downloader = DetilDownloader(host, workers=workers, timeout=timeout)
-    downloader.spawn_worker()
     downloader.download_dir = detail_dir
     downloader.error_log = detail_dir+".err"
     downloader.is_tender = True if jenis_paket == 'tender' else False
     downloader.total = total
-    downloader.workers = workers
 
     with open(index_path, 'r', encoding='utf8', errors="ignore") as f:
         reader = csv.reader(f, delimiter='|')
@@ -114,8 +111,6 @@ def get_detil(host, timeout, jenis_paket, total, workers, tahun_anggaran):
             downloader.queue.put(row[0])
 
     downloader.queue.join()
-
-    del downloader
 
 
 def parse_tahun_anggaran(tahun_anggaran):
@@ -276,41 +271,48 @@ def main():
         exit(1)
 
     # download index
+    detil_downloader = DetilDownloader(workers=args.workers, timeout=args.timeout)
+    detil_downloader.spawn_worker()
 
-    for host in host_list:
-        print("="*len(host))
-        print(host)
-        print("="*len(host))
-        print("tahun anggaran :", tahun_anggaran)
+    try:
+        for host in host_list:
+            print("="*len(host))
+            print(host)
+            print("="*len(host))
+            print("tahun anggaran :", tahun_anggaran)
 
-        try:
-            total = 0
-            for downloadinfo in download_index(host, args.pool_size, args.fetch_size, args.timeout, args.non_tender):
-                print("- halaman {} of {} ({} row)".format(*downloadinfo), end='\r')
-                total = downloadinfo[-1]
-            print("\n- download selesai\n")
+            try:
+                total = 0
+                for downloadinfo in download_index(host, args.pool_size, args.fetch_size, args.timeout, args.non_tender):
+                    print("- halaman {} of {} ({} row)".format(*downloadinfo), end='\r')
+                    total = downloadinfo[-1]
+                print("\n- download selesai\n")
+            except Exception as e:
+                print("ERROR:", str(e))
+                error_writer('{}|{}'.format(host, str(e)))
+                continue
 
             print("Downloading")
-            get_detil(host=host, jenis_paket='non_tender' if args.non_tender else 'tender', total=total,
-                      workers=args.workers, tahun_anggaran=tahun_anggaran, timeout=args.timeout)
+            detil_downloader.set_host(host=host)
+            detil_downloader.downloaded = 0
+            get_detil(downloader=detil_downloader, jenis_paket='non_tender' if args.non_tender else 'tender', total=total,
+                      tahun_anggaran=tahun_anggaran)
             print("\n- download selesai\n")
 
             print("Menggabungkan Data")
             combine_data(host, False if args.non_tender else True, False if args.keep else True)
             print("- proses selesai")
-        except KeyboardInterrupt:
-            print("\nERROR: Proses dibatalkan oleh user, bye!")
-        except Exception as e:
-            print("ERROR:", e)
-            error_writer("{}|{}".format(host, str(e)))
 
+    except (KeyboardInterrupt, Exception):
+        print("\n\nERROR: Proses dibatalkan oleh user, bye!")
+        detil_downloader.stop_process()
+    finally:
+        for i in range(detil_downloader.workers):
+            detil_downloader.queue.put(None)
 
-def download():
-    try:
-        main()
-    except KeyboardInterrupt:
-        print("\nERROR: Proses dibatalkan oleh user, bye!")
+        for t in detil_downloader.threads_pool:
+            t.join()
 
 
 if __name__ == '__main__':
-    download()
+    main()
