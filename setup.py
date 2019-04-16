@@ -35,7 +35,7 @@ setup(
         'html5lib'
     ],
     entry_points={
-        'console_scripts': ['pyproc=scripts.downloader:main']
+        'console_scripts': ['pyproc=scripts.downloader:download']
     },
     project_urls={
         'Bug Reports': 'https://gitlab.com/wakataw/pyproc/issues',
