@@ -246,9 +246,9 @@ def main():
     parser.add_argument("--simple", help="Download Paket LPSE tanpa detil dan pemenang", action="store_true")
     parser.add_argument("--batas-tahun", help="Batas tahun anggaran untuk didownload", default=0, type=int)
     parser.add_argument("--workers", help="Jumlah worker untuk download detil paket", default=8, type=int)
-    parser.add_argument("--pool-size", help="Jumlah koneksi pada pool untuk download index paket", default=2, type=int)
+    parser.add_argument("--pool-size", help="Jumlah koneksi pada pool untuk download index paket", default=4, type=int)
     parser.add_argument("--fetch-size", help="Jumlah row yang didownload per halaman", default=30, type=int)
-    parser.add_argument("--timeout", help="Set timeout", default=None, type=int)
+    parser.add_argument("--timeout", help="Set timeout", default=10, type=int)
     parser.add_argument("--all", help="Download Data LPSE semua tahun anggaran", action="store_true")
     parser.add_argument("--keep", help="Tidak menghapus folder cache", action="store_true")
     parser.add_argument("--non-tender", help="Download paket non tender (penunjukkan langsung)", action="store_true")
@@ -284,8 +284,8 @@ def main():
 
     for host_name in list_host:
         try:
-            download(host=host_name, detil=download_detil, fetch_size=args.fetch_size, tahun_stop=batas_tahun, tender=tender,
-                     pool_size=args.pool_size, workers=args.workers)
+            download(host=host_name, detil=download_detil, fetch_size=args.fetch_size, tahun_stop=batas_tahun,
+                     tender=tender, pool_size=args.pool_size, workers=args.workers, timeout=args.timeout)
         except KeyboardInterrupt:
             print("")
             print("INFO: Proses dibatalkan oleh user, bye!")
