@@ -125,6 +125,8 @@ def parse_tahun_anggaran(tahun_anggaran):
 
     if len(parsed_ta) > 2:
         error = True
+    elif parsed_ta[-1] == 0:
+        parsed_ta[-1] = 9999
 
     return error, parsed_ta
 
