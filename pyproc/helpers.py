@@ -2,7 +2,7 @@ import json
 import os
 import threading
 from abc import abstractmethod
-from queue import Queue
+from queue import Queue, Empty
 
 import requests
 
@@ -11,17 +11,23 @@ from .lpse import Lpse
 
 class BaseDownloader(object):
 
-    def __init__(self, host, is_tender=True, workers=4, timeout=None):
+    def __init__(self, is_tender=True, workers=4, timeout=None):
         self.queue = Queue()
         self.lock = threading.Lock()
-        self.lpse = Lpse(host)
-        self.lpse.timeout = timeout
         self.downloaded = 0
         self.workers = workers
         self.is_tender = is_tender
         self.error_log = 'error.log'
         self.download_dir = ''
         self.max_retry = 3
+        self.threads_pool = []
+        self.timeout = timeout
+        self.lpse = None
+        self.stop = False
+
+    def set_host(self, host):
+        self.lpse = Lpse(host)
+        self.lpse.timeout = self.timeout
 
     @abstractmethod
     def download(self, *args, **kwargs):
@@ -33,8 +39,9 @@ class BaseDownloader(object):
 
     def spawn_worker(self):
         for i in range(self.workers):
-            t = threading.Thread(target=self.worker, daemon=True)
+            t = threading.Thread(target=self.worker)
             t.start()
+            self.threads_pool.append(t)
 
     def write_error(self, error):
         with self.lock:
@@ -43,9 +50,12 @@ class BaseDownloader(object):
                 error_f.write('\n')
 
     def __del__(self):
-        self.lpse.session.close()
-        del self.lpse
+        if self.lpse:
+            self.lpse.session.close()
+            del self.lpse
 
+
+# TODO: throttling detail downloader to avoid app makes too many concurrent requests
 
 class DetilDownloader(BaseDownloader):
 
@@ -82,12 +92,22 @@ class DetilDownloader(BaseDownloader):
 
         with self.lock:
             self.downloaded += 1
-            print(self.downloaded, "of", self.total, end='\r')
+            print("-", self.downloaded, "of", self.total, end='\r')
 
-        del detil
+    def stop_process(self):
+        with self.lock:
+            self.stop = True
 
     def worker(self):
         while True:
-            id_paket = self.queue.get()
-            self.download(id_paket=id_paket)
-            self.queue.task_done()
+            try:
+                id_paket = self.queue.get(block=False)
+
+                if id_paket is None:
+                    break
+            except Empty:
+                pass
+            else:
+                if not self.stop:
+                    self.download(id_paket=id_paket)
+                self.queue.task_done()

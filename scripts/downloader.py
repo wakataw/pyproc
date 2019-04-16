@@ -1,40 +1,150 @@
+import argparse
 import csv
 import glob
 import json
-import re
 import os
-import argparse
-from datetime import datetime
-from shutil import copyfile, rmtree
-from pyproc import Lpse,  __version__
+import re
 from math import ceil
-from urllib3.exceptions import InsecureRequestWarning
-from urllib3 import disable_warnings
+from shutil import copyfile, rmtree
 from urllib.parse import urlparse
 
+from pyproc import Lpse
 from pyproc.helpers import DetilDownloader
+from urllib3 import disable_warnings
+from urllib3.exceptions import InsecureRequestWarning
+from datetime import datetime
 
-VERSION = __version__
-INFO = '''
-    ____        ____                 
+
+def print_info():
+    print(r'''    ____        ____                 
    / __ \__  __/ __ \_________  _____
   / /_/ / / / / /_/ / ___/ __ \/ ___/
  / ____/ /_/ / ____/ /  / /_/ / /__  
 /_/    \__, /_/   /_/   \____/\___/  
-      /____/ v{}                        
-SPSE V.4 Downloader
-'''.format(VERSION)
+      /____/                        
+SPSE4 Downloader
+''')
 
 
-def write_error(error_message, filename='error.log'):
-    with open(os.path.join(filename), 'a', encoding='utf8') as f:
-        f.write(error_message)
-        f.write('\n')
+def error_writer(error):
+    with open('error.log', 'a', encoding='utf8', errors="ignore") as error_file:
+        error_file.write(error+'\n')
 
 
-def combine_data(FOLDER_NAME, tender=True):
-    detil_dir = os.path.join(FOLDER_NAME, 'detil', '*')
-    detil_combined = os.path.join(FOLDER_NAME, 'detil.dat')
+def get_folder_name(host, jenis_paket):
+    _url = urlparse(host)
+    netloc = _url.netloc if _url.netloc != '' else _url.path
+
+    return netloc.lower().replace('.', '_') + '_' + jenis_paket
+
+
+def get_index_path(host, jenis_paket):
+    index_dir = get_folder_name(host, jenis_paket)
+
+    os.makedirs(index_dir, exist_ok=True)
+
+    return os.path.join(index_dir, 'index')
+
+
+def download_index(host, pool_size, fetch_size, timeout, non_tender, host_check_timeout=10):
+    _lpse = Lpse(host=host, timeout=host_check_timeout)
+    _lpse.update_info()
+    _lpse.timeout = timeout
+    lpse_pool = [_lpse]*pool_size
+    jenis_paket = 'non_tender' if non_tender else 'tender'
+    print("url SPSE       :", lpse_pool[0].host)
+    print("versi SPSE     :", lpse_pool[0].version)
+    print("last update    :", lpse_pool[0].last_update)
+    print("\nIndexing Data")
+
+    if non_tender:
+        total_data = lpse_pool[0].get_paket_non_tender()['recordsTotal']
+    else:
+        total_data = lpse_pool[0].get_paket_tender()['recordsTotal']
+
+    batch_size = int(ceil(total_data / fetch_size))
+    downloaded_row = 0
+
+    with open(get_index_path(lpse_pool[0].host, jenis_paket), 'w', newline='', encoding='utf8',
+              errors="ignore") as index_file:
+
+        writer = csv.writer(index_file, delimiter='|', quoting=csv.QUOTE_ALL)
+
+        for page in range(batch_size):
+
+            lpse = lpse_pool[page % pool_size]
+
+            if non_tender:
+                data = lpse.get_paket_non_tender(start=page*fetch_size, length=fetch_size, data_only=True)
+            else:
+                data = lpse.get_paket_tender(start=page*fetch_size, length=fetch_size, data_only=True)
+
+            writer.writerows(data)
+
+            downloaded_row += len(data)
+
+            yield [page+1, batch_size, downloaded_row]
+
+    del lpse_pool
+
+
+def get_detil(downloader, jenis_paket, total, tahun_anggaran):
+    detail_dir = os.path.join(get_folder_name(downloader.lpse.host, jenis_paket), 'detil')
+    index_path = get_index_path(downloader.lpse.host, jenis_paket)
+
+    os.makedirs(detail_dir, exist_ok=True)
+
+    downloader.download_dir = detail_dir
+    downloader.error_log = detail_dir+".err"
+    downloader.is_tender = True if jenis_paket == 'tender' else False
+    downloader.total = total
+
+    with open(index_path, 'r', encoding='utf8', errors="ignore") as f:
+        reader = csv.reader(f, delimiter='|')
+
+        for row in reader:
+            tahun_anggaran_data = re.findall(r'(20\d{2})', row[8] if jenis_paket == 'tender' else row[6])
+
+            if not download_by_ta(tahun_anggaran_data, tahun_anggaran):
+                continue
+
+            downloader.queue.put(row[0])
+
+    downloader.queue.join()
+
+
+def parse_tahun_anggaran(tahun_anggaran):
+    parsed_ta = tahun_anggaran.strip().split(',')
+    error = False
+
+    for i in range(len(parsed_ta)):
+        try:
+            parsed_ta[i] = int(parsed_ta[i])
+        except ValueError:
+            parsed_ta[i] = 0
+
+    if len(parsed_ta) > 2:
+        error = True
+    elif parsed_ta[-1] == 0:
+        parsed_ta[-1] = 9999
+
+    return error, parsed_ta
+
+
+def download_by_ta(ta_data, ta_argumen):
+    ta_data = [int(i) for i in ta_data]
+
+    for i in ta_data:
+        if ta_argumen[0] <= i <= ta_argumen[-1]:
+            return True
+
+    return False
+
+
+def combine_data(host, tender=True, remove=True):
+    folder_name = get_folder_name(host, jenis_paket='tender' if tender else 'non_tender')
+    detil_dir = os.path.join(folder_name, 'detil', '*')
+    detil_combined = os.path.join(folder_name, 'detil.dat')
     detil_all = glob.glob(detil_dir)
 
     pengumuman_nontender_keys = {
@@ -114,194 +224,97 @@ def combine_data(FOLDER_NAME, tender=True):
 
             del detil
 
-
-def get_detil(host, file_name, tender, detil_dir, total, workers=8, timeout=None):
-    downloader = DetilDownloader(host, workers=workers, timeout=timeout)
-    downloader.spawn_worker()
-    downloader.download_dir = detil_dir
-    downloader.error_log = detil_dir+".err"
-    downloader.is_tender = tender
-    downloader.total = total
-    downloader.workers = workers
-
-    os.makedirs(detil_dir, exist_ok=True)
-
-    with open(file_name, 'r', encoding='utf8', errors="ignore") as f:
-        reader = csv.reader(f, delimiter='|')
-
-        for row in reader:
-            downloader.queue.put(row[0])
-
-    downloader.queue.join()
-
-    del downloader
+    copy_result(folder_name, remove=remove)
 
 
-def copy_result(FOLDER_NAME, result):
-    copyfile(os.path.join(FOLDER_NAME, result), FOLDER_NAME + '.csv')
+def copy_result(folder_name, remove=True):
+    copyfile(os.path.join(folder_name, 'detil.dat'), folder_name + '.csv')
 
-    if os.path.isfile(os.path.join(FOLDER_NAME, 'detil.err')):
-        copyfile(os.path.join(FOLDER_NAME, 'detil.err'), FOLDER_NAME + '_error.log')
-    rmtree(FOLDER_NAME)
+    if os.path.isfile(os.path.join(folder_name, 'detil.err')):
+        copyfile(os.path.join(folder_name, 'detil.err'), folder_name + '_error.log')
 
-
-def download(host, detil, tahun_stop, fetch_size=30, pool_size=2, tender=True, workers=8, timeout=None):
-    global total_detil
-
-    print("")
-    print("Processing "+host)
-
-    jenis = 'tender' if tender else 'non_tender'
-    lpse_pool = [Lpse(host)]*pool_size
-
-    for l in lpse_pool:
-        l.timeout = timeout
-    print("="*len(lpse_pool[0].host))
-    print(lpse_pool[0].host)
-    print("="*len(lpse_pool[0].host))
-    print("Versi SPSE  : ", lpse_pool[0].version)
-    print("Last Update : ", lpse_pool[0].last_update or None)
-    print("")
-
-    FOLDER_NAME = urlparse(lpse_pool[0].host).netloc.lower().replace('.', '_') + '_' + jenis
-    os.makedirs(FOLDER_NAME, exist_ok=True)
-
-    if tender:
-        total_data = lpse_pool[0].get_paket_tender()['recordsTotal']
-    else:
-        total_data = lpse_pool[0].get_paket_non_tender()['recordsTotal']
-
-    batch_size = int(ceil(total_data / fetch_size))
-    total_detil = 0
-
-    with open(os.path.join(FOLDER_NAME, 'index.dat'), 'w', newline='', encoding='utf8', errors="ignore") as f:
-        print("> Download Daftar Paket")
-        csv_writer = csv.writer(f, delimiter='|', quoting=csv.QUOTE_ALL)
-        stop = False
-
-        for page in range(batch_size):
-            lpse = lpse_pool[page % pool_size]
-
-            print("Batch {} of {}".format(page+1, batch_size), end='\r')
-
-            if tender:
-                data = lpse.get_paket_tender(start=page*fetch_size, length=fetch_size, data_only=True)
-            else:
-                data = lpse.get_paket_non_tender(start=page*fetch_size, length=fetch_size, data_only=True)
-
-            for row in data:
-
-                ta = re.findall(r'(20\d{2})', row[8] if tender else row[6])
-
-                if ta and tahun_stop is not None:
-                    ta.sort(reverse=True)
-
-                    if int(ta[0]) < tahun_stop:
-                        stop = True
-
-                if stop:
-                    break
-
-                csv_writer.writerow(row)
-
-                if detil:
-                    total_detil += 1
-
-            if stop:
-                break
-
-        print("")
-        print("Download selesai..")
-
-    result_name = 'index.dat'
-
-    if detil:
-        print("")
-        print("> Download Detil")
-
-        get_detil(
-            lpse_pool[0].host, os.path.join(FOLDER_NAME, 'index.dat'), tender,
-            os.path.join(FOLDER_NAME, 'detil'), total_detil, workers=workers, timeout=timeout
-        )
-
-        print("")
-        print("Download selesai..")
-
-        print("")
-        print("> Menggabungkan Data")
-        combine_data(FOLDER_NAME, tender=tender)
-        print("OK")
-
-        result_name = 'detil.dat'
-
-    copy_result(FOLDER_NAME, result_name)
+    if remove:
+        rmtree(folder_name)
 
 
 def main():
+    print_info()
+
     disable_warnings(InsecureRequestWarning)
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--host", help="Alamat Website LPSE", default=None, type=str)
     parser.add_argument("-r", "--read", help="Membaca host dari file", default=None, type=str)
-    parser.add_argument("--simple", help="Download Paket LPSE tanpa detil dan pemenang", action="store_true")
-    parser.add_argument("--batas-tahun", help="Batas tahun anggaran untuk didownload", default=0, type=int)
+    parser.add_argument("--tahun-anggaran", help="Tahun Anggaran untuk di download", default=str(datetime.now().year),
+                        type=str)
     parser.add_argument("--workers", help="Jumlah worker untuk download detil paket", default=8, type=int)
     parser.add_argument("--pool-size", help="Jumlah koneksi pada pool untuk download index paket", default=4, type=int)
-    parser.add_argument("--fetch-size", help="Jumlah row yang didownload per halaman", default=30, type=int)
-    parser.add_argument("--timeout", help="Set timeout", default=10, type=int)
-    parser.add_argument("--all", help="Download Data LPSE semua tahun anggaran", action="store_true")
+    parser.add_argument("--fetch-size", help="Jumlah row yang didownload per halaman", default=100, type=int)
+    parser.add_argument("--timeout", help="Set timeout", default=30, type=int)
     parser.add_argument("--keep", help="Tidak menghapus folder cache", action="store_true")
     parser.add_argument("--non-tender", help="Download paket non tender (penunjukkan langsung)", action="store_true")
-    parser.add_argument("--no-logo", help="Tidak menampilkan logo PyProc", action="store_true")
 
     args = parser.parse_args()
 
-    if not args.no_logo:
-        print(INFO)
+    error, tahun_anggaran = parse_tahun_anggaran(args.tahun_anggaran)
 
-    download_detil = True
-    batas_tahun = datetime.now().year
-    tender = False if args.non_tender else True
-
-    if args.batas_tahun > 0:
-        batas_tahun = args.batas_tahun
-
-    if args.simple:
-        download_detil = False
-
-    if args.all:
-        batas_tahun = None
-
-    if args.host is not None:
-        list_host = args.host.strip().split(',')
-    elif args.read is not None:
-        with open(args.read, 'r', encoding="utf8", errors="ignore") as host_file:
-            list_host = host_file.read().strip().split()
-    else:
-        print(parser.print_help())
-        print("ERROR: argument host or read not found")
+    if error:
+        print("ERROR: format tahun anggaran tidak dikenal ", args.tahun_anggaran)
         exit(1)
 
-    for host_name in list_host:
-        try:
-            download(host=host_name, detil=download_detil, fetch_size=args.fetch_size, tahun_stop=batas_tahun,
-                     tender=tender, pool_size=args.pool_size, workers=args.workers, timeout=args.timeout)
-        except KeyboardInterrupt:
-            print("")
-            print("INFO: Proses dibatalkan oleh user, bye!")
-            exit(1)
-        except Exception as e:
-            print("")
-            print("ERROR: ", e)
+    if args.host:
+        host_list = args.host.strip().split(',')
+    elif args.read:
+        with open(args.read, 'r', encoding='utf8', errors="ignore") as host_file:
+            host_list = host_file.read().strip().split()
+    else:
+        parser.print_help()
+        print("\nERROR: Argumen --host atau --read tidak ditemukan!")
+        exit(1)
 
-            error = "{} {}".format(host_name, e)
+    # download index
+    detil_downloader = DetilDownloader(workers=args.workers, timeout=args.timeout)
+    detil_downloader.spawn_worker()
 
-            write_error(error)
+    try:
+        for host in host_list:
+            print("="*len(host))
+            print(host)
+            print("="*len(host))
+            print("tahun anggaran :", tahun_anggaran)
+
+            try:
+                total = 0
+                for downloadinfo in download_index(host, args.pool_size, args.fetch_size, args.timeout, args.non_tender):
+                    print("- halaman {} of {} ({} row)".format(*downloadinfo), end='\r')
+                    total = downloadinfo[-1]
+                print("\n- download selesai\n")
+            except Exception as e:
+                print("ERROR:", str(e))
+                error_writer('{}|{}'.format(host, str(e)))
+                continue
+
+            print("Downloading")
+            detil_downloader.set_host(host=host)
+            detil_downloader.downloaded = 0
+            get_detil(downloader=detil_downloader, jenis_paket='non_tender' if args.non_tender else 'tender', total=total,
+                      tahun_anggaran=tahun_anggaran)
+            print("\n- download selesai\n")
+
+            print("Menggabungkan Data")
+            combine_data(host, False if args.non_tender else True, False if args.keep else True)
+            print("- proses selesai")
+
+    except (KeyboardInterrupt, Exception):
+        print("\n\nERROR: Proses dibatalkan oleh user, bye!")
+        detil_downloader.stop_process()
+    finally:
+        for i in range(detil_downloader.workers):
+            detil_downloader.queue.put(None)
+
+        for t in detil_downloader.threads_pool:
+            t.join()
 
 
 if __name__ == '__main__':
-    try:
-        main()
-    except Exception as e:
-        print(e)
-
+    main()
