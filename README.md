@@ -24,45 +24,70 @@ python -m tests.test_lpse
 ## Penggunaan Command Line Interface
 
 ```bash
-usage: pyproc [-h] [--fetch-size FETCH_SIZE] [--batas-tahun BATAS_TAHUN] 
-              [--simple] [--all] [--keep] [--non-tender]
-              host
+usage: pyproc [-h] [--host HOST] [-r READ] [--simple]
+              [--batas-tahun BATAS_TAHUN] [--workers WORKERS]
+              [--pool-size POOL_SIZE] [--fetch-size FETCH_SIZE]
+              [--timeout TIMEOUT] [--all] [--keep] [--non-tender] [--no-logo]
 
 ```
 **Arguments**
 
 argumen | diperlukan | keterangan
 ---|---|---
-`host` | Ya | Alamat website aplikasi LPSE 
 `-h, --help`| optional | menampilkan bantuan
+`--host` | Optional | Alamat website aplikasi LPSE, pisahkan dengan `,` untuk multiple lpse
+`--read`, `-r` | Optional | Membaca daftar alamat lpse dari file 
+`--pool-size POOL_SIZE` | Optional, default 4 | Jumlah koneksi dalam connection pool untuk mendownload index paket
 `--fetch-size FETCH_SIZE` | optional, default 30 | Jumlah row yang didownload per halaman
+`--workers WORKERS` | optional, default 8 | Workers untuk mendownload detil pengumuman dan pemenang
 `--batas-tahun BATAS_TAHUN` | optional, default tahun berjalan | Batas tahun anggaran untuk didownload (SPSE belum mendukung filter berdasarkan tahun)
 `--simple` | optional, default `false` | Hanya download daftar paket lelang (tanpa detil pengumuman dan pemenang)
+`--timeout TIMEOUT` | optional, default 10 (dalam detik) | Time out jika server tidak merespon dalam waktu tertentu
 `--all` | optional, default `false` | Secara default, `pyproc` hanya mendownload data tahun berjalan atau sampai dengan batas tahun tertentu apabila argumen `--batas-tahun` digunakan. Untuk mendownload semua tahun anggaran, gunakan `--all`
 `--keep` | optional, default `false` | saat download berjalan, `pyproc` akan membentuk sebuah folder yang digunakan sebagai *working directory* dan akan dihapus jika proses download telah selesai. Gunakan argumen `--keep` apabila tidak ingin menghapus *working directory* `pyproc`.
 `--non-tender` | optional, default `false` | Download paket non tender
+`--no-logo` | Tidak menampilkan logo PyProc
 
 **Contoh**
 
 Download daftar paket lelang dari https://lpse.pu.go.id untuk tahun berjalan
 ```bash
-$ pyproc https://lpse.pu.go.id
+$ pyproc --host https://lpse.pu.go.id
 ```
 
 Download daftar paket lelang dari tahun 2017 sampai dengan tahun berjalan
 ```bash
-$ pyproc --batas-tahun 2017 lpse.pu.go.id 
+$ pyproc --batas-tahun 2017 --host lpse.pu.go.id 
 ```
 
 Download daftar paket lelang tanpa detil untuk semua tahun anggaran, dengan fetch size 20 row per halaman, dan tidak menghapus *working directory*
 ```bash
-$ pyproc --all --simple --fetch-size 20 --keep lpse.pu.go.id 
+$ pyproc --all --simple --fetch-size 20 --keep --host lpse.pu.go.id 
 ```
 
 Download paket pengadaan non tender (penunjukkan langsung)
 ```bash
 $ pyproc --all --non-tender lpse.jakarta.go.id
 ```
+
+Download paket pengadaan tender dari 2 lpse dengan set jumlah workers, timeout, fetch size secara manual
+```bash
+$ pyproc --host lpse.pu.go.id,lpse.sumbarprov.go.id --workers 30 --timeout 5 --fetch-size 1000
+```
+
+Download paket LPSE dengan sumber alamat dari file
+```bash
+$ pyproc -r daftarlpse.csv
+
+# konten daftarlpse.csv
+lpse.sumbarprov.go.id
+lpse.pu.go.id
+lpse.kemenkeu.go.id
+```
+
+dengan isi CSV
+
+
 
 ## Penggunaan PyProc Sebagai Package
 
