@@ -82,7 +82,7 @@ class DetilDownloader(BaseDownloader):
 
         with self.lock:
             self.downloaded += 1
-            print(self.downloaded, "of", self.total, end='\r')
+            print("-", self.downloaded, "of", self.total, end='\r')
 
         del detil
 
