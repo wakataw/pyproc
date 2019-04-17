@@ -46,9 +46,7 @@ def get_index_path(host, jenis_paket):
     return os.path.join(index_dir, 'index')
 
 
-def download_index(host, pool_size, fetch_size, timeout, non_tender, host_check_timeout=10):
-    _lpse = Lpse(host=host, timeout=host_check_timeout)
-    _lpse.update_info()
+def download_index(_lpse, pool_size, fetch_size, timeout, non_tender):
     _lpse.timeout = timeout
     lpse_pool = [_lpse]*pool_size
     jenis_paket = 'non_tender' if non_tender else 'tender'
@@ -278,14 +276,17 @@ def main():
 
     try:
         for host in host_list:
-            print("="*len(host))
-            print(host)
-            print("="*len(host))
-            print("tahun anggaran :", tahun_anggaran)
-
             try:
+                print("=" * len(host))
+                print(host)
+                print("=" * len(host))
+                print("tahun anggaran :", tahun_anggaran)
+                _lpse = Lpse(host=host, timeout=10)
+                _lpse.update_info()
+                detil_downloader.set_host(host=_lpse.host)
+
                 total = 0
-                for downloadinfo in download_index(host, args.pool_size, args.fetch_size, args.timeout, args.non_tender):
+                for downloadinfo in download_index(_lpse, args.pool_size, args.fetch_size, args.timeout, args.non_tender):
                     print("- halaman {} of {} ({} row)".format(*downloadinfo), end='\r')
                     total = downloadinfo[-1]
                 print("\n- download selesai\n")
@@ -295,18 +296,21 @@ def main():
                 continue
 
             print("Downloading")
-            detil_downloader.set_host(host=host)
             detil_downloader.downloaded = 0
             get_detil(downloader=detil_downloader, jenis_paket='non_tender' if args.non_tender else 'tender', total=total,
                       tahun_anggaran=tahun_anggaran)
             print("\n- download selesai\n")
 
             print("Menggabungkan Data")
-            combine_data(host, False if args.non_tender else True, False if args.keep else True)
+            combine_data(_lpse.host, False if args.non_tender else True, False if args.keep else True)
             print("- proses selesai")
 
-    except (KeyboardInterrupt, Exception):
+    except KeyboardInterrupt:
         print("\n\nERROR: Proses dibatalkan oleh user, bye!")
+        detil_downloader.stop_process()
+    except Exception as e:
+        print("\n\nERROR:", e)
+        error_writer("{}|{}".format(detil_downloader.lpse.host, str(e)))
         detil_downloader.stop_process()
     finally:
         for i in range(detil_downloader.workers):
