@@ -130,6 +130,10 @@ def parse_tahun_anggaran(tahun_anggaran):
 
 
 def download_by_ta(ta_data, ta_argumen):
+
+    if not ta_data:
+        return True
+
     ta_data = [int(i) for i in ta_data]
 
     for i in ta_data:
@@ -280,7 +284,7 @@ def main():
                 print("=" * len(host))
                 print(host)
                 print("=" * len(host))
-                print("tahun anggaran :", tahun_anggaran)
+                print("tahun anggaran :", ' - '.join(map(str, tahun_anggaran)))
                 _lpse = Lpse(host=host, timeout=10, info=False)
                 _lpse.update_info()
 
@@ -295,6 +299,7 @@ def main():
             except Exception as e:
                 print("ERROR:", str(e))
                 error_writer('{}|{}'.format(host, str(e)))
+                raise e
                 continue
 
             print("Downloading")
@@ -313,6 +318,7 @@ def main():
         print("\n\nERROR:", e)
         error_writer("{}|{}".format(detil_downloader.lpse.host, str(e)))
         detil_downloader.stop_process()
+        raise e
     finally:
         for i in range(detil_downloader.workers):
             detil_downloader.queue.put(None)
