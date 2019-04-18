@@ -25,9 +25,13 @@ class BaseDownloader(object):
         self.lpse = None
         self.stop = False
 
-    def set_host(self, host):
-        self.lpse = Lpse(host)
-        self.lpse.timeout = self.timeout
+    def set_host(self, lpse):
+        self.lpse = lpse
+
+    def reset(self):
+        self.downloaded = 0
+        self.lpse = None
+        self.stop = False
 
     @abstractmethod
     def download(self, *args, **kwargs):

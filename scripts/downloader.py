@@ -281,9 +281,11 @@ def main():
                 print(host)
                 print("=" * len(host))
                 print("tahun anggaran :", tahun_anggaran)
-                _lpse = Lpse(host=host, timeout=10)
+                _lpse = Lpse(host=host, timeout=10, info=False)
                 _lpse.update_info()
-                detil_downloader.set_host(host=_lpse.host)
+
+                detil_downloader.reset()
+                detil_downloader.set_host(lpse=_lpse)
 
                 total = 0
                 for downloadinfo in download_index(_lpse, args.pool_size, args.fetch_size, args.timeout, args.non_tender):
@@ -296,9 +298,8 @@ def main():
                 continue
 
             print("Downloading")
-            detil_downloader.downloaded = 0
-            get_detil(downloader=detil_downloader, jenis_paket='non_tender' if args.non_tender else 'tender', total=total,
-                      tahun_anggaran=tahun_anggaran)
+            get_detil(downloader=detil_downloader, jenis_paket='non_tender' if args.non_tender else 'tender',
+                      total=total, tahun_anggaran=tahun_anggaran)
             print("\n- download selesai\n")
 
             print("Menggabungkan Data")
