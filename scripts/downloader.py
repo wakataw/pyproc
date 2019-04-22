@@ -8,6 +8,8 @@ from math import ceil
 from shutil import copyfile, rmtree
 from urllib.parse import urlparse
 
+import requests
+
 from pyproc import Lpse
 from pyproc.helpers import DetilDownloader
 from urllib3 import disable_warnings
@@ -26,78 +28,61 @@ SPSE4 Downloader
 ''')
 
 
-def error_writer(error):
-    with open('error.log', 'a', encoding='utf8', errors="ignore") as error_file:
-        error_file.write(error+'\n')
-
-
-def get_folder_name(host, jenis_paket):
-    _url = urlparse(host)
-    netloc = _url.netloc if _url.netloc != '' else _url.path
-
-    return netloc.lower().replace('.', '_') + '_' + jenis_paket
-
-
-def get_index_path(host, jenis_paket):
-    index_dir = get_folder_name(host, jenis_paket)
-
-    os.makedirs(index_dir, exist_ok=True)
-
-    return os.path.join(index_dir, 'index')
-
-
-def download_index(host, pool_size, fetch_size, timeout, non_tender, host_check_timeout=10):
-    _lpse = Lpse(host=host, timeout=host_check_timeout)
-    _lpse.update_info()
+def download_index(_lpse, pool_size, fetch_size, timeout, non_tender, index_path, index_path_exists, force):
     _lpse.timeout = timeout
     lpse_pool = [_lpse]*pool_size
-    jenis_paket = 'non_tender' if non_tender else 'tender'
+
+    for i in lpse_pool:
+        i.session = requests.session()
+        i.session.verify = False
+
     print("url SPSE       :", lpse_pool[0].host)
     print("versi SPSE     :", lpse_pool[0].version)
     print("last update    :", lpse_pool[0].last_update)
     print("\nIndexing Data")
 
-    if non_tender:
-        total_data = lpse_pool[0].get_paket_non_tender()['recordsTotal']
+    if index_path_exists and not force:
+        yield "- Menggunakan cache"
     else:
-        total_data = lpse_pool[0].get_paket_tender()['recordsTotal']
+        if non_tender:
+            total_data = lpse_pool[0].get_paket_non_tender()['recordsTotal']
+        else:
+            total_data = lpse_pool[0].get_paket_tender()['recordsTotal']
 
-    batch_size = int(ceil(total_data / fetch_size))
-    downloaded_row = 0
+        batch_size = int(ceil(total_data / fetch_size))
+        downloaded_row = 0
 
-    with open(get_index_path(lpse_pool[0].host, jenis_paket), 'w', newline='', encoding='utf8',
-              errors="ignore") as index_file:
+        with open(index_path, 'w', newline='', encoding='utf8',
+                  errors="ignore") as index_file:
 
-        writer = csv.writer(index_file, delimiter='|', quoting=csv.QUOTE_ALL)
+            writer = csv.writer(index_file, delimiter='|', quoting=csv.QUOTE_ALL)
 
-        for page in range(batch_size):
+            for page in range(batch_size):
 
-            lpse = lpse_pool[page % pool_size]
+                lpse = lpse_pool[page % pool_size]
 
-            if non_tender:
-                data = lpse.get_paket_non_tender(start=page*fetch_size, length=fetch_size, data_only=True)
-            else:
-                data = lpse.get_paket_tender(start=page*fetch_size, length=fetch_size, data_only=True)
+                if non_tender:
+                    data = lpse.get_paket_non_tender(start=page*fetch_size, length=fetch_size, data_only=True)
+                else:
+                    data = lpse.get_paket_tender(start=page*fetch_size, length=fetch_size, data_only=True)
 
-            writer.writerows(data)
+                writer.writerows(data)
 
-            downloaded_row += len(data)
+                downloaded_row += len(data)
 
-            yield [page+1, batch_size, downloaded_row]
+                yield [page+1, batch_size, downloaded_row]
 
     del lpse_pool
 
 
-def get_detil(downloader, jenis_paket, total, tahun_anggaran):
+def get_detil(downloader, jenis_paket, tahun_anggaran, index_path):
     detail_dir = os.path.join(get_folder_name(downloader.lpse.host, jenis_paket), 'detil')
-    index_path = get_index_path(downloader.lpse.host, jenis_paket)
 
     os.makedirs(detail_dir, exist_ok=True)
 
     downloader.download_dir = detail_dir
     downloader.error_log = detail_dir+".err"
     downloader.is_tender = True if jenis_paket == 'tender' else False
-    downloader.total = total
 
     with open(index_path, 'r', encoding='utf8', errors="ignore") as f:
         reader = csv.reader(f, delimiter='|')
@@ -113,36 +98,8 @@ def get_detil(downloader, jenis_paket, total, tahun_anggaran):
     downloader.queue.join()
 
 
-def parse_tahun_anggaran(tahun_anggaran):
-    parsed_ta = tahun_anggaran.strip().split(',')
-    error = False
-
-    for i in range(len(parsed_ta)):
-        try:
-            parsed_ta[i] = int(parsed_ta[i])
-        except ValueError:
-            parsed_ta[i] = 0
-
-    if len(parsed_ta) > 2:
-        error = True
-    elif parsed_ta[-1] == 0:
-        parsed_ta[-1] = 9999
-
-    return error, parsed_ta
-
-
-def download_by_ta(ta_data, ta_argumen):
-    ta_data = [int(i) for i in ta_data]
-
-    for i in ta_data:
-        if ta_argumen[0] <= i <= ta_argumen[-1]:
-            return True
-
-    return False
-
-
-def combine_data(host, tender=True, remove=True):
-    folder_name = get_folder_name(host, jenis_paket='tender' if tender else 'non_tender')
+def combine_data(host, jenis_paket, remove=True):
+    folder_name = get_folder_name(host, jenis_paket=jenis_paket)
     detil_dir = os.path.join(folder_name, 'detil', '*')
     detil_combined = os.path.join(folder_name, 'detil.dat')
     detil_all = glob.glob(detil_dir)
@@ -192,12 +149,15 @@ def combine_data(host, tender=True, remove=True):
     }
 
     with open(detil_combined, 'w', encoding='utf8', errors="ignore") as csvf:
-        writer = csv.DictWriter(csvf, fieldnames=pengumuman_keys.keys() if tender else pengumuman_nontender_keys.keys())
+        writer = csv.DictWriter(
+            csvf,
+            fieldnames=pengumuman_keys.keys() if jenis_paket == 'tender' else pengumuman_nontender_keys.keys()
+        )
 
         writer.writeheader()
 
         for detil_file in detil_all:
-            detil = pengumuman_keys.copy() if tender else pengumuman_nontender_keys.copy()
+            detil = pengumuman_keys.copy() if jenis_paket == 'tender' else pengumuman_nontender_keys.copy()
 
             with open(detil_file, 'r', encoding='utf8', errors="ignore") as f:
                 data = json.loads(f.read())
@@ -209,7 +169,7 @@ def combine_data(host, tender=True, remove=True):
 
                 detil['lokasi_pekerjaan'] = ' || '.join(detil['lokasi_pekerjaan'])
 
-                if tender:
+                if jenis_paket == 'tender':
                     tahap = 'tahap_tender_saat_ini'
                 else:
                     tahap = 'tahap_paket_saat_ini'
@@ -227,6 +187,60 @@ def combine_data(host, tender=True, remove=True):
     copy_result(folder_name, remove=remove)
 
 
+def error_writer(error):
+    with open('error.log', 'a', encoding='utf8', errors="ignore") as error_file:
+        error_file.write(error+'\n')
+
+
+def get_folder_name(host, jenis_paket):
+    _url = urlparse(host)
+    netloc = _url.netloc if _url.netloc != '' else _url.path
+
+    return netloc.lower().replace('.', '_') + '_' + jenis_paket
+
+
+def get_index_path(cache_folder, host, jenis_paket, last_paket_id):
+    index_dir = os.path.join(cache_folder, get_folder_name(host, jenis_paket))
+
+    os.makedirs(index_dir, exist_ok=True)
+
+    index_path = os.path.join(index_dir, 'index-{}-{}-{}'.format(*last_paket_id))
+
+    return os.path.isfile(index_path), index_path
+
+
+def parse_tahun_anggaran(tahun_anggaran):
+    parsed_ta = tahun_anggaran.strip().split(',')
+    error = False
+
+    for i in range(len(parsed_ta)):
+        try:
+            parsed_ta[i] = int(parsed_ta[i])
+        except ValueError:
+            parsed_ta[i] = 0
+
+    if len(parsed_ta) > 2:
+        error = True
+    elif parsed_ta[-1] == 0:
+        parsed_ta[-1] = 9999
+
+    return error, parsed_ta
+
+
+def download_by_ta(ta_data, ta_argumen):
+
+    if not ta_data:
+        return True
+
+    ta_data = [int(i) for i in ta_data]
+
+    for i in ta_data:
+        if ta_argumen[0] <= i <= ta_argumen[-1]:
+            return True
+
+    return False
+
+
 def copy_result(folder_name, remove=True):
     copyfile(os.path.join(folder_name, 'detil.dat'), folder_name + '.csv')
 
@@ -237,9 +251,46 @@ def copy_result(folder_name, remove=True):
         rmtree(folder_name)
 
 
+def get_last_paket_id(lpse: Lpse, tender=True):
+    # first
+    if tender:
+        data_first = lpse.get_paket_tender(start=0, length=1)
+        data_last = lpse.get_paket_tender(start=0, length=1, ascending=True)
+    else:
+        data_first = lpse.get_paket_non_tender(start=0, length=1)
+        data_last = lpse.get_paket_non_tender(start=0, length=1, ascending=True)
+
+    if data_first and data_last:
+        return [data_first['data'][0][0], data_last['data'][0][0], data_first['recordsTotal']]
+
+    return None
+
+
+def create_cache_folder():
+    from pathlib import Path
+
+    home = str(Path.home())
+    cache_folder = os.path.join(home, '.pyproc')
+
+    os.makedirs(cache_folder, exist_ok=True)
+
+    return cache_folder
+
+
+def lock_index(index_path):
+    return index_path+".lock"
+
+
+def unlock_index(index_path):
+    unlocked_path = index_path.split(".lock")[0]
+    os.rename(index_path, unlocked_path)
+
+    return unlocked_path
+
+
 def main():
     print_info()
-
+    cache_folder = create_cache_folder()
     disable_warnings(InsecureRequestWarning)
 
     parser = argparse.ArgumentParser()
@@ -253,10 +304,12 @@ def main():
     parser.add_argument("--timeout", help="Set timeout", default=30, type=int)
     parser.add_argument("--keep", help="Tidak menghapus folder cache", action="store_true")
     parser.add_argument("--non-tender", help="Download paket non tender (penunjukkan langsung)", action="store_true")
+    parser.add_argument("--force", "-f", help="Clear index sebelum mendownload data", action="store_true")
 
     args = parser.parse_args()
 
     error, tahun_anggaran = parse_tahun_anggaran(args.tahun_anggaran)
+    jenis_paket = 'non_tender' if args.non_tender else 'tender'
 
     if error:
         print("ERROR: format tahun anggaran tidak dikenal ", args.tahun_anggaran)
@@ -278,35 +331,65 @@ def main():
 
     try:
         for host in host_list:
-            print("="*len(host))
-            print(host)
-            print("="*len(host))
-            print("tahun anggaran :", tahun_anggaran)
-
             try:
-                total = 0
-                for downloadinfo in download_index(host, args.pool_size, args.fetch_size, args.timeout, args.non_tender):
+                print("=" * len(host))
+                print(host)
+                print("=" * len(host))
+                print("tahun anggaran :", ' - '.join(map(str, tahun_anggaran)))
+                _lpse = Lpse(host=host, timeout=10, info=False)
+                _lpse.update_info()
+                last_paket_id = get_last_paket_id(_lpse, not args.non_tender)
+
+                if last_paket_id is None:
+                    print("- Data kosong")
+                    continue
+
+                index_path_exists, index_path = get_index_path(cache_folder, _lpse.host, jenis_paket, last_paket_id)
+
+                if args.force:
+                    rmtree(os.path.dirname(index_path))
+                    os.mkdir(os.path.dirname(index_path))
+                    index_path_exists = False
+
+                if not index_path_exists:
+                    index_path = lock_index(index_path)
+
+                for downloadinfo in download_index(_lpse, args.pool_size, args.fetch_size, args.timeout,
+                                                   args.non_tender, index_path, index_path_exists, args.force):
+                    if index_path_exists and not args.force:
+                        print(downloadinfo, end='\r')
+                        continue
+
                     print("- halaman {} of {} ({} row)".format(*downloadinfo), end='\r')
-                    total = downloadinfo[-1]
+
                 print("\n- download selesai\n")
+
+                index_path = unlock_index(index_path)
+
             except Exception as e:
                 print("ERROR:", str(e))
                 error_writer('{}|{}'.format(host, str(e)))
                 continue
 
             print("Downloading")
-            detil_downloader.set_host(host=host)
-            detil_downloader.downloaded = 0
-            get_detil(downloader=detil_downloader, jenis_paket='non_tender' if args.non_tender else 'tender', total=total,
-                      tahun_anggaran=tahun_anggaran)
+
+            detil_downloader.reset()
+            detil_downloader.set_host(lpse=_lpse)
+
+            get_detil(downloader=detil_downloader, jenis_paket=jenis_paket, tahun_anggaran=tahun_anggaran,
+                      index_path=index_path)
             print("\n- download selesai\n")
 
             print("Menggabungkan Data")
-            combine_data(host, False if args.non_tender else True, False if args.keep else True)
+            combine_data(_lpse.host, jenis_paket)
             print("- proses selesai")
 
-    except (KeyboardInterrupt, Exception):
+    except KeyboardInterrupt:
         print("\n\nERROR: Proses dibatalkan oleh user, bye!")
+        detil_downloader.stop_process()
+    except Exception as e:
+        print("\n\nERROR:", e)
+        error_writer("{}|{}".format(detil_downloader.lpse.host, str(e)))
         detil_downloader.stop_process()
     finally:
         for i in range(detil_downloader.workers):
