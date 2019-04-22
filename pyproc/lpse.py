@@ -18,7 +18,7 @@ class By(Enum):
 
 class Lpse(object):
 
-    def __init__(self, host, timeout=10):
+    def __init__(self, host, timeout=10, info=True):
         self.session = requests.session()
         self.session.verify = False
         self.host = host
@@ -26,6 +26,9 @@ class Lpse(object):
         self.last_update = None
         self.timeout = timeout
         self._check_host()
+
+        if info:
+            self.update_info()
 
     def _check_host(self):
         parsed_url = urlparse(self.host)

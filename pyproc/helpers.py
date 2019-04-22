@@ -25,9 +25,13 @@ class BaseDownloader(object):
         self.lpse = None
         self.stop = False
 
-    def set_host(self, host):
-        self.lpse = Lpse(host)
-        self.lpse.timeout = self.timeout
+    def set_host(self, lpse):
+        self.lpse = lpse
+
+    def reset(self):
+        self.downloaded = 0
+        self.lpse = None
+        self.stop = False
 
     @abstractmethod
     def download(self, *args, **kwargs):
@@ -60,7 +64,6 @@ class BaseDownloader(object):
 class DetilDownloader(BaseDownloader):
 
     def __init__(self, *args, **kwargs):
-        self.total = 0
         super(DetilDownloader, self).__init__(*args, **kwargs)
 
     def download(self, retry=0, *args, **kwargs):
@@ -92,7 +95,7 @@ class DetilDownloader(BaseDownloader):
 
         with self.lock:
             self.downloaded += 1
-            print("-", self.downloaded, "of", self.total, end='\r')
+            print("-", self.downloaded, "data berhasil di download", end='\r')
 
     def stop_process(self):
         with self.lock:
