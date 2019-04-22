@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased (0.1.0b5)]
 ### Added
 - Mendapatkan Daftar Paket Tender dan Non Tender
-- Mendapatkan Detil Paket (Pengumuman, Peserta, Hasil Evaluasi, Pemenang, Pemenang Berkontrak, Jadwal)
+- Mendapatkan Detil Paket (Pengumuman, Peserta, Hasil Evaluasi, Pemenang, Pemenang Berkontrak, Jadwal Penetapan Pemenang)
 - Filter pencarian paket tender/non tender berdasarkan kategori pengadaan.
 - Mengurutkan Pencarian paket berdasarkan id paket, nama instansi, tahap paket, dan HPS
 - Menambahkan CLI downloader paket tender dan non tender
