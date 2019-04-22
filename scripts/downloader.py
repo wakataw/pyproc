@@ -150,7 +150,8 @@ def combine_data(host, jenis_paket, remove=True):
 
     with open(detil_combined, 'w', encoding='utf8', errors="ignore") as csvf:
         fieldnames = list(pengumuman_keys.keys() if jenis_paket == 'tender' else pengumuman_nontender_keys.keys())
-        fieldnames += ['penetapan_pemenang_mulai', 'penetapan_pemenang_sampai']
+        fieldnames += ['penetapan_pemenang_mulai', 'penetapan_pemenang_sampai', 'penandatanganan_kontrak_mulai',
+                       'penandatanganan_kontrak_sampai']
 
         writer = csv.DictWriter(
             csvf,
@@ -189,10 +190,15 @@ def combine_data(host, jenis_paket, remove=True):
 
             if data['jadwal']:
                 data_pemenang = list(filter(lambda x: x['tahap'] == 'Penetapan Pemenang', data['jadwal']))
+                data_kontrak = list(filter(lambda x: x['tahap'] == 'Penandatanganan Kontrak', data['jadwal']))
 
                 if data_pemenang:
                     detil['penetapan_pemenang_mulai'] = data_pemenang[0]['mulai']
                     detil['penetapan_pemenang_sampai'] = data_pemenang[0]['sampai']
+
+                if data_kontrak:
+                    detil['penandatanganan_kontrak_mulai'] = data_kontrak[0]['mulai']
+                    detil['penandatanganan_kontrak_selesai'] = data_kontrak[0]['selesai']
 
             writer.writerow(detil)
 
