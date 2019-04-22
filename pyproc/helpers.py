@@ -64,7 +64,6 @@ class BaseDownloader(object):
 class DetilDownloader(BaseDownloader):
 
     def __init__(self, *args, **kwargs):
-        self.total = 0
         super(DetilDownloader, self).__init__(*args, **kwargs)
 
     def download(self, retry=0, *args, **kwargs):
@@ -96,7 +95,7 @@ class DetilDownloader(BaseDownloader):
 
         with self.lock:
             self.downloaded += 1
-            print("-", self.downloaded, "of", self.total, end='\r')
+            print("-", self.downloaded, "data berhasil di download", end='\r')
 
     def stop_process(self):
         with self.lock:
