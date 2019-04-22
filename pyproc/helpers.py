@@ -78,6 +78,7 @@ class DetilDownloader(BaseDownloader):
         try:
             detil.get_pengumuman()
             detil.get_pemenang()
+            detil.get_jadwal()
         except Exception as e:
 
             if retry < self.max_retry:

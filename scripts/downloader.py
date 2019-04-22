@@ -149,15 +149,22 @@ def combine_data(host, jenis_paket, remove=True):
     }
 
     with open(detil_combined, 'w', encoding='utf8', errors="ignore") as csvf:
+        fieldnames = list(pengumuman_keys.keys() if jenis_paket == 'tender' else pengumuman_nontender_keys.keys())
+        fieldnames += ['penetapan_pemenang_mulai', 'penetapan_pemenang_sampai']
+
         writer = csv.DictWriter(
             csvf,
-            fieldnames=pengumuman_keys.keys() if jenis_paket == 'tender' else pengumuman_nontender_keys.keys()
+            fieldnames=fieldnames
         )
 
         writer.writeheader()
 
         for detil_file in detil_all:
             detil = pengumuman_keys.copy() if jenis_paket == 'tender' else pengumuman_nontender_keys.copy()
+
+            detil.update(
+                {'penetapan_pemenang_mulai': None, 'penetapan_pemenang_sampai': None}
+            )
 
             with open(detil_file, 'r', encoding='utf8', errors="ignore") as f:
                 data = json.loads(f.read())
@@ -179,6 +186,13 @@ def combine_data(host, jenis_paket, remove=True):
 
             if data['pemenang']:
                 detil.update((k, data['pemenang'][k]) for k in detil.keys() & data['pemenang'].keys())
+
+            if data['jadwal']:
+                data_pemenang = list(filter(lambda x: x['tahap'] == 'Penetapan Pemenang', data['jadwal']))
+
+                if data_pemenang:
+                    detil['penetapan_pemenang_mulai'] = data_pemenang[0]['mulai']
+                    detil['penetapan_pemenang_sampai'] = data_pemenang[0]['sampai']
 
             writer.writerow(detil)
 
@@ -381,7 +395,7 @@ def main():
             print("\n- download selesai\n")
 
             print("Menggabungkan Data")
-            combine_data(_lpse.host, jenis_paket)
+            combine_data(_lpse.host, jenis_paket, not args.keep)
             print("- proses selesai")
 
     except KeyboardInterrupt:
