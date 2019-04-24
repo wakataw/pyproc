@@ -63,12 +63,14 @@ def download_index(_lpse, pool_size, fetch_size, timeout, non_tender, index_path
 
                 if non_tender:
                     data = lpse.get_paket_non_tender(start=page*fetch_size, length=fetch_size, data_only=True)
+                    min_data = list(map(lambda x: [x[0], x[6]], data))
                 else:
                     data = lpse.get_paket_tender(start=page*fetch_size, length=fetch_size, data_only=True)
+                    min_data = list(map(lambda x: [x[0], x[8]], data))
 
-                writer.writerows(data)
+                writer.writerows(min_data)
 
-                downloaded_row += len(data)
+                downloaded_row += len(min_data)
 
                 yield [page+1, batch_size, downloaded_row]
 
@@ -88,7 +90,7 @@ def get_detil(downloader, jenis_paket, tahun_anggaran, index_path):
         reader = csv.reader(f, delimiter='|')
 
         for row in reader:
-            tahun_anggaran_data = re.findall(r'(20\d{2})', row[8] if jenis_paket == 'tender' else row[6])
+            tahun_anggaran_data = re.findall(r'(20\d{2})', row[1])
 
             if not download_by_ta(tahun_anggaran_data, tahun_anggaran):
                 continue
@@ -164,7 +166,10 @@ def combine_data(host, jenis_paket, remove=True):
             detil = pengumuman_keys.copy() if jenis_paket == 'tender' else pengumuman_nontender_keys.copy()
 
             detil.update(
-                {'penetapan_pemenang_mulai': None, 'penetapan_pemenang_sampai': None}
+                {
+                    'penetapan_pemenang_mulai': None,
+                    'penetapan_pemenang_sampai': None,
+                }
             )
 
             with open(detil_file, 'r', encoding='utf8', errors="ignore") as f:
