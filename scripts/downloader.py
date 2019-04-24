@@ -203,7 +203,7 @@ def combine_data(host, jenis_paket, remove=True):
 
                 if data_kontrak:
                     detil['penandatanganan_kontrak_mulai'] = data_kontrak[0]['mulai']
-                    detil['penandatanganan_kontrak_selesai'] = data_kontrak[0]['selesai']
+                    detil['penandatanganan_kontrak_sampai'] = data_kontrak[0]['sampai']
 
             writer.writerow(detil)
 
