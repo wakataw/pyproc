@@ -6,8 +6,6 @@ from queue import Queue, Empty
 
 import requests
 
-from .lpse import Lpse
-
 
 class BaseDownloader(object):
 
@@ -91,8 +89,9 @@ class DetilDownloader(BaseDownloader):
             error = "{}|{}".format(id_paket, e)
             self.write_error(error)
 
-        with open(os.path.join(self.download_dir, id_paket), 'w', encoding='utf8', errors="ignore") as result_file:
-            result_file.write(json.dumps(detil.todict()))
+        with self.lock:
+            with open(os.path.join(self.download_dir, id_paket), 'w', encoding='utf8', errors="ignore") as result_file:
+                result_file.write(json.dumps(detil.todict()))
 
         with self.lock:
             self.downloaded += 1
