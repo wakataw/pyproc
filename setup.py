@@ -9,7 +9,7 @@ with open(path.join(BASE_DIR, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='pyproc',
-    version='0.1b2019042401',
+    version='0.1b2019042501',
     description='Python SPSEv4 wrapper',
     long_description=long_description,
     long_description_content_type='text/markdown',
