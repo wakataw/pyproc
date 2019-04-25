@@ -361,8 +361,7 @@ def main():
                 print(host)
                 print("=" * len(host))
                 print("tahun anggaran :", ' - '.join(map(str, tahun_anggaran)))
-                _lpse = Lpse(host=host, timeout=10, info=False)
-                _lpse.update_info()
+                _lpse = Lpse(host=host, timeout=args.timeout)
                 last_paket_id = get_last_paket_id(_lpse, not args.non_tender)
 
                 if last_paket_id is None:
