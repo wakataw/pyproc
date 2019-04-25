@@ -261,7 +261,7 @@ class LpseDetil(object):
         return str(self.todict())
 
     def todict(self):
-        data = self.__dict__
+        data = self.__dict__.copy()
         data.pop('_lpse')
         return data
 
@@ -320,7 +320,7 @@ class LpseDetilNonTender(object):
         return str(self.todict())
 
     def todict(self):
-        data = self.__dict__
+        data = self.__dict__.copy()
         data.pop('_lpse')
         return data
 
