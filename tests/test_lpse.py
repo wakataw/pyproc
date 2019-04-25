@@ -2,7 +2,7 @@ import unittest
 import re
 
 from pyproc import Lpse
-from pyproc.exceptions import LpseHostExceptions
+from pyproc.exceptions import LpseHostExceptions, LpseServerExceptions
 
 
 class TestLpse(unittest.TestCase):
@@ -105,6 +105,28 @@ class TestLpse(unittest.TestCase):
         for key in detil.jadwal[0]:
             self.assertEqual(True, key in jadwal_key)
 
+    def test_detil_todict(self):
+        detil = self.lpse.detil_paket_tender(50606064)
+        detil.get_all_detil()
+
+        self.assertIsInstance(detil.todict(), dict)
+
+    def test_detil_todict_todict(self):
+        detil = self.lpse.detil_paket_tender(50606064)
+        detil.get_all_detil()
+        detil.todict()
+        detil.todict()
+
+        self.assertIsInstance(detil.todict(), dict)
+
+    def test_detil_id_random(self):
+        detil = self.lpse.detil_paket_tender(111)
+
+        with self.assertRaises(LpseServerExceptions) as context:
+            detil.get_all_detil()
+
+        self.assertIn("Terjadi error pada aplikasi SPSE.", str(context.exception))
+
 
 class TestPaketNonTender(unittest.TestCase):
 
@@ -205,6 +227,28 @@ class TestPaketNonTender(unittest.TestCase):
         detil.get_jadwal()
 
         self.assertEqual(detil.jadwal, expected_result)
+
+    def test_detil_todict(self):
+        detil = self.lpse.detil_paket_non_tender(2189624)
+        detil.get_all_detil()
+
+        self.assertIsInstance(detil.todict(), dict)
+
+    def test_detil_todict_todict(self):
+        detil = self.lpse.detil_paket_non_tender(2189624)
+        detil.get_all_detil()
+        detil.todict()
+        detil.todict()
+
+        self.assertIsInstance(detil.todict(), dict)
+
+    def test_detil_id_random(self):
+        detil = self.lpse.detil_paket_tender(111)
+
+        with self.assertRaises(LpseServerExceptions) as context:
+            detil.get_all_detil()
+
+        self.assertIn("Terjadi error pada aplikasi SPSE.", str(context.exception))
 
 
 class TestLpseHostError(unittest.TestCase):
