@@ -3,7 +3,7 @@ import requests
 import re
 
 from bs4 import BeautifulSoup as Bs, NavigableString
-from .exceptions import LpseVersionException, LpseHostExceptions
+from .exceptions import LpseVersionException, LpseHostExceptions, LpseServerExceptions
 from enum import Enum
 from abc import abstractmethod
 from urllib.parse import urlparse
@@ -335,7 +335,20 @@ class BaseLpseDetilParser(object):
 
     def get_detil(self):
         r = self.lpse.session.get(self.lpse.host+self.detil_path.format(self.id_paket), timeout=self.lpse.timeout)
+
+        self._check_error(r.text)
+
         return self.parse_detil(r.content)
+
+    def _check_error(self, content):
+        if re.findall(r'Maaf, terjadi error pada aplikasi SPSE.', content):
+            error_message = "Terjadi error pada aplikasi SPSE."
+            error_code = re.findall(r'Kode Error: ([0-9a-zA-Z]{9})', content)
+
+            if error_code:
+                error_message += ' Kode Error: ' + error_code[0]
+
+            raise LpseServerExceptions(error_message)
 
     @abstractmethod
     def parse_detil(self, content):
