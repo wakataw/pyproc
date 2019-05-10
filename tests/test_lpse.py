@@ -7,7 +7,7 @@ from pyproc.exceptions import LpseHostExceptions, LpseServerExceptions
 
 class TestLpse(unittest.TestCase):
     def setUp(self):
-        self.lpse = Lpse('https://lpse.pu.go.id')
+        self.lpse = Lpse('https://lpse.bengkuluprov.go.id', timeout=30)
 
     def test_version(self):
         v = self.lpse.version
@@ -32,7 +32,7 @@ class TestLpse(unittest.TestCase):
         self.assertEqual(data_1['data'][-1], data_2['data'][0])
 
     def test_get_paket_tender_search(self):
-        keyword = 'api kertosono'
+        keyword = 'konsentrat'
         data = self.lpse.get_paket_tender(length=1, search_keyword=keyword)
 
         for i in data['data']:
@@ -57,40 +57,40 @@ class TestLpse(unittest.TestCase):
         self.assertIsInstance(detil.peserta, list)
 
     def test_get_hasil_evaluasi_tender(self):
-        detil = self.lpse.detil_paket_tender(50606064)
+        detil = self.lpse.detil_paket_tender(3676267)
 
         detil.get_hasil_evaluasi()
 
         self.assertIsInstance(detil.hasil, list)
 
     def test_get_pemenang_tender(self):
-        lpse = Lpse('http://lpse.padang.go.id')
-        detil = lpse.detil_paket_tender('2120624')
+        detil = self.lpse.detil_paket_tender(3676267)
         detil.get_pemenang()
 
-        nama_pemenang = 'PT. PAMULINDO BUANA ABADI'
-        npwp_pemenang = '71.035.593.4-411.000'
+        nama_pemenang = 'CV. PELANGI NUSANTARA'
+        npwp_pemenang = '02.352.426.7-311.000'
 
         self.assertEqual(nama_pemenang, detil.pemenang['nama_pemenang'])
         self.assertEqual(npwp_pemenang, detil.pemenang['npwp'])
 
     def test_get_pemenang_tender_kosong(self):
-        detil = self.lpse.detil_paket_tender('51026064')
+        data = self.lpse.get_paket_tender(length=1)
+        id_paket = data['data'][0][0]
+        detil = self.lpse.detil_paket_tender(id_paket)
         pemenang = detil.get_pemenang()
 
         self.assertEqual(pemenang, None)
 
     def test_get_pemenang_berkontrak_tender(self):
-        lpse = Lpse('http://lpse.padang.go.id')
-        detil = lpse.detil_paket_tender('2096624')
+        detil = self.lpse.detil_paket_tender(3676267)
         detil.get_pemenang_berkontrak()
 
         expected_result = {
-            'nama_pemenang': 'PT.MEGATAMA CITRA LESTARI',
-            'alamat': 'JL.RAYA KRESEK RUKO KRESEK NO.88 I DURIKOSAMBI - Jakarta Barat (Kota) - DKI Jakarta',
-            'npwp': '66.623.166.7-034.000',
-            'harga_penawaran': 567471410.0,
-            'hasil_negosiasi': ''
+            'nama_pemenang': 'CV. PELANGI NUSANTARA',
+            'alamat': 'Jl. Meranti 03 No. 11 Sawah Lebar Bengkulu - Bengkulu (Kota) - Bengkulu',
+            'npwp': '02.352.426.7-311.000',
+            'harga_penawaran': 791309449.11,
+            'hasil_negosiasi': 791309449.11
         }
 
         self.assertEqual(expected_result, detil.pemenang_berkontrak)
@@ -106,13 +106,13 @@ class TestLpse(unittest.TestCase):
             self.assertEqual(True, key in jadwal_key)
 
     def test_detil_todict(self):
-        detil = self.lpse.detil_paket_tender(50606064)
+        detil = self.lpse.detil_paket_tender(3676267)
         detil.get_all_detil()
 
         self.assertIsInstance(detil.todict(), dict)
 
     def test_detil_todict_todict(self):
-        detil = self.lpse.detil_paket_tender(50606064)
+        detil = self.lpse.detil_paket_tender(3676267)
         detil.get_all_detil()
         detil.todict()
         detil.todict()
@@ -131,7 +131,7 @@ class TestLpse(unittest.TestCase):
 class TestPaketNonTender(unittest.TestCase):
 
     def setUp(self):
-        self.lpse = Lpse('http://lpse.padang.go.id')
+        self.lpse = Lpse('http://lpse.padang.go.id', timeout=30)
 
     def test_get_paket_non_tender(self):
         paket = self.lpse.get_paket_non_tender(length=5)
@@ -175,8 +175,8 @@ class TestPaketNonTender(unittest.TestCase):
         expected_result = [
             {
                 'no': '1', 'nama_peserta': 'cv.samudera fiber', 'a': 1, 't': 1, 'penawaran': 199280125.0,
-                'penawaran_terkoreksi': 199280125.0, 'h': 1, 'p': '*', 'pk': '*', 'alasan': '',
-                'npwp': '83.134.137.5-202.000'
+                'penawaran_terkoreksi': 199280125.0, 'hasil_negosiasi': 198992750.0, 'h': 1, 'p': '*', 'pk': '*',
+                'alasan': '', 'npwp': '83.134.137.5-202.000'
             }
         ]
         detil.get_hasil_evaluasi()
@@ -254,7 +254,7 @@ class TestPaketNonTender(unittest.TestCase):
 class TestLpseHostError(unittest.TestCase):
 
     def test_host_without_scheme(self):
-        host = 'lpse.pu.go.id'
+        host = 'https://lpse.bengkuluprov.go.id'
         lpse = Lpse(host)
 
         self.assertEqual(lpse.host.startswith('http'), True)
@@ -272,7 +272,7 @@ class TestLpseHostError(unittest.TestCase):
 class TestLpseDetailKosong(unittest.TestCase):
 
     def setUp(self):
-        host = 'http://lpse.pu.go.id'
+        host = 'https://lpse.bengkuluprov.go.id'
 
         lpse = Lpse(host)
         paket = lpse.get_paket_tender(start=0, length=1)['data']
@@ -297,7 +297,7 @@ class TestLpseDetailKosong(unittest.TestCase):
 class TestLpseDetailKosongNonTender(unittest.TestCase):
 
     def setUp(self):
-        host = 'http://lpse.padang.go.id'
+        host = 'http://lpse.bengkuluprov.go.id'
 
         lpse = Lpse(host)
         paket = lpse.get_paket_non_tender(start=0, length=1)['data']
