@@ -405,7 +405,11 @@ def main():
             print("\n- download selesai\n")
 
             print("Menggabungkan Data")
-            combine_data(_lpse.host, jenis_paket, not args.keep)
+            try:
+                combine_data(_lpse.host, jenis_paket, not args.keep)
+            except Exception as e:
+                print("ERROR:", str(e))
+                error_writer('{}|menggabungkan {}'.format(host, str(e)))
             print("- proses selesai")
 
     except KeyboardInterrupt:
