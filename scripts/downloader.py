@@ -100,7 +100,7 @@ def get_detil(downloader, jenis_paket, tahun_anggaran, index_path):
     downloader.queue.join()
 
 
-def combine_data(host, jenis_paket, remove=True):
+def combine_data(host, jenis_paket, remove=True, filename=None):
     folder_name = get_folder_name(host, jenis_paket=jenis_paket)
     detil_dir = os.path.join(folder_name, 'detil', '*')
     detil_combined = os.path.join(folder_name, 'detil.dat')
@@ -209,7 +209,7 @@ def combine_data(host, jenis_paket, remove=True):
 
             del detil
 
-    copy_result(folder_name, remove=remove)
+    copy_result(folder_name, remove=remove, filename=filename)
 
 
 def error_writer(error):
@@ -266,11 +266,17 @@ def download_by_ta(ta_data, ta_argumen):
     return False
 
 
-def copy_result(folder_name, remove=True):
-    copyfile(os.path.join(folder_name, 'detil.dat'), folder_name + '.csv')
+def copy_result(folder_name, remove=True, filename=None):
+
+    if filename is None:
+        filename = folder_name
+    else:
+        filename = ''.join(filename.split('.')[:-1])
+
+    copyfile(os.path.join(folder_name, 'detil.dat'), filename + '.csv')
 
     if os.path.isfile(os.path.join(folder_name, 'detil.err')):
-        copyfile(os.path.join(folder_name, 'detil.err'), folder_name + '_error.log')
+        copyfile(os.path.join(folder_name, 'detil.err'), filename + '_error.log')
 
     if remove:
         rmtree(folder_name)
@@ -356,6 +362,13 @@ def main():
 
     try:
         for host in host_list:
+            _ = host.split(';')
+            host = _[0].strip()
+            custom_file_name = None
+
+            if len(_) > 1:
+                custom_file_name = _[1].strip()
+
             try:
                 print("=" * len(host))
                 print(host)
@@ -406,7 +419,7 @@ def main():
 
             print("Menggabungkan Data")
             try:
-                combine_data(_lpse.host, jenis_paket, not args.keep)
+                combine_data(_lpse.host, jenis_paket, not args.keep, filename=custom_file_name)
             except Exception as e:
                 print("ERROR:", str(e))
                 error_writer('{}|menggabungkan {}'.format(host, str(e)))
