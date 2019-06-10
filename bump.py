@@ -25,7 +25,7 @@ def update_version(file, pattern, new_version):
 
 if __name__ == '__main__':
     pattern = re.compile(r"version[\s+='_\"]+(.*)['\"]")
-    file_ = ['setup.py', 'pyproc/__init__.py']
+    file_ = ['pyproc/__init__.py']
 
     for f in file_:
         get_version(f, pattern)
