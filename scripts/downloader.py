@@ -326,6 +326,7 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--host", help="Alamat Website LPSE", default=None, type=str)
+    parser.add_argument("--out", help="Nama file hasil download LPSE", default=None, type=str)
     parser.add_argument("-r", "--read", help="Membaca host dari file", default=None, type=str)
     parser.add_argument("--tahun-anggaran", help="Tahun Anggaran untuk di download", default=str(datetime.now().year),
                         type=str)
@@ -366,7 +367,9 @@ def main():
             host = _[0].strip()
             custom_file_name = None
 
-            if len(_) > 1:
+            if args.host and args.out:
+                custom_file_name = args.out.strip()
+            elif len(_) > 1:
                 custom_file_name = _[1].strip()
 
             try:
