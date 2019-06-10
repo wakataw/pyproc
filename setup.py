@@ -1,3 +1,5 @@
+import re
+
 from setuptools import setup, find_packages
 from os import path
 
@@ -7,9 +9,20 @@ BASE_DIR = path.abspath(path.dirname(__file__))
 with open(path.join(BASE_DIR, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
+
+def get_version():
+    filename = path.join('pyproc', '__init__.py')
+
+    with open(filename, 'r') as f:
+        content = f.read()
+
+    version = re.findall(r"version[\s+='_\"]+(.*)['\"]", content)
+
+    return version
+
 setup(
     name='pyproc',
-    version='0.1b2019051001',
+    version=get_version(),
     description='Python SPSEv4 wrapper',
     long_description=long_description,
     long_description_content_type='text/markdown',
