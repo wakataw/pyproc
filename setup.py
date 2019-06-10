@@ -18,7 +18,7 @@ def get_version():
 
     version = re.findall(r"version[\s+='_\"]+(.*)['\"]", content)
 
-    return version
+    return version[0]
 
 setup(
     name='pyproc',
