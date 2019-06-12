@@ -24,10 +24,10 @@ python -m tests.test_lpse
 ## Penggunaan Command Line Interface
 
 ```bash
-usage: pyproc [-h] [--host HOST] [-r READ] [--tahun-anggaran TAHUN_ANGGARAN]
-              [--workers WORKERS] [--pool-size POOL_SIZE]
-              [--fetch-size FETCH_SIZE] [--timeout TIMEOUT] [--keep]
-              [--non-tender] [--force]
+usage: pyproc [-h] [--host HOST] [--out OUT] [-r READ]
+              [--tahun-anggaran TAHUN_ANGGARAN] [--workers WORKERS]
+              [--pool-size POOL_SIZE] [--fetch-size FETCH_SIZE]
+              [--timeout TIMEOUT] [--keep] [--non-tender] [--force]
 ```
 **Arguments**
 
@@ -35,6 +35,7 @@ argumen | diperlukan | keterangan
 ---|---|---
 `-h, --help`| optional | menampilkan bantuan
 `--host` | Optional | Alamat website aplikasi LPSE, pisahkan dengan `,` untuk multiple lpse
+`--out OUT` | Optional, default nama domain | Nama file untuk hasil download LPSE
 `--read`, `-r` | Optional | Membaca daftar alamat lpse dari file 
 `--tahun-anggaran` | Optional, default tahun berjalan | Filter download hanya untuk tahun yang diberikan
 `--pool-size POOL_SIZE` | Optional, default 4 | Jumlah koneksi dalam connection pool untuk mendownload index paket
@@ -49,6 +50,9 @@ argumen | diperlukan | keterangan
 Download daftar paket lelang dari https://lpse.pu.go.id untuk tahun berjalan
 ```bash
 $ pyproc --host https://lpse.pu.go.id
+
+# atau dengan memberikan nama spesifik untuk hasil download
+$ pyproc --host https://lpse.pu.go.id --out hasil_download_lpse_pu.csv
 ```
 
 Download daftar paket lelang tahun 2017
@@ -145,4 +149,4 @@ print(pemenang)
 ```
 
 ## License
-Paket ini di-release di bawah lisensi MIT.
+Paket ini di-release di bawah lisensi MIT. Lebih lengkap baca [di sini](https://gitlab.com/wakataw/pyproc/blob/master/LICENSE)
