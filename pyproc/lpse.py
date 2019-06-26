@@ -528,7 +528,7 @@ class LpseDetilPemenangParser(BaseLpseDetilParser):
 
         if table_pemenang:
             header = ['_'.join(th.text.strip().split()).lower() for th in table_pemenang.find_all('th')]
-            data = [' '.join(td.text.strip().split()) for td in table_pemenang.find_all('td')]
+            data = [' '.join(td.text.strip().split()) for td in table_pemenang.find_all('tr')[-1].find_all('td')]
 
             if header and data:
                 pemenang = dict()
