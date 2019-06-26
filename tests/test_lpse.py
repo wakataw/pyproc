@@ -321,5 +321,25 @@ class TestLpseDetailKosongNonTender(unittest.TestCase):
         self.assertEqual(None, pemenang_berkontrak)
 
 
+class TestLpsePemenangDoubleTender(unittest.TestCase):
+
+    def setUp(self):
+        host = 'http://lpse.tanjabtimkab.go.id'
+        self.lpse = Lpse(host)
+
+    def test_pemenang(self):
+        expected_winner = {
+            3346331: ['CV. NIBUNG PUTIH', '02.005.160.3-334.000'],
+            3349331: ['CV. CAHAYA ERVIN GEMILANG', '02.714.891.5-331.000'],
+        }
+
+        for id_tender in expected_winner:
+            detil = self.lpse.detil_paket_tender(id_tender)
+            pemenang = detil.get_pemenang()
+
+            self.assertEqual(expected_winner[id_tender][0], pemenang['nama_pemenang'])
+            self.assertEqual(expected_winner[id_tender][1], pemenang['npwp'])
+
+
 if __name__ == '__main__':
     unittest.main()
