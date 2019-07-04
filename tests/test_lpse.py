@@ -266,7 +266,7 @@ class TestLpseHostError(unittest.TestCase):
         with self.assertRaises(LpseHostExceptions) as context:
             Lpse(host)
 
-        self.assertIn('{} sepertinya bukan aplikasi SPSE'.format(host), str(context.exception))
+        self.assertIn('sepertinya bukan aplikasi SPSE'.format(host), str(context.exception))
 
 
 class TestLpseDetailKosong(unittest.TestCase):
@@ -339,6 +339,23 @@ class TestLpsePemenangDoubleTender(unittest.TestCase):
 
             self.assertEqual(expected_winner[id_tender][0], pemenang['nama_pemenang'])
             self.assertEqual(expected_winner[id_tender][1], pemenang['npwp'])
+
+
+class TestCheckLpse(unittest.TestCase):
+
+    def test_host_check(self):
+        for host in [
+            'eproc.angkasapura2.co.id',
+            'lpse.pelni.co.id',
+            'lpse.bnn.go.id',
+            'lpse.dkn.go.id',
+            'lpse.polkam.go.id',
+            'lpse.unhas.ac.id'
+        ]:
+            lpse = Lpse(host)
+
+            self.assertEqual(True, lpse.is_lpse)
+            self.assertEqual(True, lpse.version.startswith('SPSE v4'))
 
 
 if __name__ == '__main__':

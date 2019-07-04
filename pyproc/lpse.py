@@ -22,6 +22,7 @@ class Lpse(object):
         self.session = requests.session()
         self.session.verify = False
         self.host = host
+        self.is_lpse = False
         self.version = None
         self.last_update = None
         self.timeout = timeout
@@ -42,7 +43,7 @@ class Lpse(object):
 
         self.host = '{}://{}'.format(scheme, netloc)
 
-    def update_info(self):
+    def update_info(self, retry=False):
         """
         Update Informasi mengenai versi SPSE dan waktu update data terakhir
         :param url: url LPSE
@@ -51,6 +52,11 @@ class Lpse(object):
         r = self.session.get(self.host, verify=False, timeout=self.timeout)
 
         if not self._is_spse(r.text):
+            if not retry:
+                if not self.host.endswith('eproc4'):
+                    self.host = self.host.strip('/') + '/eproc4'
+                    return self.update_info(retry=True)
+
             raise LpseHostExceptions("{} sepertinya bukan aplikasi SPSE".format(self.host))
 
         footer = Bs(r.content, 'html5lib').find('div', {'id': 'footer'}).text.strip()
@@ -62,11 +68,14 @@ class Lpse(object):
         self._get_last_update(footer)
 
     def _is_spse(self, content):
-        text = 'Untuk tampilan aplikasi SPSE yang lebih baik, harap aktifkan fitur javascript pada browser anda'.lower()
-        if text in content.lower():
-            return True
+        self.is_lpse = False
+        text = 'harap aktifkan fitur javascript pada browser anda'.lower()
 
-        return False
+        if text in content.lower():
+            self.is_lpse = True
+            return self.is_lpse
+
+        return self.is_lpse
 
     def _is_v4(self, footer):
         """
@@ -74,7 +83,7 @@ class Lpse(object):
         :param footer: content footer dari halaman LPSE
         :return: Boolean
         """
-        version = re.findall(r'(SPSE v4\.\d+u\d+)', footer, flags=re.DOTALL)
+        version = re.findall(r'(SPSE v4\.[0-9a-z.]+)', footer, flags=re.DOTALL)
 
         if version:
             self.version = version[0]
