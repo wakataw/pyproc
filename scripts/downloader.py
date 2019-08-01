@@ -150,7 +150,7 @@ def combine_data(host, jenis_paket, remove=True, filename=None):
         'hasil_negosiasi': None,
     }
 
-    with open(detil_combined, 'w', encoding='utf8', errors="ignore") as csvf:
+    with open(detil_combined, 'w', encoding='utf8', errors="ignore", newline='') as csvf:
         fieldnames = list(pengumuman_keys.keys() if jenis_paket == 'tender' else pengumuman_nontender_keys.keys())
         fieldnames += ['penetapan_pemenang_mulai', 'penetapan_pemenang_sampai', 'penandatanganan_kontrak_mulai',
                        'penandatanganan_kontrak_sampai']
