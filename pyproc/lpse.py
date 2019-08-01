@@ -50,6 +50,7 @@ class Lpse(object):
         :return:
         """
         r = self.session.get(self.host, verify=False, timeout=self.timeout)
+        s = Bs(r.content, 'html5lib')
 
         if not self._is_spse(r.text):
             if not retry:
@@ -59,13 +60,32 @@ class Lpse(object):
 
             raise LpseHostExceptions("{} sepertinya bukan aplikasi SPSE".format(self.host))
 
-        footer = Bs(r.content, 'html5lib').find('div', {'id': 'footer'}).text.strip()
+        footer = s.find('div', {'id': 'footer'}).text.strip()
 
         if not self._is_v4(footer):
             raise LpseVersionException("Versi SPSE harus >= 4")
 
         self.host = r.url.strip('/')
+
+        if not self.host.endswith('eproc4'):
+            self._check_eproc4_rewrite(s)
+
         self._get_last_update(footer)
+
+    def _check_eproc4_rewrite(self, html):
+        """
+        Method untuk cek alamat spse, terkadang pada home di set url rewrite `/eproc4` => `/`
+        sehingga error ketika pencarian paket
+        :return:
+        """
+
+        top_menu = html.find('div', {'id': 'menu'}).find('div', {'class': 'topmenu'})
+
+        if top_menu:
+            for a in top_menu.find_all('a'):
+                if 'eproc4' in a['href']:
+                    self.host += '/eproc4'
+                    break
 
     def _is_spse(self, content):
         self.is_lpse = False
