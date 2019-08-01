@@ -292,7 +292,8 @@ def get_last_paket_id(lpse: Lpse, tender=True):
         data_last = lpse.get_paket_non_tender(start=0, length=1, ascending=True)
 
     if data_first and data_last:
-        return [data_first['data'][0][0], data_last['data'][0][0], data_first['recordsTotal']]
+        if not data_first['recordsTotal'] == 0:
+            return [data_first['data'][0][0], data_last['data'][0][0], data_first['recordsTotal']]
 
     return None
 
