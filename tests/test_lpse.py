@@ -346,11 +346,10 @@ class TestCheckLpse(unittest.TestCase):
     def test_host_check(self):
         for host in [
             'eproc.angkasapura2.co.id',
-            'lpse.pelni.co.id',
             'lpse.bnn.go.id',
             'lpse.dkn.go.id',
             'lpse.polkam.go.id',
-            'lpse.unhas.ac.id'
+            'lpse.unhas.ac.id',
         ]:
             lpse = Lpse(host)
 
