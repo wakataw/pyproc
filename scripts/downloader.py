@@ -10,7 +10,7 @@ from urllib.parse import urlparse
 
 import requests
 
-from pyproc import Lpse
+from pyproc import Lpse, __version__
 from pyproc.helpers import DetilDownloader
 from urllib3 import disable_warnings
 from urllib3.exceptions import InsecureRequestWarning
@@ -24,8 +24,8 @@ def print_info():
  / ____/ /_/ / ____/ /  / /_/ / /__  
 /_/    \__, /_/   /_/   \____/\___/  
       /____/                        
-SPSE4 Downloader
-''')
+SPSE4 Downloader, PyProc v{}
+'''.format(__version__))
 
 
 def download_index(_lpse, pool_size, fetch_size, timeout, non_tender, index_path, index_path_exists, force):
