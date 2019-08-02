@@ -72,7 +72,10 @@ $ pyproc --host lpse.padang.go.id --tahun-anggaran 2017,2019
 
 Download paket pengadaan tender dari 2 lpse dengan set jumlah workers, timeout, fetch size secara manual
 ```bash
-$ pyproc --host lpse.pu.go.id,lpse.sumbarprov.go.id --workers 30 --timeout 5 --fetch-size 1000
+$ pyproc --host lpse.pu.go.id,lpse.sumbarprov.go.id --workers 30 --timeout 600 --fetch-size 1000
+
+# jika ingin menambahkan nama file hasil secara manual
+$ pyproc --host lpse.pu.go.id;hasil-pu.csv,lpse.sumbarprov.go.id;hasil-sumbar.csv --workers 30 --timeout 600 --fetch-size 1000
 ```
 
 Download paket LPSE dengan sumber alamat dari file
@@ -83,6 +86,11 @@ $ pyproc -r daftarlpse.csv
 lpse.sumbarprov.go.id
 lpse.pu.go.id
 lpse.kemenkeu.go.id
+
+# konten daftarlpse.csv dengan nama hasil download
+lpse.sumbarprov.go.id;lpse-sumbar.csv
+lpse.pu.go.id;lpse-pu.csv
+lpse.kemenkeu.go.id;lpse-kemenkeu.csv
 ```
 
 ## Penggunaan PyProc Sebagai Package
@@ -147,6 +155,20 @@ print(detil)
 pemenang = detil.get_pemenang()
 print(pemenang)
 ```
+
+## Uninstall 
+
+Untuk uninstall package jalankan perintah berikut:
+```bash
+$ pip uninstall pyproc
+```
+
+Pada saat installasi, `PyProc` akan membentuk folder cache. Untuk clean uninstall hapus manual folder di lokasi berikut:
+
+OS |Lokasi
+---|---
+GNU/Linux | `~/.pyproc`
+Windows | `C:\Users\<username>\.pyproc` (asumsi system windows berada di drive `C:`)
 
 ## License
 Paket ini di-release di bawah lisensi MIT. Lebih lengkap baca [di sini](https://gitlab.com/wakataw/pyproc/blob/master/LICENSE)
