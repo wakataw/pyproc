@@ -122,10 +122,7 @@ class TestLpse(unittest.TestCase):
     def test_detil_id_random(self):
         detil = self.lpse.detil_paket_tender(111)
 
-        with self.assertRaises(LpseServerExceptions) as context:
-            detil.get_all_detil()
-
-        self.assertIn("Terjadi error pada aplikasi SPSE.", str(context.exception))
+        self.assertRaises(LpseServerExceptions, detil.get_all_detil)
 
 
 class TestPaketNonTender(unittest.TestCase):
@@ -245,10 +242,7 @@ class TestPaketNonTender(unittest.TestCase):
     def test_detil_id_random(self):
         detil = self.lpse.detil_paket_tender(111)
 
-        with self.assertRaises(LpseServerExceptions) as context:
-            detil.get_all_detil()
-
-        self.assertIn("Terjadi error pada aplikasi SPSE.", str(context.exception))
+        self.assertRaises(LpseServerExceptions, detil.get_all_detil)
 
 
 class TestLpseHostError(unittest.TestCase):

@@ -370,13 +370,18 @@ class BaseLpseDetilParser(object):
         return self.parse_detil(r.content)
 
     def _check_error(self, content):
+        error_message = None
+
         if re.findall(r'Maaf, terjadi error pada aplikasi SPSE.', content):
             error_message = "Terjadi error pada aplikasi SPSE."
             error_code = re.findall(r'Kode Error: ([0-9a-zA-Z]{9})', content)
 
             if error_code:
                 error_message += ' Kode Error: ' + error_code[0]
+        elif re.findall('Halaman yang dituju tidak ditemukan', content):
+            error_message = "Paket tidak ditemukan"
 
+        if not error_message is None:
             raise LpseServerExceptions(error_message)
 
     @abstractmethod
