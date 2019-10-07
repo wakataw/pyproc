@@ -70,8 +70,8 @@ class TestLpse(unittest.TestCase):
         nama_pemenang = 'CV. PELANGI NUSANTARA'
         npwp_pemenang = '02.352.426.7-311.000'
 
-        self.assertEqual(nama_pemenang, detil.pemenang['nama_pemenang'])
-        self.assertEqual(npwp_pemenang, detil.pemenang['npwp'])
+        self.assertEqual(nama_pemenang, detil.pemenang[0]['nama_pemenang'])
+        self.assertEqual(npwp_pemenang, detil.pemenang[0]['npwp'])
 
     def test_get_pemenang_tender_kosong(self):
         data = self.lpse.get_paket_tender(length=1)
@@ -93,7 +93,7 @@ class TestLpse(unittest.TestCase):
             'hasil_negosiasi': 791309449.11
         }
 
-        self.assertEqual(expected_result, detil.pemenang_berkontrak)
+        self.assertEqual(expected_result, detil.pemenang_berkontrak[0])
 
     def test_get_jadwal_tender(self):
         data = self.lpse.get_paket_tender(length=1)
@@ -331,8 +331,8 @@ class TestLpsePemenangDoubleTender(unittest.TestCase):
             detil = self.lpse.detil_paket_tender(id_tender)
             pemenang = detil.get_pemenang()
 
-            self.assertEqual(expected_winner[id_tender][0], pemenang['nama_pemenang'])
-            self.assertEqual(expected_winner[id_tender][1], pemenang['npwp'])
+            self.assertEqual(expected_winner[id_tender][0], pemenang[0]['nama_pemenang'])
+            self.assertEqual(expected_winner[id_tender][1], pemenang[0]['npwp'])
 
 
 class TestCheckLpse(unittest.TestCase):
