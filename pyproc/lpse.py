@@ -271,8 +271,13 @@ class LpseDetil(object):
 
         return self.hasil
 
-    def get_pemenang(self):
-        self.pemenang = LpseDetilPemenangParser(self._lpse, self.id_paket).get_detil()
+    def get_pemenang(self, all=False, key='hasil_negosiasi'):
+        self.pemenang = LpseDetilPemenangParser(
+            self._lpse,
+            self.id_paket,
+            all=all,
+            key=key
+        ).get_detil()
 
         return self.pemenang
 
@@ -548,6 +553,11 @@ class LpseDetilPemenangParser(BaseLpseDetilParser):
 
     detil_path = '/evaluasi/{}/pemenang'
 
+    def __init__(self, lpse, id_paket, all=False,key='hasil_negosiasi'):
+        super().__init__(lpse, id_paket)
+        self.key = key
+        self.all = all
+
     def parse_detil(self, content):
         soup = Bs(content, 'html5lib')
 
@@ -562,17 +572,25 @@ class LpseDetilPemenangParser(BaseLpseDetilParser):
 
         if table_pemenang:
             header = ['_'.join(th.text.strip().split()).lower() for th in table_pemenang.find_all('th')]
-            data = [' '.join(td.text.strip().split()) for td in table_pemenang.find_all('tr')[-1].find_all('td')]
+            all_pemenang = []
 
-            if header and data:
-                pemenang = dict()
-                for i, v in zip(header, data):
-                    if 'reverse_auction' in i:
-                        i = 'hasil_negosiasi'
+            for tr in table_pemenang.find_all('tr'):
+                data = [' '.join(td.text.strip().split()) for td in tr.find_all('td')]
 
-                    pemenang[i] = self.parse_currency(v) if v.lower().startswith('rp') else v
+                if data:
+                    pemenang = dict()
+                    for i, v in zip(header, data):
+                        if 'reverse_auction' in i:
+                            i = 'hasil_negosiasi'
 
-                return pemenang
+                        pemenang[i] = self.parse_currency(v) if v.lower().startswith('rp') else v
+
+                    all_pemenang.append(pemenang)
+
+            if all_pemenang and self.all:
+                return all_pemenang
+            else:
+                return [min(all_pemenang, key=lambda x: x[self.key])]
         return
 
 
