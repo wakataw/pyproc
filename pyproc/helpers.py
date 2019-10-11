@@ -75,7 +75,7 @@ class DetilDownloader(BaseDownloader):
 
         try:
             detil.get_pengumuman()
-            detil.get_pemenang(all=False)
+            detil.get_pemenang()
             # TODO: Rewrite this ugly download helper
             if detil.pemenang:
                 detil.pemenang = detil.pemenang[0]
