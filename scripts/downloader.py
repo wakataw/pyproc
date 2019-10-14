@@ -17,6 +17,9 @@ from urllib3.exceptions import InsecureRequestWarning
 from datetime import datetime
 
 
+EXIT_CODE = 0
+
+
 def print_info():
     print(r'''    ____        ____                 
    / __ \__  __/ __ \_________  _____
@@ -35,6 +38,7 @@ def download_index(_lpse, pool_size, fetch_size, timeout, non_tender, index_path
     for i in lpse_pool:
         i.session = requests.session()
         i.session.verify = False
+        i.auth_token = i.get_auth_token()
 
     print("url SPSE       :", lpse_pool[0].host)
     print("versi SPSE     :", lpse_pool[0].version)
@@ -213,6 +217,8 @@ def combine_data(host, jenis_paket, remove=True, filename=None):
 
 
 def error_writer(error):
+    global EXIT_CODE
+    EXIT_CODE = 1
     with open('error.log', 'a', encoding='utf8', errors="ignore") as error_file:
         error_file.write(error+'\n')
 
@@ -446,3 +452,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    exit(EXIT_CODE)
