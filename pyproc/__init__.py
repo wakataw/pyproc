@@ -9,5 +9,6 @@ __all__ = [
     'JASA_KONSULTANSI',
     'JASA_KONSULTANSI_PERORANGAN',
     'JASA_LAINNYA',
-    'Lpse'
+    'Lpse',
+    ''
 ]

@@ -17,6 +17,9 @@ from urllib3.exceptions import InsecureRequestWarning
 from datetime import datetime
 
 
+EXIT_CODE = 0
+
+
 def print_info():
     print(r'''    ____        ____                 
    / __ \__  __/ __ \_________  _____
@@ -214,6 +217,8 @@ def combine_data(host, jenis_paket, remove=True, filename=None):
 
 
 def error_writer(error):
+    global EXIT_CODE
+    EXIT_CODE = 1
     with open('error.log', 'a', encoding='utf8', errors="ignore") as error_file:
         error_file.write(error+'\n')
 
@@ -447,3 +452,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    exit(EXIT_CODE)

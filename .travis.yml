@@ -1,9 +1,19 @@
 language: python
 python:
-  - "3.5"
-  - "3.6"
+- '3.5'
+- '3.6'
+- '3.7'
 cache: pip
 install:
-  - pip install . --upgrade
+- pip install . --upgrade
 script:
-  - python setup.py test
+- python setup.py test
+- pyproc --host lpse.kepahiangkab.go.id --out kepahiang.csv --tahun-anggaran 0,9999 --workers 2 --pool-size 2 --fetch-size 100 --timeout 300
+deploy:
+  provider: pypi
+  user: __token__
+  skip_existing: true
+  on:
+    tags: true
+  password:
+    secure: q8LcAWelDaDj51eZ1XuA0SRMhkvkbH7t1uKyaN5/Obhym5WAoUsRt1OVZ+b3dmF0ab8/hy3qryb7p+W/PIGfH9sOKgWe976m/6gp0n14oKT/6PUTMg/qUHVh7h/m2WDZdeQ25HJRPCipjF+mFnvzZs4v/9nZU0IgPUo/ga4qyChUgtThxDf3kar2VzD/MoQY+OKByDt7k4iq2gvpiK6LWkmOkOEk9fgl+g/yBNrvKuzGFA4II3l8KNJu3iKwNCsWtRMUit9Ihji6nqeUzc/SetZDCq3I5CfnBxLcgSvoId5dQdNzYrdNsA0M7ngTl0Ewb1OX8m5VeG8hNDJZokgX1C53HidSwPimaa/blnShPWbLupSO6KOFLs+rvPPTnxbShOWgftA5/J8V+lqtxmR/CGXXmKjc56x8SwqzVwvpOevUhOvFAaJ0hSVgVW6SeTwnsRwK6T52WC21gu90NSGdknH5nPrDnaLVaGy/kMeBroJGuK8x4/zO4iPhoUan8ZSSsAN/8VGJy3B/Rk3QL8wlND2qEf+XSpAal3StyFd5ELPRF4dFypoxt1XEQMISJiGELaONx5uA7GBLWBbMRI7vqGmJKUy9+n7OjwSLHZlg6BVRjGv984bMTsuKNGN2wMFDXUPqjr6EXMvUbZfJWeM67tjcsYwcgM7AcajvfL4kS70=
