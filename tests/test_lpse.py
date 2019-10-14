@@ -15,6 +15,11 @@ class TestLpse(unittest.TestCase):
 
         self.assertEqual(v, v_2)
 
+    def test_get_auth_token(self):
+        token = self.lpse.get_auth_token()
+        token_from_session = self.lpse.session.cookies['SPSE_SESSION'].split('___')[1].split('=')[1].strip('&')
+        self.assertEqual(token, token_from_session)
+
     def test_get_paket_tender_kosong(self):
         data = self.lpse.get_paket_tender()
 
@@ -333,22 +338,6 @@ class TestLpsePemenangDoubleTender(unittest.TestCase):
 
             self.assertEqual(expected_winner[id_tender][0], pemenang[0]['nama_pemenang'])
             self.assertEqual(expected_winner[id_tender][1], pemenang[0]['npwp'])
-
-
-class TestCheckLpse(unittest.TestCase):
-
-    def test_host_check(self):
-        for host in [
-            'eproc.angkasapura2.co.id',
-            'lpse.bnn.go.id',
-            'lpse.dkn.go.id',
-            'lpse.polkam.go.id',
-            'lpse.unhas.ac.id',
-        ]:
-            lpse = Lpse(host)
-
-            self.assertEqual(True, lpse.is_lpse)
-            self.assertEqual(True, lpse.version.startswith('SPSE v4'))
 
 
 if __name__ == '__main__':
