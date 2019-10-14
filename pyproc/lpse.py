@@ -1,7 +1,10 @@
+import time
+
 import bs4
 import requests
 import re
 
+from . import utils
 from bs4 import BeautifulSoup as Bs, NavigableString
 from .exceptions import LpseVersionException, LpseHostExceptions, LpseServerExceptions
 from enum import Enum
@@ -26,6 +29,7 @@ class Lpse(object):
         self.version = None
         self.last_update = None
         self.timeout = timeout
+        self.auth_token = None
         self._check_host()
 
         if info:
@@ -122,6 +126,15 @@ class Lpse(object):
         if last_update:
             self.last_update = last_update[0]
 
+    def get_auth_token(self):
+        """
+        Melakukan pengambilan auth token
+        :return: token (str)
+        """
+        r = self.session.get(self.host + '/lelang')
+
+        return utils.parse_token(r.text)
+
     def get_paket(self, jenis_paket, start=0, length=0, data_only=False,
                   kategori=None, search_keyword=None, nama_penyedia=None,
                   order=By.KODE, ascending=False):
@@ -139,21 +152,29 @@ class Lpse(object):
         :return: dictionary dari hasil pencarian paket (atau list jika data_only=True)
         """
 
-        # TODO: Header dari data berbeda untuk tiap SPSE masing-masing ILAP. Cek tiap LPSE tiap ilap untuk menentukan header dari data
+        # TODO: Header dari data berbeda untuk tiap SPSE masing-masing ILAP.
+        #  Cek tiap LPSE tiap ilap untuk menentukan header dari data
+
+        if not self.auth_token:
+            self.auth_token = self.get_auth_token()
 
         params = {
             'draw': 1,
             'start': start,
             'length': length,
-            'search[value]': search_keyword,
-            'search[regex]': False,
+            'search[value]': search_keyword if search_keyword else '',
+            'search[regex]': 'false',
             'order[0][column]': order.value,
             'order[0][dir]': 'asc' if ascending else 'desc',
+            'authenticityToken': self.auth_token,
+            '_': int(time.time()*1000)
         }
 
         for i in range(0, 5):
             params.update(
                 {
+                    'columns[{}][data]'.format(i): i,
+                    'columns[{}][name]'.format(i): '',
                     'columns[{}][searchable]'.format(i): 'true' if i != 3 else 'false',
                     'columns[{}][orderable]'.format(i): 'true' if i != 3 else 'false',
                     'columns[{}][search][value]'.format(i): '',
@@ -167,11 +188,18 @@ class Lpse(object):
         if nama_penyedia:
             params.update({'rkn_nama': nama_penyedia})
 
-        data = requests.get(
+        data = self.session.get(
             self.host + '/dt/' + jenis_paket,
             params=params,
             verify=False,
-            timeout=self.timeout
+            timeout=self.timeout,
+            headers={
+                'X-Requested-With': 'XMLHttpRequest',
+                'Referer': self.host + '/lelang',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                              'AppleWebKit/537.36 (KHTML, like Gecko) '
+                              'Chrome/77.0.3865.90 Safari/537.36'
+            }
         )
 
         data.encoding = 'UTF-8'
