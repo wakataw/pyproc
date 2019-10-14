@@ -35,6 +35,7 @@ def download_index(_lpse, pool_size, fetch_size, timeout, non_tender, index_path
     for i in lpse_pool:
         i.session = requests.session()
         i.session.verify = False
+        i.auth_token = i.get_auth_token()
 
     print("url SPSE       :", lpse_pool[0].host)
     print("versi SPSE     :", lpse_pool[0].version)
