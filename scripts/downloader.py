@@ -4,6 +4,8 @@ import glob
 import json
 import os
 import re
+import time
+
 from math import ceil
 from shutil import copyfile, rmtree
 from urllib.parse import urlparse
@@ -31,7 +33,7 @@ SPSE4 Downloader, PyProc v{}
 '''.format(__version__))
 
 
-def download_index(_lpse, pool_size, fetch_size, timeout, non_tender, index_path, index_path_exists, force):
+def download_index(_lpse, pool_size, fetch_size, timeout, non_tender, index_path, index_path_exists, force, delay):
     _lpse.timeout = timeout
     lpse_pool = [_lpse]*pool_size
 
@@ -75,6 +77,8 @@ def download_index(_lpse, pool_size, fetch_size, timeout, non_tender, index_path
                 writer.writerows(min_data)
 
                 downloaded_row += len(min_data)
+
+                time.sleep(delay)
 
                 yield [page+1, batch_size, downloaded_row]
 
@@ -342,6 +346,8 @@ def main():
     parser.add_argument("--fetch-size", help="Jumlah row yang didownload per halaman", default=100, type=int)
     parser.add_argument("--timeout", help="Set timeout", default=30, type=int)
     parser.add_argument("--keep", help="Tidak menghapus folder cache", action="store_true")
+    parser.add_argument("--index-download-delay", help="Menambahkan delay untuk setiap iterasi halaman index",
+                        default=0, type=int)
     parser.add_argument("--non-tender", help="Download paket non tender (penunjukkan langsung)", action="store_true")
     parser.add_argument("--force", "-f", help="Clear index sebelum mendownload data", action="store_true")
 
@@ -402,7 +408,8 @@ def main():
                     index_path = lock_index(index_path)
 
                 for downloadinfo in download_index(_lpse, args.pool_size, args.fetch_size, args.timeout,
-                                                   args.non_tender, index_path, index_path_exists, args.force):
+                                                   args.non_tender, index_path, index_path_exists, args.force,
+                                                   args.index_download_delay):
                     if index_path_exists and not args.force:
                         print(downloadinfo, end='\r')
                         continue
