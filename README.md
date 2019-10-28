@@ -1,6 +1,6 @@
 # PyProc
 
-[![Build Status](https://travis-ci.org/wakataw/pyproc.svg?branch=master)](https://travis-ci.org/wakataw/pyproc) [![Version](https://img.shields.io/badge/version-v0.1.4-blue)](https://travis-ci.org/wakataw/pyproc) [![Python 3.5](https://img.shields.io/badge/python-3.5-yellow.svg)](https://www.python.org/downloads/) [![Open Source Love](https://badges.frapsoft.com/os/v1/open-source.svg?v=102)](https://github.com/ellerbrock/open-source-badge/)
+[![Build Status](https://travis-ci.org/wakataw/pyproc.svg?branch=master)](https://travis-ci.org/wakataw/pyproc) [![Version](https://img.shields.io/badge/version-v0.1.5-blue)](https://travis-ci.org/wakataw/pyproc) [![Python >=3.5](https://img.shields.io/badge/python->=3.5-yellow.svg)](https://www.python.org/downloads/) [![Open Source Love](https://badges.frapsoft.com/os/v1/open-source.svg?v=102)](https://github.com/ellerbrock/open-source-badge/)
 
 PyProc (Python Procurement) merupakan wrapper untuk API SPSE Versi 4 yang ditulis dalam bahasa Python. Sistem Pengadaan Secara Elektronik (SPSE) SPSE merupakan aplikasi e-Procurement yang dikembangkan oleh LKPP untuk digunakan oleh LPSE di instansi pemerintah seluruh Indonesia.
 
@@ -28,7 +28,10 @@ $ python setup.py test
 usage: pyproc [-h] [--host HOST] [--out OUT] [-r READ]
               [--tahun-anggaran TAHUN_ANGGARAN] [--workers WORKERS]
               [--pool-size POOL_SIZE] [--fetch-size FETCH_SIZE]
-              [--timeout TIMEOUT] [--keep] [--non-tender] [--force]
+              [--timeout TIMEOUT] [--keep]
+              [--index-download-delay INDEX_DOWNLOAD_DELAY] [--non-tender]
+              [--force]
+
 ```
 **Arguments**
 
@@ -43,6 +46,7 @@ argumen | diperlukan | keterangan
 `--fetch-size FETCH_SIZE` | optional, default 30 | Jumlah row yang didownload per halaman
 `--workers WORKERS` | optional, default 8 | Workers untuk mendownload detil pengumuman dan pemenang
 `--timeout TIMEOUT` | optional, default 10 (dalam detik) | Time out jika server tidak merespon dalam waktu tertentu
+`--index-download-delay` | optional, default 0 (dalam detik) | Menambahkan delay untuk setiap iterasi halaman index paket
 `--keep` | optional, default `false` | saat download berjalan, `pyproc` akan membentuk sebuah folder yang digunakan sebagai *working directory* dan akan dihapus jika proses download telah selesai. Gunakan argumen `--keep` apabila tidak ingin menghapus *working directory* `pyproc`.
 `--non-tender` | optional, default `false` | Download paket non tender
 `--force` | optional, default `false` | PyProc akan menyimpan index paket dan hanya akan melakukan indexing ulang jika terdapat perbedaan antara data terbaru dan index cache. Argumen `--force` akan selalu menggunakan index terbaru tanpa memperdulikan index cache.
