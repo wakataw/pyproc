@@ -581,7 +581,7 @@ class LpseDetilPemenangParser(BaseLpseDetilParser):
 
     detil_path = '/evaluasi/{}/pemenang'
 
-    def __init__(self, lpse, id_paket, all=False,key='hasil_negosiasi'):
+    def __init__(self, lpse, id_paket, all=False, key='hasil_negosiasi'):
         super().__init__(lpse, id_paket)
         self.key = key
         self.all = all
@@ -616,10 +616,23 @@ class LpseDetilPemenangParser(BaseLpseDetilParser):
                     all_pemenang.append(pemenang)
 
             if all_pemenang and self.all:
+                all_pemenang = self._check_col_harga_negosiasi(all_pemenang)
                 return all_pemenang
             else:
-                return [min(all_pemenang, key=lambda x: x[self.key])]
+                try:
+                    return [min(all_pemenang, key=lambda x: x[self.key])]
+                except KeyError:
+                    # fallback ke kolom harga penawaran untuk sorting jika kolom hasil negosiasi tidak ditemukan
+                    all_pemenang = self._check_col_harga_negosiasi(all_pemenang)
+                    return [min(all_pemenang, key=lambda x: x['harga_penawaran'])]
         return
+
+    @staticmethod
+    def _check_col_harga_negosiasi(all_pemenang):
+        if 'hasil_negosiasi' not in all_pemenang[0]:
+            all_pemenang[0]['hasil_negosiasi'] = ''
+
+        return all_pemenang
 
 
 class LpseDetilPemenangBerkontrakParser(LpseDetilPemenangParser):

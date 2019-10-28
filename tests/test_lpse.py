@@ -340,5 +340,22 @@ class TestLpsePemenangDoubleTender(unittest.TestCase):
             self.assertEqual(expected_winner[id_tender][1], pemenang[0]['npwp'])
 
 
+class TestLpseKolomPemenangTidakLengkap(unittest.TestCase):
+
+    def setUp(self):
+        host = 'http://www.lpse-kaltara.go.id'
+        self.lpse = Lpse(host)
+
+    def test_get_pemenang(self):
+        detil = self.lpse.detil_paket_tender(1569716)
+        pemenang = detil.get_pemenang()
+        self.assertEqual(
+            pemenang,
+            [{'nama_pemenang': 'CV. NAJAH',
+              'alamat': 'JL. IMAM BONJOL TANJUNG SELOR - Bulungan (Kab.) - Kalimantan Utara',
+              'npwp': '02.673.860.9-727.000', 'harga_penawaran': '', 'hasil_negosiasi': ''}]
+        )
+
+
 if __name__ == '__main__':
     unittest.main()
