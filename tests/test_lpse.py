@@ -134,6 +134,7 @@ class TestPaketNonTender(unittest.TestCase):
 
     def setUp(self):
         self.lpse = Lpse('http://lpse.padang.go.id', timeout=30)
+        self.lpse.auth_token = self.lpse.get_auth_token()
 
     def test_get_paket_non_tender(self):
         paket = self.lpse.get_paket_non_tender(length=5)
@@ -177,7 +178,7 @@ class TestPaketNonTender(unittest.TestCase):
         expected_result = [
             {
                 'no': '1', 'nama_peserta': 'cv.samudera fiber', 'a': 1, 't': 1, 'penawaran': 199280125.0,
-                'penawaran_terkoreksi': 199280125.0, 'hasil_negosiasi': 198992750.0, 'h': 1, 'p': '*', 'pk': '*',
+                'penawaran_terkoreksi': 199280125.0, 'hasil_negosiasi': 198992750.0, 'h': 1, 'p': True, 'pk': True,
                 'alasan': '', 'npwp': '83.134.137.5-202.000'
             }
         ]
@@ -186,31 +187,30 @@ class TestPaketNonTender(unittest.TestCase):
         self.assertEqual(detil.hasil, expected_result)
 
     def test_get_detil_pemenang_non_tender(self):
-        detil = self.lpse.detil_paket_non_tender('2189624')
-        expected_result = {
-            'nama_tender': 'Pengadaan fishbox fiber kapasitas 50 liter, 75 liter dan 100 liter',
-            'kategori': 'Pengadaan Barang', 'instansi': 'Pemerintah Daerah Kota Padang',
-            'satker': 'DINAS KELAUTAN DAN PERIKANAN', 'pagu': 199490000.0, 'hps': 199481975.0,
-            'nama_pemenang': 'cv.samudera fiber',
-            'alamat': 'Jorong Ketaping Nagari Lawang Kec. Matur - Agam (Kab.) - Sumatera Barat',
-            'npwp': '83.134.137.5-202.000', 'hasil_negosiasi': 198992750.0
-        }
+        detil = self.lpse.detil_paket_non_tender('4130624')
+        expected_result = [{
+            'alamat': 'JL.SOSIOLOGI 1 A NO. 22 KOMPL. PGRI I SITEBA PADANG - Padang (Kota) - Sumatera Barat',
+            'harga_penawaran': 12155000.0,
+            'harga_terkoreksi': 12155000.0,
+            'hasil_negosiasi': 12155000.0,
+            'nama_pemenang': 'CV.DESIGN ENGINEERING CONSULTAN',
+            'npwp': '02.591.921.8-201.000'
+        }]
         detil.get_pemenang()
 
-        self.assertEqual(detil.pemenang, expected_result)
+        self.assertEqual(expected_result, detil.pemenang)
 
     def test_get_detil_pemenang_berkontrak_non_tender(self):
         detil = self.lpse.detil_paket_non_tender('2189624')
-        expected_result = {
-            'nama_non_tender': 'Pengadaan fishbox fiber kapasitas 50 liter, 75 liter dan 100 liter',
-            'kategori': 'Pengadaan Barang', 'instansi': 'Pemerintah Daerah Kota Padang',
-            'satker': 'DINAS KELAUTAN DAN PERIKANAN', 'pagu': 199490000.0, 'hps': 199481975.0,
-            'nama_pemenang': 'cv.samudera fiber',
+        expected_result = [{
             'alamat': 'Jorong Ketaping Nagari Lawang Kec. Matur - Agam (Kab.) - Sumatera Barat',
-            'npwp': '83.134.137.5-202.000', 'hasil_negosiasi': 198992750.0
-        }
+            'harga_penawaran': 199280125.0,
+            'hasil_negosiasi': 198992750.0,
+            'nama_pemenang': 'cv.samudera fiber',
+            'npwp': '83.134.137.5-202.000'
+        }]
         detil.get_pemenang_berkontrak()
-        self.assertEqual(detil.pemenang_berkontrak, expected_result)
+        self.assertEqual(expected_result, detil.pemenang_berkontrak)
 
     def test_get_detil_jadwal_non_tender(self):
         detil = self.lpse.detil_paket_non_tender('2189624')
