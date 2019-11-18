@@ -552,6 +552,8 @@ class LpseDetilHasilEvaluasiParser(BaseLpseDetilParser):
                     children[key] = 0.0
             elif key in ['penawaran', 'penawaran_terkoreksi', 'hasil_negosiasi']:
                 children[key] = self.parse_currency(value)
+            elif key in ['v', 'p', 'pk'] and children[key] != True:
+                children[key] = False
 
         try:
             nama_npwp = children['nama_peserta'].split('-', maxsplit=1)
@@ -573,7 +575,7 @@ class LpseDetilHasilEvaluasiParser(BaseLpseDetilParser):
         if icon:
             return status[icon[0]]
         elif re.findall(r'star.gif', str(child)):
-            return '*'
+            return True
         return child.text.strip()
 
 
@@ -682,31 +684,32 @@ class LpseDetilHasilEvaluasiNonTenderParser(LpseDetilHasilEvaluasiParser):
     detil_path = '/evaluasinontender/{}/hasil'
 
 
-class LpseDetilPemenangNonTenderParser(BaseLpseDetilParser):
+class LpseDetilPemenangNonTenderParser(LpseDetilPemenangParser):
 
     detil_path = '/evaluasinontender/{}/pemenang'
-
-    def parse_detil(self, content):
-        soup = Bs(content, 'html5lib')
-        table_pemenang = soup.find('table')
-
-        if table_pemenang:
-            data = dict([(key, value) for key, value in self._parse_table_pemenang(table_pemenang)])
-
-            return None if not data else data
-
-        return
-
-    def _parse_table_pemenang(self, table_pemenang):
-        for tr in table_pemenang.find_all('tr'):
-            key = '_'.join(tr.find('th').text.strip().split()).lower()
-            value = ' '.join(tr.find('td').text.strip().split())
-
-            if key in ['hps', 'pagu', 'hasil_negosiasi']:
-                value = self.parse_currency(value)
-
-            yield (key, value)
-
+#
+#     detil_path = '/evaluasinontender/{}/pemenang'
+#
+#     def parse_detil(self, content):
+#         soup = Bs(content, 'html5lib')
+#         table_pemenang = soup.find('table')
+#
+#         if table_pemenang:
+#             data = dict([(key, value) for key, value in self._parse_table_pemenang(table_pemenang)])
+#
+#             return None if not data else data
+#
+#         return
+#
+#     def _parse_table_pemenang(self, table_pemenang):
+#         for tr in table_pemenang.find_all('tr'):
+#             key = '_'.join(tr.find('th').text.strip().split()).lower()
+#             value = ' '.join(tr.find('td').text.strip().split())
+#
+#             if key in ['hps', 'pagu', 'hasil_negosiasi']:
+#                 value = self.parse_currency(value)
+#
+#             yield (key, value)
 
 class LpseDetilPemenangBerkontrakNonTenderParser(LpseDetilPemenangNonTenderParser):
 
