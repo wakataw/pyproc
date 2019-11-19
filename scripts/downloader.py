@@ -113,6 +113,7 @@ def combine_data(host, jenis_paket, remove=True, filename=None):
     detil_dir = os.path.join(folder_name, 'detil', '*')
     detil_combined = os.path.join(folder_name, 'detil.dat')
     detil_all = glob.glob(detil_dir)
+    detil_all.sort()
 
     pengumuman_nontender_keys = {
         'id_paket': None,
@@ -227,7 +228,7 @@ def combine_data(host, jenis_paket, remove=True, filename=None):
                         update_exit_code=False
                     )
                 finally:
-                    if pemenang is not None:
+                    if pemenang is not None and len(pemenang) > 0:
                         detil.update((k, pemenang[0][k]) for k in detil.keys() & pemenang[0].keys())
 
             writer.writerow(detil)
