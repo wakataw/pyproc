@@ -136,7 +136,8 @@ def combine_data(host, jenis_paket, remove=True, filename=None):
         'penawaran_terkoreksi': None,
         'hasil_negosiasi': None,
         'p': False,
-        'pk': False
+        'pk': False,
+        'v': False
     }
 
     pengumuman_keys = {
@@ -160,7 +161,8 @@ def combine_data(host, jenis_paket, remove=True, filename=None):
         'penawaran_terkoreksi': None,
         'hasil_negosiasi': None,
         'p': False,
-        'pk': False
+        'pk': False,
+        'v': False
     }
 
     with open(detil_combined, 'w', encoding='utf8', errors="ignore", newline='') as csvf:
@@ -217,19 +219,23 @@ def combine_data(host, jenis_paket, remove=True, filename=None):
 
             if data['hasil']:
                 pemenang = None
-                try:
-                    pemenang = list(filter(lambda x: x['p'], data['hasil']))
-                except KeyError:
-                    if jenis_paket == 'non_tender':
-                        pemenang = data['hasil'][0:]
-                except Exception as e:
-                    error_writer(
-                        "{}|{} - {} - {}".format(host, detil['id_paket'], jenis_paket, str(e)),
-                        update_exit_code=False
-                    )
-                finally:
-                    if pemenang is not None and len(pemenang) > 0:
-                        detil.update((k, pemenang[0][k]) for k in detil.keys() & pemenang[0].keys())
+                hasil_keys = data['hasil'][0].keys()
+                filter_by_key = lambda key: list(filter(lambda x: x[key], data['hasil']))
+
+                if 'pk' in hasil_keys:
+                    pemenang = filter_by_key('pk')
+
+                if not pemenang and 'v' in hasil_keys:
+                    pemenang = filter_by_key('v')
+
+                if not pemenang and 'p' in hasil_keys:
+                    pemenang = filter_by_key('p')
+
+                if not pemenang and jenis_paket == 'non_tender':
+                    pemenang = data['hasil'][0:]
+
+                if pemenang is not None and len(pemenang) > 0:
+                    detil.update((k, pemenang[0][k]) for k in detil.keys() & pemenang[0].keys())
 
             writer.writerow(detil)
 
