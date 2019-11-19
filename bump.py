@@ -35,3 +35,6 @@ if __name__ == '__main__':
 
     for f in file_:
         update_version(f, pattern, new_version)
+
+    # update readme
+    update_version('README.md', re.compile(r'version-v(\d+\.\d+\.\d+)-'), new_version)
