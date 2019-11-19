@@ -61,37 +61,42 @@ class BaseDownloader(object):
 
 class DetilDownloader(BaseDownloader):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, use_cache=False, *args, **kwargs):
+        self.use_cache = use_cache
         super(DetilDownloader, self).__init__(*args, **kwargs)
 
     def download(self, retry=0, *args, **kwargs):
 
         id_paket = kwargs['id_paket']
+        filename = os.path.join(self.download_dir, id_paket)
 
-        if self.is_tender:
-            detil = self.lpse.detil_paket_tender(id_paket)
+        if self.use_cache and os.path.isfile(filename):
+            pass
         else:
-            detil = self.lpse.detil_paket_non_tender(id_paket)
+            if self.is_tender:
+                detil = self.lpse.detil_paket_tender(id_paket)
+            else:
+                detil = self.lpse.detil_paket_non_tender(id_paket)
 
-        try:
-            detil.get_pengumuman()
-            detil.get_hasil_evaluasi() # pemenang dari hasil evaluasi
-            detil.get_jadwal()
-        except Exception as e:
+            try:
+                detil.get_pengumuman()
+                detil.get_hasil_evaluasi() # pemenang dari hasil evaluasi
+                detil.get_jadwal()
+            except Exception as e:
 
-            if retry < self.max_retry:
-                with self.lock:
-                    self.lpse.session = requests.session()
-                    self.lpse.session.verify = False
+                if retry < self.max_retry:
+                    with self.lock:
+                        self.lpse.session = requests.session()
+                        self.lpse.session.verify = False
 
-                return self.download(retry=retry+1, id_paket=id_paket)
+                    return self.download(retry=retry+1, id_paket=id_paket)
 
-            error = "{}|{}".format(id_paket, e)
-            self.write_error(error)
+                error = "{}|{}".format(id_paket, e)
+                self.write_error(error)
 
-        with self.lock:
-            with open(os.path.join(self.download_dir, id_paket), 'w', encoding='utf8', errors="ignore") as result_file:
-                result_file.write(json.dumps(detil.todict()))
+            with self.lock:
+                with open(filename, 'w', encoding='utf8', errors="ignore") as result_file:
+                    result_file.write(json.dumps(detil.todict()))
 
         with self.lock:
             self.downloaded += 1

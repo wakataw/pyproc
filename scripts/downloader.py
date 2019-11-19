@@ -391,7 +391,7 @@ def main():
         exit(1)
 
     # download index
-    detil_downloader = DetilDownloader(workers=args.workers, timeout=args.timeout)
+    detil_downloader = DetilDownloader(workers=args.workers, timeout=args.timeout, use_cache=not args.force)
     detil_downloader.spawn_worker()
 
     try:
