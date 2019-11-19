@@ -443,7 +443,9 @@ def main():
             print("- proses selesai")
 
     except KeyboardInterrupt:
-        print("\n\nERROR: Proses dibatalkan oleh user, bye!")
+        error = "\n\nProses dibatalkan oleh user, bye!"
+        print(error)
+        error_writer("{}|{}".format(detil_downloader.lpse.host, error))
         detil_downloader.stop_process()
     except Exception as e:
         print("\n\nERROR:", e)
