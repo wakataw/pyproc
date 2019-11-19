@@ -264,7 +264,7 @@ def get_index_path(cache_folder, host, jenis_paket, last_paket_id):
 
 
 def parse_tahun_anggaran(tahun_anggaran):
-    parsed_ta = tahun_anggaran.strip().split(',')
+    parsed_ta = tahun_anggaran.strip().split('-')
     error = False
 
     for i in range(len(parsed_ta)):
