@@ -75,10 +75,7 @@ class DetilDownloader(BaseDownloader):
 
         try:
             detil.get_pengumuman()
-            detil.get_pemenang()
-            # TODO: Rewrite this ugly download helper
-            if detil.pemenang:
-                detil.pemenang = detil.pemenang[0]
+            detil.get_hasil_evaluasi() # pemenang dari hasil evaluasi
             detil.get_jadwal()
         except Exception as e:
 

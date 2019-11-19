@@ -130,9 +130,12 @@ def combine_data(host, jenis_paket, remove=True, filename=None):
         'nilai_hps_paket': None,
         'lokasi_pekerjaan': None,
         'npwp': None,
-        'nama_pemenang': None,
-        'alamat': None,
+        'nama_peserta': None,
+        'penawaran': None,
+        'penawaran_terkoreksi': None,
         'hasil_negosiasi': None,
+        'p': False,
+        'pk': False
     }
 
     pengumuman_keys = {
@@ -151,11 +154,12 @@ def combine_data(host, jenis_paket, remove=True, filename=None):
         'nilai_hps_paket': None,
         'lokasi_pekerjaan': None,
         'npwp': None,
-        'nama_pemenang': None,
-        'alamat': None,
-        'harga_penawaran': None,
-        'harga_terkoreksi': None,
+        'nama_peserta': None,
+        'penawaran': None,
+        'penawaran_terkoreksi': None,
         'hasil_negosiasi': None,
+        'p': False,
+        'pk': False
     }
 
     with open(detil_combined, 'w', encoding='utf8', errors="ignore", newline='') as csvf:
@@ -198,9 +202,6 @@ def combine_data(host, jenis_paket, remove=True, filename=None):
                 if detil[tahap]:
                     detil[tahap] = detil[tahap].strip(r' [...]')
 
-            if data['pemenang']:
-                detil.update((k, data['pemenang'][k]) for k in detil.keys() & data['pemenang'].keys())
-
             if data['jadwal']:
                 data_pemenang = list(filter(lambda x: x['tahap'] == 'Penetapan Pemenang', data['jadwal']))
                 data_kontrak = list(filter(lambda x: x['tahap'] == 'Penandatanganan Kontrak', data['jadwal']))
@@ -213,6 +214,22 @@ def combine_data(host, jenis_paket, remove=True, filename=None):
                     detil['penandatanganan_kontrak_mulai'] = data_kontrak[0]['mulai']
                     detil['penandatanganan_kontrak_sampai'] = data_kontrak[0]['sampai']
 
+            if data['hasil']:
+                pemenang = None
+                try:
+                    pemenang = list(filter(lambda x: x['p'], data['hasil']))
+                except KeyError:
+                    if jenis_paket == 'non_tender':
+                        pemenang = data['hasil'][0:]
+                except Exception as e:
+                    error_writer(
+                        "{}|{} - {} - {}".format(host, detil['id_paket'], jenis_paket, str(e)),
+                        update_exit_code=False
+                    )
+                finally:
+                    if pemenang is not None:
+                        detil.update((k, pemenang[0][k]) for k in detil.keys() & pemenang[0].keys())
+
             writer.writerow(detil)
 
             del detil
@@ -220,9 +237,11 @@ def combine_data(host, jenis_paket, remove=True, filename=None):
     copy_result(folder_name, remove=remove, filename=filename)
 
 
-def error_writer(error):
+def error_writer(error, update_exit_code=True):
     global EXIT_CODE
-    EXIT_CODE = 1
+
+    if update_exit_code:
+        EXIT_CODE = 1
     with open('error.log', 'a', encoding='utf8', errors="ignore") as error_file:
         error_file.write(error+'\n')
 
@@ -347,7 +366,7 @@ def main():
     parser.add_argument("--timeout", help="Set timeout", default=30, type=int)
     parser.add_argument("--keep", help="Tidak menghapus folder cache", action="store_true")
     parser.add_argument("--index-download-delay", help="Menambahkan delay untuk setiap iterasi halaman index",
-                        default=0, type=int)
+                        default=1, type=int)
     parser.add_argument("--non-tender", help="Download paket non tender (penunjukkan langsung)", action="store_true")
     parser.add_argument("--force", "-f", help="Clear index sebelum mendownload data", action="store_true")
 
