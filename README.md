@@ -6,6 +6,22 @@ PyProc (Python Procurement) merupakan wrapper untuk API SPSE Versi 4 yang dituli
 
 # Quickstart
 
+## TL;DR
+
+1. Installasi
+
+   ```bash
+   $ pip install pyproc
+   ```
+
+2. Download Data LPSE
+
+   ```bash
+   $ pyproc --host lpse.pu.go.id
+   ```
+
+3. Profit???
+
 ## Pemasangan
 
 Pemasangan PyProc via `pip`:
@@ -25,28 +41,26 @@ $ python setup.py test
 ## Penggunaan Command Line Interface
 
 ```bash
-usage: pyproc [-h] [--host HOST] [--out OUT] [-r READ]
+usage: pyproc [-h] [--host LPSE_HOST] [--out OUT] [-r FILENAME]
               [--tahun-anggaran TAHUN_ANGGARAN] [--workers WORKERS]
-              [--pool-size POOL_SIZE] [--fetch-size FETCH_SIZE]
-              [--timeout TIMEOUT] [--keep]
-              [--index-download-delay INDEX_DOWNLOAD_DELAY] [--non-tender]
+              [--pool-size POOL_SIZE] [--fetch-size FETCH_SIZE] [--timeout TIMEOUT] 
+              [--keep] [--index-download-delay INDEX_DOWNLOAD_DELAY] [--non-tender]
               [--force]
-
 ```
 **Arguments**
 
 argumen | diperlukan | keterangan
 ---|---|---
 `-h, --help`| optional | menampilkan bantuan
-`--host` | Optional | Alamat website aplikasi LPSE, pisahkan dengan `,` untuk multiple lpse
+`--host LPSE_HOST` | Optional | Alamat website aplikasi LPSE, pisahkan dengan `,` untuk multiple lpse
 `--out OUT` | Optional, default nama domain | Nama file untuk hasil download LPSE
-`--read`, `-r` | Optional | Membaca daftar alamat lpse dari file 
-`--tahun-anggaran` | Optional, default tahun berjalan | Filter download hanya untuk tahun yang diberikan
+`--read FILENAME`, `-r FILENAME` | Optional | Membaca daftar alamat lpse dari file 
+`--tahun-anggaran TAHUN_ANGGARAN` | Optional, default tahun berjalan | Filter download hanya untuk tahun yang diberikan
 `--pool-size POOL_SIZE` | Optional, default 4 | Jumlah koneksi dalam connection pool untuk mendownload index paket
 `--fetch-size FETCH_SIZE` | optional, default 30 | Jumlah row yang didownload per halaman
 `--workers WORKERS` | optional, default 8 | Workers untuk mendownload detil pengumuman dan pemenang
 `--timeout TIMEOUT` | optional, default 10 (dalam detik) | Time out jika server tidak merespon dalam waktu tertentu
-`--index-download-delay` | optional, default 0 (dalam detik) | Menambahkan delay untuk setiap iterasi halaman index paket
+`--index-download-delay` | optional, default 1 (dalam detik) | Menambahkan delay untuk setiap iterasi halaman index paket
 `--keep` | optional, default `false` | saat download berjalan, `pyproc` akan membentuk sebuah folder yang digunakan sebagai *working directory* dan akan dihapus jika proses download telah selesai. Gunakan argumen `--keep` apabila tidak ingin menghapus *working directory* `pyproc`.
 `--non-tender` | optional, default `false` | Download paket non tender
 `--force` | optional, default `false` | PyProc akan menyimpan index paket dan hanya akan melakukan indexing ulang jika terdapat perbedaan antara data terbaru dan index cache. Argumen `--force` akan selalu menggunakan index terbaru tanpa memperdulikan index cache.
@@ -71,9 +85,9 @@ Download paket pengadaan non tender (penunjukkan langsung)
 $ pyproc --non-tender --host lpse.jakarta.go.id
 ```
 
-Download paket pengadaan tender untuk rentang waktu tertentu
+Download paket pengadaan tender untuk rentang tahun anggaran tertentu
 ```bash
-$ pyproc --host lpse.padang.go.id --tahun-anggaran 2017,2019
+$ pyproc --host lpse.padang.go.id --tahun-anggaran 2017-2019
 ```
 
 Download paket pengadaan tender dari 2 lpse dengan set jumlah workers, timeout, fetch size secara manual
@@ -117,6 +131,10 @@ print(lpse.last_update)
 ### Pencarian Daftar Paket Lelang
 
 ```python
+from pyproc import Lpse
+
+lpse = Lpse('http://lpse.pu.go.id')
+
 # mendapatkan daftar paket lelang
 daftar_lelang = lpse.get_paket_tender(start=0, length=2)
 print(daftar_lelang)
@@ -152,6 +170,10 @@ paket_konstruksi = lpse.get_paket_tender(start=0, length=30, kategori=PEKERJAAN_
 ### Pencarian Detil Paket Lelang
 
 ```python
+from pyproc import Lpse
+
+lpse = Lpse('http://lpse.padang.go.id')
+
 # mendapatkan semua detil paket lelang
 detil = lpse.detil_paket_tender(id_paket='48658064')
 detil.get_all_detil()
