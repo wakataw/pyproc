@@ -339,6 +339,16 @@ class TestLpsePemenangDoubleTender(unittest.TestCase):
             self.assertEqual(expected_winner[id_tender][0], pemenang[0]['nama_pemenang'])
             self.assertEqual(expected_winner[id_tender][1], pemenang[0]['npwp'])
 
+    def test_pemenang_hasil_evaluasi(self):
+        detil = self.lpse.detil_paket_tender(3346331)
+        detil.get_hasil_evaluasi()
+        pemenang = list(filter(lambda x: x['p'], detil.hasil))[0]
+
+        self.assertEqual(pemenang['nama_peserta'], 'CV. NIBUNG PUTIH')
+        self.assertEqual(pemenang['npwp'], '02.005.160.3-334.000')
+
+
+
 
 class TestLpseKolomPemenangTidakLengkap(unittest.TestCase):
 
