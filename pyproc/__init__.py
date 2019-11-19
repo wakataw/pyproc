@@ -1,7 +1,7 @@
 from .kategori import *
 from .lpse import Lpse
 
-__version__ = '0.1.6'
+__version__ = '0.1.7a'
 __author__ = 'Agung Pratama'
 __all__ = [
     'PENGADAAN_BARANG',
