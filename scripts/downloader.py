@@ -39,6 +39,7 @@ def download_index(lpse, fetch_size, timeout, non_tender, index_path, index_path
     print("url SPSE       :", lpse.host)
     print("versi SPSE     :", lpse.version)
     print("last update    :", lpse.last_update)
+    print("jenis paket    :", 'Pengadaan Langsung' if non_tender else 'Tender')
     print("\nIndexing Data")
 
     if index_path_exists and not force:
