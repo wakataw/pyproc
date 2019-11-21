@@ -33,27 +33,21 @@ SPSE4 Downloader, PyProc v{}
 '''.format(__version__))
 
 
-def download_index(_lpse, pool_size, fetch_size, timeout, non_tender, index_path, index_path_exists, force, delay):
-    _lpse.timeout = timeout
-    lpse_pool = [_lpse]*pool_size
+def download_index(lpse, fetch_size, timeout, non_tender, index_path, index_path_exists, force, delay):
+    lpse.timeout = timeout
 
-    for i in lpse_pool:
-        i.session = requests.session()
-        i.session.verify = False
-        i.auth_token = i.get_auth_token()
-
-    print("url SPSE       :", lpse_pool[0].host)
-    print("versi SPSE     :", lpse_pool[0].version)
-    print("last update    :", lpse_pool[0].last_update)
+    print("url SPSE       :", lpse.host)
+    print("versi SPSE     :", lpse.version)
+    print("last update    :", lpse.last_update)
     print("\nIndexing Data")
 
     if index_path_exists and not force:
         yield "- Menggunakan cache"
     else:
         if non_tender:
-            total_data = lpse_pool[0].get_paket_non_tender()['recordsTotal']
+            total_data = lpse.get_paket_non_tender()['recordsTotal']
         else:
-            total_data = lpse_pool[0].get_paket_tender()['recordsTotal']
+            total_data = lpse.get_paket_tender()['recordsTotal']
 
         batch_size = int(ceil(total_data / fetch_size))
         downloaded_row = 0
@@ -64,8 +58,6 @@ def download_index(_lpse, pool_size, fetch_size, timeout, non_tender, index_path
             writer = csv.writer(index_file, delimiter='|', quoting=csv.QUOTE_ALL)
 
             for page in range(batch_size):
-
-                lpse = lpse_pool[page % pool_size]
 
                 if non_tender:
                     data = lpse.get_paket_non_tender(start=page*fetch_size, length=fetch_size, data_only=True)
@@ -81,8 +73,6 @@ def download_index(_lpse, pool_size, fetch_size, timeout, non_tender, index_path
                 time.sleep(delay)
 
                 yield [page+1, batch_size, downloaded_row]
-
-    del lpse_pool
 
 
 def get_detil(downloader, jenis_paket, tahun_anggaran, index_path):
@@ -368,7 +358,6 @@ def main():
     parser.add_argument("--tahun-anggaran", help="Tahun Anggaran untuk di download", default=str(datetime.now().year),
                         type=str)
     parser.add_argument("--workers", help="Jumlah worker untuk download detil paket", default=8, type=int)
-    parser.add_argument("--pool-size", help="Jumlah koneksi pada pool untuk download index paket", default=4, type=int)
     parser.add_argument("--fetch-size", help="Jumlah row yang didownload per halaman", default=100, type=int)
     parser.add_argument("--timeout", help="Set timeout", default=30, type=int)
     parser.add_argument("--keep", help="Tidak menghapus folder cache", action="store_true")
@@ -433,9 +422,8 @@ def main():
                 if not index_path_exists:
                     index_path = lock_index(index_path)
 
-                for downloadinfo in download_index(_lpse, args.pool_size, args.fetch_size, args.timeout,
-                                                   args.non_tender, index_path, index_path_exists, args.force,
-                                                   args.index_download_delay):
+                for downloadinfo in download_index(_lpse, args.fetch_size, args.timeout, args.non_tender, index_path,
+                                                   index_path_exists, args.force, args.index_download_delay):
                     if index_path_exists and not args.force:
                         print(downloadinfo, end='\r')
                         continue
