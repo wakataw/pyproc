@@ -68,7 +68,3 @@ Release versi stable pertama
     - Filter pencarian paket tender/non tender berdasarkan kategori pengadaan.
     - Mengurutkan Pencarian paket berdasarkan id paket, nama instansi, tahap paket, dan HPS
 - CLI Downloader
-
-
-
-[Unreleased]: https://gitlab.com/wakataw/pyproc/tags/v0.1b2019051001

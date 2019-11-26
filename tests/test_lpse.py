@@ -387,7 +387,13 @@ class TestLpseKolomPemenangTidakLengkap(unittest.TestCase):
 class TestNpwpNamaSplitter(unittest.TestCase):
 
     def test_hasil_evaluasi_npwp_nama_split(self):
-        with open(os.path.join('supporting_files', 'hasil_evaluasi_nama_npwp_test.txt')) as f:
+        with open(
+            os.path.join(
+                os.path.dirname(os.path.realpath(__file__)),
+                'supporting_files',
+                'hasil_evaluasi_nama_npwp_test.txt'
+            )
+        ) as f:
             f.readline()
             csv_reader = csv.reader(f)
 
@@ -407,9 +413,9 @@ class TestNpwpNamaSplitter(unittest.TestCase):
 
                     self.assertEqual([], non_digit)
                     status = "OK"
+                    del lpse
 
                 print(status)
-                del lpse
 
 
 if __name__ == '__main__':
