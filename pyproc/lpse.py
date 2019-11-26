@@ -556,13 +556,16 @@ class LpseDetilHasilEvaluasiParser(BaseLpseDetilParser):
                 children[key] = False
 
         try:
-            nama_npwp = children['nama_peserta'].split('-', maxsplit=1)
+            nama_npwp = self.parse_nama_npwp(children['nama_peserta'])
             children['nama_peserta'] = nama_npwp[0].strip()
             children['npwp'] = nama_npwp[1].strip()
         except KeyError:
             pass
 
         return children
+
+    def parse_nama_npwp(self, peserta):
+        return str(peserta).rsplit(' - ', maxsplit=1)
 
     def parse_icon(self, child):
         status = {
