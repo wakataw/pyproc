@@ -387,7 +387,7 @@ class TestLpseKolomPemenangTidakLengkap(unittest.TestCase):
 class TestNpwpNamaSplitter(unittest.TestCase):
 
     def test_hasil_evaluasi_npwp_nama_split(self):
-        with open(os.path.join('supporting_files', 'hasil_evaluasi_nama_npwp_test.csv')) as f:
+        with open(os.path.join('supporting_files', 'hasil_evaluasi_nama_npwp_test.txt')) as f:
             f.readline()
             csv_reader = csv.reader(f)
 
