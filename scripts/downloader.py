@@ -9,10 +9,7 @@ import time
 from math import ceil
 from shutil import copyfile, rmtree
 from urllib.parse import urlparse
-
-import requests
-
-from pyproc import Lpse, __version__
+from pyproc import Lpse, __version__, utils
 from pyproc.helpers import DetilDownloader
 from urllib3 import disable_warnings
 from urllib3.exceptions import InsecureRequestWarning
@@ -208,18 +205,7 @@ def combine_data(host, jenis_paket, remove=True, filename=None):
                     detil['penandatanganan_kontrak_sampai'] = data_kontrak[0]['sampai']
 
             if data['hasil']:
-                pemenang = None
-                hasil_keys = data['hasil'][0].keys()
-                filter_by_key = lambda key: list(filter(lambda x: x[key], data['hasil']))
-
-                if 'pk' in hasil_keys:
-                    pemenang = filter_by_key('pk')
-
-                if not pemenang and 'v' in hasil_keys:
-                    pemenang = filter_by_key('v')
-
-                if not pemenang and 'p' in hasil_keys:
-                    pemenang = filter_by_key('p')
+                pemenang = utils.get_pemenang_from_hasil_evaluasi(data['hasil'])
 
                 if not pemenang and jenis_paket == 'non_tender':
                     pemenang = data['hasil'][0:]
