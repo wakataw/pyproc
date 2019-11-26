@@ -1,5 +1,8 @@
 import unittest
 import re
+import csv
+import os
+import pyproc.utils
 
 from pyproc import Lpse
 from pyproc.exceptions import LpseHostExceptions, LpseServerExceptions
@@ -129,6 +132,8 @@ class TestLpse(unittest.TestCase):
 
         self.assertRaises(LpseServerExceptions, detil.get_all_detil)
 
+    def tearDown(self):
+        del self.lpse
 
 class TestPaketNonTender(unittest.TestCase):
 
@@ -249,6 +254,9 @@ class TestPaketNonTender(unittest.TestCase):
 
         self.assertRaises(LpseServerExceptions, detil.get_all_detil)
 
+    def tearDown(self):
+        del self.lpse
+
 
 class TestLpseHostError(unittest.TestCase):
 
@@ -258,6 +266,8 @@ class TestLpseHostError(unittest.TestCase):
 
         self.assertEqual(lpse.host.startswith('http'), True)
         self.assertEqual(True, host in lpse.host)
+
+        del lpse
 
     def test_host_error(self):
         host = 'http://www.pajak.go.id'
@@ -319,6 +329,9 @@ class TestLpseDetailKosongNonTender(unittest.TestCase):
 
         self.assertEqual(None, pemenang_berkontrak)
 
+    def tearDown(self):
+        del self.detil
+
 
 class TestLpsePemenangDoubleTender(unittest.TestCase):
 
@@ -347,7 +360,8 @@ class TestLpsePemenangDoubleTender(unittest.TestCase):
         self.assertEqual(pemenang['nama_peserta'], 'CV. NIBUNG PUTIH')
         self.assertEqual(pemenang['npwp'], '02.005.160.3-334.000')
 
-
+    def tearDown(self):
+        del self.lpse
 
 
 class TestLpseKolomPemenangTidakLengkap(unittest.TestCase):
@@ -365,6 +379,37 @@ class TestLpseKolomPemenangTidakLengkap(unittest.TestCase):
               'alamat': 'JL. IMAM BONJOL TANJUNG SELOR - Bulungan (Kab.) - Kalimantan Utara',
               'npwp': '02.673.860.9-727.000', 'harga_penawaran': '', 'hasil_negosiasi': ''}]
         )
+
+    def tearDown(self):
+        del self.lpse
+
+
+class TestNpwpNamaSplitter(unittest.TestCase):
+
+    def test_hasil_evaluasi_npwp_nama_split(self):
+        with open(os.path.join('supporting_files', 'hasil_evaluasi_nama_npwp_test.csv')) as f:
+            f.readline()
+            csv_reader = csv.reader(f)
+
+            for row in csv_reader:
+                status = "ERROR"
+                print("{}Test package {} from {} ...".format(" "*4, row[0], row[-1]), end='')
+
+                try:
+                    lpse = Lpse(row[-1], timeout=60)
+                    detil = lpse.detil_paket_non_tender(row[0])
+                    detil.get_hasil_evaluasi()
+                except Exception:
+                    pass
+                else:
+                    pemenang = pyproc.utils.get_pemenang_from_hasil_evaluasi(detil.hasil)
+                    non_digit = re.findall('[a-zA-Z]+', pemenang[0]['npwp'])
+
+                    self.assertEqual([], non_digit)
+                    status = "OK"
+
+                print(status)
+                del lpse
 
 
 if __name__ == '__main__':
