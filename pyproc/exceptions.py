@@ -8,3 +8,7 @@ class LpseHostExceptions(Exception):
 
 class LpseServerExceptions(Exception):
     pass
+
+
+class LpseAuthTokenNotFound(Exception):
+    pass
