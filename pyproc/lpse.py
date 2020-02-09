@@ -26,6 +26,7 @@ class Lpse(object):
         self.host = host
         self.is_lpse = False
         self.version = None
+        self.__int_version = 0
         self.last_update = None
         self.timeout = timeout
         self.auth_token = None
@@ -85,7 +86,8 @@ class Lpse(object):
         version = re.findall(r'(SPSE v4\.[0-9a-z.]+)', footer, flags=re.DOTALL)
 
         if version:
-            self.version = version[0]
+            self.version = version[0].strip()
+            self.__int_version = int(self.version[-8:])
             return True
 
         return False
@@ -106,6 +108,12 @@ class Lpse(object):
         Melakukan pengambilan auth token
         :return: token (str)
         """
+
+        # bypass jika versi kurang dari veri bulan 09
+
+        if self.__int_version < 20191009:
+            return None
+
         r = self.session.get(self.host + '/lelang')
 
         if from_cookies:
