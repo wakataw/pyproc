@@ -20,11 +20,12 @@ class By(Enum):
 
 class Lpse(object):
 
-    def __init__(self, host, timeout=10, info=True):
+    def __init__(self, host, timeout=10, info=True, skip_spse_check=False):
         self.session = requests.session()
         self.session.verify = False
         self.host = host
         self.is_lpse = False
+        self.skip_spse_check = skip_spse_check
         self.version = None
         self.__int_version = 0
         self.last_update = None
@@ -56,15 +57,17 @@ class Lpse(object):
         r = self.session.get(self.host, verify=False, timeout=self.timeout)
         s = Bs(r.content, 'html5lib')
 
-        if not self._is_spse(r.text):
-            raise LpseHostExceptions("{} sepertinya bukan aplikasi SPSE".format(self.host))
+        if not self.skip_spse_check:
+            if not self._is_spse(r.text):
+                raise LpseHostExceptions("{} sepertinya bukan aplikasi SPSE".format(self.host))
 
-        footer = s.find('div', {'id': 'footer'}).text.strip()
+            footer = s.find('div', {'id': 'footer'}).text.strip()
 
-        if not self._is_v4(footer):
-            raise LpseVersionException("Versi SPSE harus >= 4")
+            if not self._is_v4(footer):
+                raise LpseVersionException("Versi SPSE harus >= 4")
 
-        self._get_last_update(footer)
+            self._get_last_update(footer)
+
         self.host = self._check_host(r.url) + '/eproc4'
 
     def _is_spse(self, content):
@@ -111,7 +114,7 @@ class Lpse(object):
 
         # bypass jika versi kurang dari veri bulan 09
 
-        if self.__int_version < 20191009:
+        if self.__int_version != 0 and self.__int_version < 20191009:
             return None
 
         r = self.session.get(self.host + '/lelang')

@@ -351,6 +351,7 @@ def main():
                         default=1, type=int)
     parser.add_argument("--non-tender", help="Download paket non tender (penunjukkan langsung)", action="store_true")
     parser.add_argument("--force", "-f", help="Clear index sebelum mendownload data", action="store_true")
+    parser.add_argument("--skip-spse-check", help="skip cek versi SPSE", action="store_true")
 
     args = parser.parse_args()
 
@@ -392,7 +393,7 @@ def main():
                 print("=" * len(host))
                 print("tahun anggaran :", ' - '.join(map(str, tahun_anggaran)))
                 print("jenis paket    :", 'Pengadaan Langsung' if args.non_tender else 'Tender')
-                _lpse = Lpse(host=host, timeout=args.timeout)
+                _lpse = Lpse(host=host, timeout=args.timeout, skip_spse_check=args.skip_spse_check)
                 last_paket_id = get_last_paket_id(_lpse, not args.non_tender)
 
                 if last_paket_id is None:
