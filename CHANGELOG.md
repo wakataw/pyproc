@@ -4,14 +4,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 0.1.7a \[unreleased\]
+## 0.1.7
 
 ### Fix
-- Fix NPWP - Nama Peserta splitter pada hasil evaluasi
 - [downloader] fix error saat menggabungkan file detil jika pemenang tidak ditemukan
-- [downloader] ketika retry download, detil downloader akan menggunakan cache dari proses sebelumnya
+- [downloader] ketika retry download , detil downloader akan menggunakan cache dari proses sebelumnya
 - [downloader] pemilihan pemenang berdasarkan hirarki pemenang berkontrak > pemenang terverifikasi > pemenang
+- [downloader] fix filter tahun anggaran, jika tidak ada data tahun anggaran maka filter akan berdasarkan data tanggal pembuatan
+- [package] Fix NPWP - Nama Peserta splitter pada hasil evaluasi
+- [package] menghilangkan fungsi pengecekan url rewrite dengan hardcoded path `/eproc4` pada host SPSE
+- [package] bypass parsing auth token jika versi SPSE < 20191009
+
+### Add
+- [downloader] jika proses download index gagal di tengah jalan, aplikasi akan melanjutkan berdasarkan posisi batch terakhir
 - [downloader] menambahkan jenis paket pengadaan pada header informasi
+- [downloader] menambahkan argument `--skip-spse-check`
+- [package] menambahkan parameter `skip_spse_checking` untuk menghindari proses parsing info LPSE yang gagal jika aplikasi menggunakan custom homepage
 
 ## Change
 - update test case
