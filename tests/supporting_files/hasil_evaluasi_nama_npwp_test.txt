@@ -6,7 +6,6 @@ id_paket,id_lpse,nama_lpse,id,alamat_lpse
 2653110,110,LPSE Kabupaten Ketapang,110,http://lpse.ketapangkab.go.id/eproc
 54197114,114,LPSE Kementerian Perhubungan,114,http://lpse.dephub.go.id
 7919012,12,LPSE Provinsi Kalimantan Tengah,12,https://lpse.kalteng.go.id/eproc4/
-1873120,120,LPSE Kabupaten Lombok Tengah,120,http://www.lpse.lomboktengahkab.go.id
 7833121,121,LPSE Provinsi Lampung,121,https://lpse.lampungprov.go.id/eproc4/
 4418122,122,LPSE Kabupaten Gresik,122,http://lpse.gresikkab.go.id
 38154127,127,LPSE Provinsi Daerah Khusus Ibukota Jakarta,127,http://lpse.jakarta.go.id
@@ -14,8 +13,6 @@ id_paket,id_lpse,nama_lpse,id,alamat_lpse
 2524628,628,LPSE Kabupaten Aceh Jaya,628,http://lpse.acehjayakab.go.id
 1295631,631,LPSE Kabupaten Flores Timur,631,http://lpse.florestimurkab.go.id
 1282634,634,LPSE Kabupaten Pakpak Bharat,634,http://lpse.pakpakbharatkab.go.id
-5791638,638,LPSE TNI Angkatan Darat,638,http://lpse.tniad.mil.id
-1194643,643,LPSE Kabupaten Takalar,643,http://lpse.takalarkab.net
 1090676,676,LPSE Kabupaten Batu Bara,676,http://lpse.batubarakab.go.id/eproc/
 5048070,70,LPSE Provinsi Jambi,70,http://lpse.jambiprov.go.id
 325708,708,LPSE Kota Sibolga,708,http://lpse.sibolgakota.go.id/eproc/
@@ -29,7 +26,6 @@ id_paket,id_lpse,nama_lpse,id,alamat_lpse
 1380613,613,LPSE Kota Jayapura,613,http://lpse.jayapurakota.go.id
 1845614,614,LPSE Kabupaten Merangin,614,http://lpse.meranginkab.go.id
 1254619,619,LPSE Kabupaten Barru,619,http://lpse.barrukab.go.id
-2721621,621,LPSE Kabupaten Gunung Kidul,621,http://lpse.gunungkidulkab.go.id
 1093623,623,LPSE Kabupaten Buton Utara,623,http://lpse.butonutarakab.go.id
 2807334,334,LPSE Kabupaten Pati,334,http://lpsepatikab.org
 1443335,335,LPSE Kabupaten Wajo,335,http://lpse-wajokab.go.id
@@ -44,7 +40,6 @@ id_paket,id_lpse,nama_lpse,id,alamat_lpse
 2479259,259,LPSE Kota Jambi,259,http://lpse.jambikota.go.id
 2211263,263,LPSE Provinsi Sulawesi Barat,263,http://lpse.sulbarprov.go.id
 1508265,265,LPSE Kabupaten Sinjai,265,http://lpse.sinjaikab.go.id
-4090267,267,LPSE Provinsi Bengkulu,267,https://lpse.bengkuluprov.go.id/eproc4
 2327269,269,LPSE Kabupaten Muaro Jambi,269,http://lpse.muarojambikab.go.id/eproc/
 12012027,27,LPSE Provinsi Sumatera Utara,27,http://lpse.sumutprov.go.id/
 4276555,555,LPSE Mahkamah Agung Republik Indonesia,555,http://lpse.mahkamahagung.go.id
@@ -64,7 +59,6 @@ id_paket,id_lpse,nama_lpse,id,alamat_lpse
 2434330,330,LPSE Kabupaten Aceh Tenggara,330,http://lpse.acehtenggarakab.go.id
 4124331,331,LPSE Kabupaten Tanjung Jabung Timur,331,http://222.124.194.125
 7217332,332,LPSE Kabupaten Tasikmalaya,332,http://lpse.tasikmalayakab.go.id
-1442390,390,LPSE Kabupaten Rejang Lebong,390,http://lpse.rejanglebongkab.go.id
 1563392,392,LPSE Kabupaten Barito Timur,392,http://lpse.baritotimurkab.go.id/eproc4
 1608393,393,LPSE Kabupaten Kayong Utara,393,http://lpse.kayongutarakab.go.id/eproc4
 2618401,401,LPSE Kabupaten Ogan Komering Ulu,401,http://lpse.okukab.go.id/eproc/
@@ -77,4 +71,3 @@ id_paket,id_lpse,nama_lpse,id,alamat_lpse
 7894359,359,LPSE Kota Bekasi,359,http://lpse.bekasikota.go.id/eproc/app
 8336036,36,LPSE Provinsi Sulawesi Selatan,36,http://lpse.sulselprov.go.id
 1798133,133,LPSE Kabupaten Sumbawa Barat,133,http://lpse.sumbawabaratkab.go.id
-2684146,146,LPSE Kabupaten Purworejo,146,http://lpse.purworejokab.go.id
