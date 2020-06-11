@@ -8,7 +8,7 @@ install:
 - pip install . --upgrade
 script:
 - python setup.py test
-- pyproc --host lpse.kepahiangkab.go.id --out kepahiang.csv --tahun-anggaran 0,9999 --workers 2 --pool-size 2 --fetch-size 100 --timeout 300
+- pyproc --host lpse.kepahiangkab.go.id --out kepahiang.csv --tahun-anggaran 0,9999 --workers 2 --fetch-size 100 --timeout 300
 deploy:
   provider: pypi
   user: __token__

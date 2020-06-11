@@ -9,10 +9,7 @@ import time
 from math import ceil
 from shutil import copyfile, rmtree
 from urllib.parse import urlparse
-
-import requests
-
-from pyproc import Lpse, __version__
+from pyproc import Lpse, __version__, utils
 from pyproc.helpers import DetilDownloader
 from urllib3 import disable_warnings
 from urllib3.exceptions import InsecureRequestWarning
@@ -32,57 +29,84 @@ def print_info():
 SPSE4 Downloader, PyProc v{}
 '''.format(__version__))
 
+def set_last_downloaded_rows(index_path, rows):
+    with open(os.path.join(os.path.dirname(index_path), 'index.meta'), 'w') as f:
+        f.write(str(rows))
 
-def download_index(_lpse, pool_size, fetch_size, timeout, non_tender, index_path, index_path_exists, force, delay):
-    _lpse.timeout = timeout
-    lpse_pool = [_lpse]*pool_size
+def get_last_downloaded_rows(index_path):
+    print(index_path)
+    if not os.path.isfile(index_path) or not index_path.endswith('lock'):
+        return 0
 
-    for i in lpse_pool:
-        i.session = requests.session()
-        i.session.verify = False
-        i.auth_token = i.get_auth_token()
+    metadata = os.path.join(os.path.dirname(index_path), 'index.meta')
+    metadata_line = 0
+    file_line = 0
 
-    print("url SPSE       :", lpse_pool[0].host)
-    print("versi SPSE     :", lpse_pool[0].version)
-    print("last update    :", lpse_pool[0].last_update)
+    try:
+        with open(metadata, 'r') as f:
+            metadata_line = int(f.read().strip())
+    except:
+        pass
+
+    with open(index_path, 'r') as f:
+        for file_line, _ in enumerate(f):
+            pass
+        file_line += 1
+
+    if metadata_line == file_line:
+        return metadata_line
+
+    return 0
+
+def download_index(lpse, fetch_size, timeout, non_tender, index_path, index_path_exists, force, delay):
+    lpse.timeout = timeout
+
+    print("url SPSE       :", lpse.host)
+    print("versi SPSE     :", lpse.version)
+    print("last update    :", lpse.last_update)
     print("\nIndexing Data")
 
     if index_path_exists and not force:
         yield "- Menggunakan cache"
     else:
         if non_tender:
-            total_data = lpse_pool[0].get_paket_non_tender()['recordsTotal']
+            total_data = lpse.get_paket_non_tender()['recordsTotal']
         else:
-            total_data = lpse_pool[0].get_paket_tender()['recordsTotal']
+            total_data = lpse.get_paket_tender()['recordsTotal']
 
         batch_size = int(ceil(total_data / fetch_size))
-        downloaded_row = 0
+        last_downloaded_rows = get_last_downloaded_rows(index_path)
+        downloaded_row = last_downloaded_rows if last_downloaded_rows > 0 else 0
+        temp_downloaded_row = 0
+        mode = 'a' if last_downloaded_rows > 0 else 'w'
+        print(last_downloaded_rows, downloaded_row, temp_downloaded_row, mode)
 
-        with open(index_path, 'w', newline='', encoding='utf8',
+        with open(index_path, mode, newline='', encoding='utf8',
                   errors="ignore") as index_file:
 
             writer = csv.writer(index_file, delimiter='|', quoting=csv.QUOTE_ALL)
 
             for page in range(batch_size):
 
-                lpse = lpse_pool[page % pool_size]
+                temp_downloaded_row += fetch_size
 
-                if non_tender:
-                    data = lpse.get_paket_non_tender(start=page*fetch_size, length=fetch_size, data_only=True)
-                    min_data = list(map(lambda x: [x[0], x[6]], data))
+                if temp_downloaded_row <= last_downloaded_rows:
+                    pass
                 else:
-                    data = lpse.get_paket_tender(start=page*fetch_size, length=fetch_size, data_only=True)
-                    min_data = list(map(lambda x: [x[0], x[8]], data))
+                    if non_tender:
+                        data = lpse.get_paket_non_tender(start=page*fetch_size, length=fetch_size, data_only=True)
+                        min_data = list(map(lambda x: [x[0], x[6]], data))
+                    else:
+                        data = lpse.get_paket_tender(start=page*fetch_size, length=fetch_size, data_only=True)
+                        min_data = list(map(lambda x: [x[0], x[8]], data))
 
-                writer.writerows(min_data)
+                    writer.writerows(min_data)
+                    downloaded_row += len(min_data)
+                    set_last_downloaded_rows(index_path, downloaded_row)
 
-                downloaded_row += len(min_data)
-
-                time.sleep(delay)
+                    time.sleep(delay)
 
                 yield [page+1, batch_size, downloaded_row]
-
-    del lpse_pool
 
 
 def get_detil(downloader, jenis_paket, tahun_anggaran, index_path):
@@ -108,11 +132,24 @@ def get_detil(downloader, jenis_paket, tahun_anggaran, index_path):
     downloader.queue.join()
 
 
-def combine_data(host, jenis_paket, remove=True, filename=None):
+
+def combine_data(host, jenis_paket, remove=True, filename=None, tahun_anggaran=None):
+    '''
+    Combine data detil LPSE hasil download.
+    :param host: host LPSE
+    :param jenis_paket: tender atau pengadaan langsung
+    :param remove: remove data detil setelah di-merge
+    :param filename: nama file hasil merge data
+    :param tahun_anggaran: filter tahun anggaran. fungsi filter tahun anggaran di fungsi ini hanya untuk data yang
+                           tidak memiliki tahun anggaran, sehingga filter akan dilakukan atas tanggal pembuatan
+                           paket
+    :return:
+    '''
     folder_name = get_folder_name(host, jenis_paket=jenis_paket)
     detil_dir = os.path.join(folder_name, 'detil', '*')
     detil_combined = os.path.join(folder_name, 'detil.dat')
     detil_all = glob.glob(detil_dir)
+    detil_all.sort()
 
     pengumuman_nontender_keys = {
         'id_paket': None,
@@ -135,7 +172,8 @@ def combine_data(host, jenis_paket, remove=True, filename=None):
         'penawaran_terkoreksi': None,
         'hasil_negosiasi': None,
         'p': False,
-        'pk': False
+        'pk': False,
+        'v': False
     }
 
     pengumuman_keys = {
@@ -159,7 +197,8 @@ def combine_data(host, jenis_paket, remove=True, filename=None):
         'penawaran_terkoreksi': None,
         'hasil_negosiasi': None,
         'p': False,
-        'pk': False
+        'pk': False,
+        'v': False
     }
 
     with open(detil_combined, 'w', encoding='utf8', errors="ignore", newline='') as csvf:
@@ -186,6 +225,12 @@ def combine_data(host, jenis_paket, remove=True, filename=None):
 
             with open(detil_file, 'r', encoding='utf8', errors="ignore") as f:
                 data = json.loads(f.read())
+
+            tahun_pembuatan = re.findall(r'(20\d{2})', data['pengumuman']['tanggal_pembuatan'])
+            has_tahun_anggaran = re.findall(r'(20\d{2})', data['pengumuman']['tahun_anggaran'])
+
+            if not has_tahun_anggaran and not download_by_ta(tahun_pembuatan, tahun_anggaran):
+                continue
 
             detil['id_paket'] = data['id_paket']
 
@@ -215,20 +260,13 @@ def combine_data(host, jenis_paket, remove=True, filename=None):
                     detil['penandatanganan_kontrak_sampai'] = data_kontrak[0]['sampai']
 
             if data['hasil']:
-                pemenang = None
-                try:
-                    pemenang = list(filter(lambda x: x['p'], data['hasil']))
-                except KeyError:
-                    if jenis_paket == 'non_tender':
-                        pemenang = data['hasil'][0:]
-                except Exception as e:
-                    error_writer(
-                        "{}|{} - {} - {}".format(host, detil['id_paket'], jenis_paket, str(e)),
-                        update_exit_code=False
-                    )
-                finally:
-                    if pemenang is not None:
-                        detil.update((k, pemenang[0][k]) for k in detil.keys() & pemenang[0].keys())
+                pemenang = utils.get_pemenang_from_hasil_evaluasi(data['hasil'])
+
+                if not pemenang and jenis_paket == 'non_tender':
+                    pemenang = data['hasil'][0:]
+
+                if pemenang is not None and len(pemenang) > 0:
+                    detil.update((k, pemenang[0][k]) for k in detil.keys() & pemenang[0].keys())
 
             writer.writerow(detil)
 
@@ -361,7 +399,6 @@ def main():
     parser.add_argument("--tahun-anggaran", help="Tahun Anggaran untuk di download", default=str(datetime.now().year),
                         type=str)
     parser.add_argument("--workers", help="Jumlah worker untuk download detil paket", default=8, type=int)
-    parser.add_argument("--pool-size", help="Jumlah koneksi pada pool untuk download index paket", default=4, type=int)
     parser.add_argument("--fetch-size", help="Jumlah row yang didownload per halaman", default=100, type=int)
     parser.add_argument("--timeout", help="Set timeout", default=30, type=int)
     parser.add_argument("--keep", help="Tidak menghapus folder cache", action="store_true")
@@ -369,6 +406,7 @@ def main():
                         default=1, type=int)
     parser.add_argument("--non-tender", help="Download paket non tender (penunjukkan langsung)", action="store_true")
     parser.add_argument("--force", "-f", help="Clear index sebelum mendownload data", action="store_true")
+    parser.add_argument("--skip-spse-check", help="skip cek versi SPSE", action="store_true")
 
     args = parser.parse_args()
 
@@ -390,7 +428,7 @@ def main():
         exit(1)
 
     # download index
-    detil_downloader = DetilDownloader(workers=args.workers, timeout=args.timeout)
+    detil_downloader = DetilDownloader(workers=args.workers, timeout=args.timeout, use_cache=not args.force)
     detil_downloader.spawn_worker()
 
     try:
@@ -409,7 +447,8 @@ def main():
                 print(host)
                 print("=" * len(host))
                 print("tahun anggaran :", ' - '.join(map(str, tahun_anggaran)))
-                _lpse = Lpse(host=host, timeout=args.timeout)
+                print("jenis paket    :", 'Pengadaan Langsung' if args.non_tender else 'Tender')
+                _lpse = Lpse(host=host, timeout=args.timeout, skip_spse_check=args.skip_spse_check)
                 last_paket_id = get_last_paket_id(_lpse, not args.non_tender)
 
                 if last_paket_id is None:
@@ -426,9 +465,8 @@ def main():
                 if not index_path_exists:
                     index_path = lock_index(index_path)
 
-                for downloadinfo in download_index(_lpse, args.pool_size, args.fetch_size, args.timeout,
-                                                   args.non_tender, index_path, index_path_exists, args.force,
-                                                   args.index_download_delay):
+                for downloadinfo in download_index(_lpse, args.fetch_size, args.timeout, args.non_tender, index_path,
+                                                   index_path_exists, args.force, args.index_download_delay):
                     if index_path_exists and not args.force:
                         print(downloadinfo, end='\r')
                         continue
@@ -455,7 +493,8 @@ def main():
 
             print("Menggabungkan Data")
             try:
-                combine_data(_lpse.host, jenis_paket, not args.keep, filename=custom_file_name)
+                combine_data(_lpse.host, jenis_paket, not args.keep, filename=custom_file_name,
+                             tahun_anggaran=tahun_anggaran)
             except Exception as e:
                 print("ERROR:", str(e))
                 error_writer('{}|menggabungkan {}'.format(host, str(e)))

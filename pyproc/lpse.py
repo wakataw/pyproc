@@ -1,12 +1,11 @@
 import time
-
 import bs4
 import requests
 import re
 
 from . import utils
 from bs4 import BeautifulSoup as Bs, NavigableString
-from .exceptions import LpseVersionException, LpseHostExceptions, LpseServerExceptions
+from .exceptions import LpseVersionException, LpseHostExceptions, LpseServerExceptions, LpseAuthTokenNotFound
 from enum import Enum
 from abc import abstractmethod
 from urllib.parse import urlparse
@@ -21,22 +20,24 @@ class By(Enum):
 
 class Lpse(object):
 
-    def __init__(self, host, timeout=10, info=True):
+    def __init__(self, host, timeout=10, info=True, skip_spse_check=False):
         self.session = requests.session()
         self.session.verify = False
         self.host = host
         self.is_lpse = False
+        self.skip_spse_check = skip_spse_check
         self.version = None
+        self.__int_version = 0
         self.last_update = None
         self.timeout = timeout
         self.auth_token = None
-        self._check_host()
 
         if info:
+            self.host = self._check_host(self.host)
             self.update_info()
 
-    def _check_host(self):
-        parsed_url = urlparse(self.host)
+    def _check_host(self, host):
+        parsed_url = urlparse(host)
 
         scheme = parsed_url.scheme
         netloc = parsed_url.netloc
@@ -45,9 +46,9 @@ class Lpse(object):
             scheme = 'http'
             netloc = parsed_url.path
 
-        self.host = '{}://{}'.format(scheme, netloc)
+        return '{}://{}'.format(scheme, netloc.strip('/'))
 
-    def update_info(self, retry=False):
+    def update_info(self):
         """
         Update Informasi mengenai versi SPSE dan waktu update data terakhir
         :param url: url LPSE
@@ -56,40 +57,18 @@ class Lpse(object):
         r = self.session.get(self.host, verify=False, timeout=self.timeout)
         s = Bs(r.content, 'html5lib')
 
-        if not self._is_spse(r.text):
-            if not retry:
-                if not self.host.endswith('eproc4'):
-                    self.host = self.host.strip('/') + '/eproc4'
-                    return self.update_info(retry=True)
+        if not self.skip_spse_check:
+            if not self._is_spse(r.text):
+                raise LpseHostExceptions("{} sepertinya bukan aplikasi SPSE".format(self.host))
 
-            raise LpseHostExceptions("{} sepertinya bukan aplikasi SPSE".format(self.host))
+            footer = s.find('div', {'id': 'footer'}).text.strip()
 
-        footer = s.find('div', {'id': 'footer'}).text.strip()
+            if not self._is_v4(footer):
+                raise LpseVersionException("Versi SPSE harus >= 4")
 
-        if not self._is_v4(footer):
-            raise LpseVersionException("Versi SPSE harus >= 4")
+            self._get_last_update(footer)
 
-        self.host = r.url.strip('/')
-
-        if not self.host.endswith('eproc4'):
-            self._check_eproc4_rewrite(s)
-
-        self._get_last_update(footer)
-
-    def _check_eproc4_rewrite(self, html):
-        """
-        Method untuk cek alamat spse, terkadang pada home di set url rewrite `/eproc4` => `/`
-        sehingga error ketika pencarian paket
-        :return:
-        """
-
-        top_menu = html.find('div', {'id': 'menu'}).find('div', {'class': 'topmenu'})
-
-        if top_menu:
-            for a in top_menu.find_all('a'):
-                if 'eproc4' in a['href']:
-                    self.host += '/eproc4'
-                    break
+        self.host = self._check_host(r.url) + '/eproc4'
 
     def _is_spse(self, content):
         self.is_lpse = False
@@ -110,7 +89,8 @@ class Lpse(object):
         version = re.findall(r'(SPSE v4\.[0-9a-z.]+)', footer, flags=re.DOTALL)
 
         if version:
-            self.version = version[0]
+            self.version = version[0].strip()
+            self.__int_version = int(self.version[-8:])
             return True
 
         return False
@@ -126,12 +106,26 @@ class Lpse(object):
         if last_update:
             self.last_update = last_update[0]
 
-    def get_auth_token(self):
+    def get_auth_token(self, from_cookies=True):
         """
         Melakukan pengambilan auth token
         :return: token (str)
         """
+
+        # bypass jika versi kurang dari veri bulan 09
+
+        if self.__int_version != 0 and self.__int_version < 20191009:
+            return None
+
         r = self.session.get(self.host + '/lelang')
+
+        if from_cookies:
+            auth_token = re.findall(r'___AT=([A-Za-z0-9]+)&', self.session.cookies.get('SPSE_SESSION'))
+
+            if auth_token:
+                return auth_token[0]
+            else:
+                raise LpseAuthTokenNotFound
 
         return utils.parse_token(r.text)
 
@@ -196,6 +190,8 @@ class Lpse(object):
             headers={
                 'X-Requested-With': 'XMLHttpRequest',
                 'Referer': self.host + '/lelang',
+                'Sec-Fetch-Mode': 'cors',
+                'Sec-Fetch-Site': 'same-origin',
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
                               'AppleWebKit/537.36 (KHTML, like Gecko) '
                               'Chrome/77.0.3865.90 Safari/537.36'
@@ -556,13 +552,16 @@ class LpseDetilHasilEvaluasiParser(BaseLpseDetilParser):
                 children[key] = False
 
         try:
-            nama_npwp = children['nama_peserta'].split('-', maxsplit=1)
+            nama_npwp = self.parse_nama_npwp(children['nama_peserta'])
             children['nama_peserta'] = nama_npwp[0].strip()
             children['npwp'] = nama_npwp[1].strip()
         except KeyError:
             pass
 
         return children
+
+    def parse_nama_npwp(self, peserta):
+        return str(peserta).rsplit(' - ', maxsplit=1)
 
     def parse_icon(self, child):
         status = {
