@@ -104,6 +104,10 @@ $ pyproc --host lpse.pu.go.id,lpse.sumbarprov.go.id --workers 30 --timeout 600 -
 $ pyproc --host lpse.pu.go.id;hasil-pu.csv,lpse.sumbarprov.go.id;hasil-sumbar.csv --workers 30 --timeout 600 --fetch-size 1000
 ```
 
+```bash
+$ pyproc --host lpse.jogjaprov.go.id --keep --fetch-size 2500 --timeout 300
+```
+
 Download paket LPSE dengan sumber alamat dari file
 ```bash
 $ pyproc -r daftarlpse.csv
