@@ -34,7 +34,6 @@ def set_last_downloaded_rows(index_path, rows):
         f.write(str(rows))
 
 def get_last_downloaded_rows(index_path):
-    print(index_path)
     if not os.path.isfile(index_path) or not index_path.endswith('lock'):
         return 0
 
