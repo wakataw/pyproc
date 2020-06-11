@@ -95,7 +95,19 @@ def get_detil(downloader, jenis_paket, tahun_anggaran, index_path):
     downloader.queue.join()
 
 
-def combine_data(host, jenis_paket, remove=True, filename=None):
+
+def combine_data(host, jenis_paket, remove=True, filename=None, tahun_anggaran=None):
+    '''
+    Combine data detil LPSE hasil download.
+    :param host: host LPSE
+    :param jenis_paket: tender atau pengadaan langsung
+    :param remove: remove data detil setelah di-merge
+    :param filename: nama file hasil merge data
+    :param tahun_anggaran: filter tahun anggaran. fungsi filter tahun anggaran di fungsi ini hanya untuk data yang
+                           tidak memiliki tahun anggaran, sehingga filter akan dilakukan atas tanggal pembuatan
+                           paket
+    :return:
+    '''
     folder_name = get_folder_name(host, jenis_paket=jenis_paket)
     detil_dir = os.path.join(folder_name, 'detil', '*')
     detil_combined = os.path.join(folder_name, 'detil.dat')
@@ -176,6 +188,12 @@ def combine_data(host, jenis_paket, remove=True, filename=None):
 
             with open(detil_file, 'r', encoding='utf8', errors="ignore") as f:
                 data = json.loads(f.read())
+
+            tahun_pembuatan = re.findall(r'(20\d{2})', data['pengumuman']['tanggal_pembuatan'])
+            has_tahun_anggaran = re.findall(r'(20\d{2})', data['pengumuman']['tahun_anggaran'])
+
+            if not has_tahun_anggaran and not download_by_ta(tahun_pembuatan, tahun_anggaran):
+                continue
 
             detil['id_paket'] = data['id_paket']
 
@@ -438,7 +456,8 @@ def main():
 
             print("Menggabungkan Data")
             try:
-                combine_data(_lpse.host, jenis_paket, not args.keep, filename=custom_file_name)
+                combine_data(_lpse.host, jenis_paket, not args.keep, filename=custom_file_name,
+                             tahun_anggaran=tahun_anggaran)
             except Exception as e:
                 print("ERROR:", str(e))
                 error_writer('{}|menggabungkan {}'.format(host, str(e)))
