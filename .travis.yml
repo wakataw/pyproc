@@ -1,14 +1,12 @@
 language: python
 python:
 - '3.5'
-- '3.6'
-- '3.7'
 cache: pip
 install:
 - pip install . --upgrade
 script:
 - python setup.py test
-- pyproc --host lpse.kepahiangkab.go.id --out kepahiang.csv --tahun-anggaran 0,9999 --workers 2 --fetch-size 100 --timeout 300
+- pyproc --host lpse.jogjaprov.go.id --out jogja.csv --workers 2 --fetch-size 100 --timeout 300
 deploy:
   provider: pypi
   user: __token__
