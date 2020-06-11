@@ -13,6 +13,12 @@ PyProc (Python Procurement) merupakan wrapper untuk API SPSE Versi 4 yang dituli
    ```bash
    $ pip install pyproc
    ```
+   
+   via proxy
+   
+   ```bash
+   $ pip install pyproc==0.1.7a3  --proxy http://ip:port
+   ```
 
 2. Download Data LPSE
 
