@@ -79,7 +79,6 @@ def download_index(lpse, fetch_size, timeout, non_tender, index_path, index_path
         downloaded_row = last_downloaded_rows if last_downloaded_rows > 0 else 0
         temp_downloaded_row = 0
         mode = 'a' if last_downloaded_rows > 0 else 'w'
-        print(last_downloaded_rows, downloaded_row, temp_downloaded_row, mode)
 
         with open(index_path, mode, newline='', encoding='utf8',
                   errors="ignore") as index_file:
