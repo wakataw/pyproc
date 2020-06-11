@@ -29,6 +29,34 @@ def print_info():
 SPSE4 Downloader, PyProc v{}
 '''.format(__version__))
 
+def set_last_downloaded_rows(index_path, rows):
+    with open(os.path.join(os.path.dirname(index_path), 'index.meta'), 'w') as f:
+        f.write(str(rows))
+
+def get_last_downloaded_rows(index_path):
+    print(index_path)
+    if not os.path.isfile(index_path) or not index_path.endswith('lock'):
+        return 0
+
+    metadata = os.path.join(os.path.dirname(index_path), 'index.meta')
+    metadata_line = 0
+    file_line = 0
+
+    try:
+        with open(metadata, 'r') as f:
+            metadata_line = int(f.read().strip())
+    except:
+        pass
+
+    with open(index_path, 'r') as f:
+        for file_line, _ in enumerate(f):
+            pass
+        file_line += 1
+
+    if metadata_line == file_line:
+        return metadata_line
+
+    return 0
 
 def download_index(lpse, fetch_size, timeout, non_tender, index_path, index_path_exists, force, delay):
     lpse.timeout = timeout
@@ -47,27 +75,36 @@ def download_index(lpse, fetch_size, timeout, non_tender, index_path, index_path
             total_data = lpse.get_paket_tender()['recordsTotal']
 
         batch_size = int(ceil(total_data / fetch_size))
-        downloaded_row = 0
+        last_downloaded_rows = get_last_downloaded_rows(index_path)
+        downloaded_row = last_downloaded_rows if last_downloaded_rows > 0 else 0
+        temp_downloaded_row = 0
+        mode = 'a' if last_downloaded_rows > 0 else 'w'
+        print(last_downloaded_rows, downloaded_row, temp_downloaded_row, mode)
 
-        with open(index_path, 'w', newline='', encoding='utf8',
+        with open(index_path, mode, newline='', encoding='utf8',
                   errors="ignore") as index_file:
 
             writer = csv.writer(index_file, delimiter='|', quoting=csv.QUOTE_ALL)
 
             for page in range(batch_size):
 
-                if non_tender:
-                    data = lpse.get_paket_non_tender(start=page*fetch_size, length=fetch_size, data_only=True)
-                    min_data = list(map(lambda x: [x[0], x[6]], data))
+                temp_downloaded_row += fetch_size
+
+                if temp_downloaded_row <= last_downloaded_rows:
+                    pass
                 else:
-                    data = lpse.get_paket_tender(start=page*fetch_size, length=fetch_size, data_only=True)
-                    min_data = list(map(lambda x: [x[0], x[8]], data))
+                    if non_tender:
+                        data = lpse.get_paket_non_tender(start=page*fetch_size, length=fetch_size, data_only=True)
+                        min_data = list(map(lambda x: [x[0], x[6]], data))
+                    else:
+                        data = lpse.get_paket_tender(start=page*fetch_size, length=fetch_size, data_only=True)
+                        min_data = list(map(lambda x: [x[0], x[8]], data))
 
-                writer.writerows(min_data)
+                    writer.writerows(min_data)
+                    downloaded_row += len(min_data)
+                    set_last_downloaded_rows(index_path, downloaded_row)
 
-                downloaded_row += len(min_data)
-
-                time.sleep(delay)
+                    time.sleep(delay)
 
                 yield [page+1, batch_size, downloaded_row]
 
