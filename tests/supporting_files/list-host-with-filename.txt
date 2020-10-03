@@ -1,0 +1,2 @@
+http://lpse.sumbarprov.go.id;sumbar.csv
+http://lpse.bengkuluprov.go.id;bengkulu.csv
