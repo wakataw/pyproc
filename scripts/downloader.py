@@ -1,7 +1,8 @@
 import argparse
 import re
 import logging
-from . import text
+
+from scripts import text
 from datetime import datetime
 from pathlib import Path
 
@@ -190,3 +191,10 @@ class Downloader(object):
 
         logging.debug('Parsing context')
         return DownloaderContext(args)
+
+
+if __name__ == '__main__':
+    import sys
+
+    downloader = Downloader()
+    downloader.get_ctx(sys.argv[1:])
