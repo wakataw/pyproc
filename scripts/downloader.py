@@ -2,6 +2,7 @@ import argparse
 import re
 import logging
 
+from pyproc import Lpse
 from scripts import text
 from datetime import datetime
 from pathlib import Path
@@ -65,6 +66,8 @@ class DownloaderContext(object):
     def __init__(self, args):
         self.keyword = args.keyword
         self.tahun_anggaran = self.parse_tahun_anggaran(args.tahun_anggaran)
+        self.kategori = args.kategori
+        self.nama_penyedia = args.nama_penyedia
         self.chunk_size = args.chunk_size
         self.workers = args.workers
         self.timeout = args.timeout
@@ -146,6 +149,8 @@ class DownloaderContext(object):
 
 class Downloader(object):
 
+    ctx = None
+
     def __init__(self):
         print(text.INFO)
 
@@ -156,6 +161,8 @@ class Downloader(object):
         -k, --keyword               : filter pencarian index paket berdasarkan kata kunci
         -t, --tahun-anggaran        : filter download detail berdasarkan tahun anggaran,
                                       format X-Y atau X;Y;Z
+        --kategori                  : filter pencarian index paket berdasarkan kategori
+        --nama-penyedia             : filter pencarian index paket berdasarkan nama penyedia
         -c, --chunk-size            : jumlah index per-halaman yang diunduh dalam satu iterasi
         -w, --workers               : jumlah workers yang berjalan secara paralel untuk mengunduh detail paket
         -x, --timeout               : waktu timeout respon dari server dalam detik
@@ -174,6 +181,11 @@ class Downloader(object):
         parser.add_argument('-k', '--keyword', type=str, default="", help=text.HELP_KEYWORD)
         parser.add_argument('-t', '--tahun-anggaran', type=str, default="{}".format(datetime.now().year),
                             help=text.HELP_TAHUN_ANGGARAN)
+        parser.add_argument('--kategori',
+                            choices=['PENGADAAN_BARANG', 'PEKERJAAN_KONSTRUKSI', 'KONSULTANSI', 'KONSULTANSI_PERORANGAN'
+                                     'JASA_LAINNYA', None],
+                            help=text.HELP_KATEGORI, default=None)
+        parser.add_argument('--nama-penyedia', type=str, default=None, help=text.HELP_PENYEDIA)
         parser.add_argument('-c', '--chunk-size', type=int, default=100, help=text.HELP_CHUNK_SIZE)
         parser.add_argument('-w', '--workers', type=int, default=8, help=text.HELP_WORKERS)
         parser.add_argument('-x', '--timeout', type=int, default=30, help=text.HELP_TIMEOUT)
@@ -190,7 +202,18 @@ class Downloader(object):
         set_up_log(args.log)
 
         logging.debug('Parsing context')
-        return DownloaderContext(args)
+
+        self.ctx = DownloaderContext(args)
+
+        return self.ctx
+
+    def get_total_package(self, lpse):
+        pass
+
+    def download_index(self):
+        for lpse_host in self.ctx.lpse_host:
+            lpse = Lpse(lpse_host.url, info=False, skip_spse_check=True)
+
 
 
 if __name__ == '__main__':

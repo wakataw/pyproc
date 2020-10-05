@@ -7,11 +7,23 @@ class DownloaderTest(unittest.TestCase):
         downloader = Downloader()
         ctx = downloader.get_ctx("--keyword WKWK --tahun-anggaran 2020 --chunk-size 1000 --workers 999 --timeout 99 "
                                  "--non-tender --index-download-delay 5 --keep-workdir --force --clear "
+                                 "--kategori PEKERJAAN_KONSTRUKSI --nama-penyedia HAHA "
                                  "https://lpse.sumbarprov.go.id".split(' '))
-        expected_condition = {'keyword': 'WKWK', 'tahun_anggaran': [2020], 'chunk_size': 1000, 'workers': 999,
-                              'timeout': 99, 'non_tender': True, 'index_download_delay': 5, 'keep_workdir': True,
-                              'force': True, 'clear': True,
-                              '_DownloaderContext__lpse_host': 'https://lpse.sumbarprov.go.id'}
+        expected_condition = {
+            '_DownloaderContext__lpse_host': 'https://lpse.sumbarprov.go.id',
+            'chunk_size': 1000,
+            'clear': True,
+            'force': True,
+            'index_download_delay': 5,
+            'kategori': "PEKERJAAN_KONSTRUKSI",
+            'keep_workdir': True,
+            'keyword': 'WKWK',
+            'nama_penyedia': "HAHA",
+            'non_tender': True,
+            'tahun_anggaran': [2020],
+            'timeout': 99,
+            'workers': 999
+        }
         self.assertEqual(ctx.__dict__, expected_condition)
 
     def test_tahun_anggaran_parser_single_tahun(self):
@@ -107,3 +119,7 @@ class DownloaderTest(unittest.TestCase):
             self.assertTrue(i.is_valid)
             self.assertIsNone(i.error)
             self.assertTrue(i.url in urls and i.filename.name in filename)
+
+    def test_kategori_not_in_choices(self):
+        downloader = Downloader()
+        self.assertRaises(SystemExit, downloader.get_ctx, "--kategori HOHO http://lpse.sumbarprov.go.id".split())
