@@ -2,7 +2,7 @@ import time
 import bs4
 import requests
 import re
-
+import logging
 from . import utils
 from bs4 import BeautifulSoup as Bs, NavigableString
 from .exceptions import LpseVersionException, LpseHostExceptions, LpseServerExceptions, LpseAuthTokenNotFound
@@ -197,6 +197,8 @@ class Lpse(object):
                               'Chrome/77.0.3865.90 Safari/537.36'
             }
         )
+
+        logging.debug(data.content)
 
         data.encoding = 'UTF-8'
 

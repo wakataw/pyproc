@@ -1,6 +1,7 @@
 import argparse
 import re
 import logging
+from time import sleep
 
 from pyproc import Lpse
 from scripts import text
@@ -152,13 +153,18 @@ class IndexDownloader(object):
     def __init__(self, ctx, lpse_host):
         self.ctx = ctx
         self.lpse_host = lpse_host
-        self.lpse = Lpse(lpse_host.url, info=False, skip_spse_check=True)
+        self.lpse = Lpse(lpse_host.url)
 
-    def get_total_package(self):
+    def get_jenis_paket(self):
         if self.ctx.non_tender:
             jenis_paket = 'pl'
         else:
             jenis_paket = 'lelang'
+
+        return jenis_paket
+
+    def get_total_package(self):
+        jenis_paket = self.get_jenis_paket()
 
         data = self.lpse.get_paket(jenis_paket=jenis_paket, kategori=self.ctx.kategori,
                                    nama_penyedia=self.ctx.nama_penyedia, search_keyword=self.ctx.keyword)
@@ -167,7 +173,22 @@ class IndexDownloader(object):
         return data['recordsTotal']
 
     def start(self):
-        pass
+        total = self.get_total_package()
+        batch_total = -(-total//self.ctx.chunk_size)
+
+        for batch in range(batch_total):
+            logging.debug("Starting batch {} for host {}".format(batch, self.lpse_host.url))
+            data = self.lpse.get_paket(jenis_paket=self.get_jenis_paket(), start=batch*self.ctx.chunk_size,
+                                       length=self.ctx.chunk_size, kategori=self.ctx.kategori,
+                                       search_keyword=self.ctx.keyword, nama_penyedia=self.ctx.nama_penyedia)
+
+            logging.debug(data)
+            logging.debug("writing batch {} for host {} to {}".format(batch, self.lpse_host.url, self.lpse_host.filename))
+            with open(self.lpse_host.filename, 'a') as f:
+                f.write(str(data))
+                f.write('\n')
+
+            sleep(self.ctx.index_download_delay)
 
     def resume(self):
         pass
