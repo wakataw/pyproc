@@ -124,7 +124,7 @@ class DownloaderContext(object):
             yield LpseHost(line)
 
     @property
-    def lpse_host(self):
+    def lpse_host_list(self):
         """
         Parse argument host, asumsi awal nilai yang diberikan oleh user adalah nama file. Jika file tidak ditemukan,
         nilai tersebut dianggap sebagai host name dari aplikasi SPSE instansi.
@@ -234,7 +234,7 @@ class Downloader(object):
         return self.ctx
 
     def download_index(self):
-        for lpse_host in self.ctx.lpse_host:
+        for lpse_host in self.ctx.lpse_host_list:
             index_downloader = IndexDownloader(self.ctx, lpse_host)
             index_downloader.start()
 
