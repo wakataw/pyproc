@@ -123,3 +123,12 @@ class DownloaderTest(unittest.TestCase):
     def test_kategori_not_in_choices(self):
         downloader = Downloader()
         self.assertRaises(SystemExit, downloader.get_ctx, "--kategori HOHO http://lpse.sumbarprov.go.id".split())
+
+    def test_get_records_total(self):
+        downloader = Downloader()
+        downloader.get_ctx("--log=DEBUG --kategori PEKERJAAN_KONSTRUKSI http://lpse.sumbarprov.go.id/eproc4,http://lpse.bengkuluprov.go.id".split())
+
+        for lpse_host in downloader.ctx.lpse_host:
+            lpse = Lpse(lpse_host.url)
+            total = downloader.get_total_package(lpse)
+            self.assertTrue(type(total), int)
