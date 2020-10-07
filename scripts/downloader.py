@@ -1,8 +1,8 @@
 import argparse
 import re
 import logging
+import sqlite3
 from time import sleep
-
 from pyproc import Lpse
 from scripts import text
 from datetime import datetime
@@ -154,6 +154,49 @@ class IndexDownloader(object):
         self.ctx = ctx
         self.lpse_host = lpse_host
         self.lpse = Lpse(lpse_host.url)
+        self.db = self.get_index_db(self.lpse_host.filename)
+
+    def get_index_db(self, filename):
+        """
+        Generate index database and table
+        table columns:
+            - data_id, concat(jenis, idpaket).
+            - nama_instansi
+            - jenis_paket
+            - kategori_tahun_anggaran
+            - status (0 belum download, 1 oke)
+        :param filename: Database Filename
+        :return: SQLite database object
+        """
+        db_filename = filename.name + ".idx"
+        db_file = Path.cwd() / db_filename
+        logging.debug("Generate index database: {}".format(db_file.name))
+        db = sqlite3.connect(db_file)
+        logging.debug("Create index table")
+
+        try:
+            db.execute("DROP TABLE IF EXISTS INDEX_PAKET")
+            db.execute("""CREATE TABLE INDEX_PAKET
+            (
+            ROW_ID varchar(100) unique primary key,
+            ID_PAKET VARCHAR(50),
+            JENIS_PAKET VARCHAR(32),
+            KATEGORI_TAHUN_ANGGARAN varchar (100),
+            STATUS int default 0
+            );""")
+            db.execute("CREATE INDEX INDEX_PAKET_KATEGORI_TAHUN_ANGGARAN_IDX ON INDEX_PAKET(KATEGORI_TAHUN_ANGGARAN);")
+            db.execute("CREATE INDEX INDEX_PAKET_ID_PAKET_IDX ON INDEX_PAKET(ID_PAKET);")
+            db.execute("CREATE INDEX INDEX_PAKET_JENIS_PAKET ON INDEX_PAKET(JENIS_PAKET);")
+            db.execute("CREATE INDEX INDEX_PAKET_STATUS_IDX ON INDEX_PAKET(STATUS);")
+        except sqlite3.OperationalError as e:
+            if 'INDEX_PAKET already exists' in str(e):
+                pass
+            else:
+                raise e
+
+        db.commit()
+
+        return db
 
     def get_jenis_paket(self):
         if self.ctx.non_tender:
@@ -180,15 +223,22 @@ class IndexDownloader(object):
             logging.debug("Starting batch {} for host {}".format(batch, self.lpse_host.url))
             data = self.lpse.get_paket(jenis_paket=self.get_jenis_paket(), start=batch*self.ctx.chunk_size,
                                        length=self.ctx.chunk_size, kategori=self.ctx.kategori,
-                                       search_keyword=self.ctx.keyword, nama_penyedia=self.ctx.nama_penyedia)
-
-            logging.debug(data)
-            logging.debug("writing batch {} for host {} to {}".format(batch, self.lpse_host.url, self.lpse_host.filename))
-            with open(self.lpse_host.filename, 'a') as f:
-                f.write(str(data))
-                f.write('\n')
+                                       search_keyword=self.ctx.keyword, nama_penyedia=self.ctx.nama_penyedia,
+                                       data_only=True)
+            self.db.executemany("INSERT OR IGNORE INTO INDEX_PAKET VALUES(?, ?, ?, ?, ?)", self.convert_index_for_db(data))
+            self.db.commit()
 
             sleep(self.ctx.index_download_delay)
+
+    def convert_index_for_db(self, data):
+        for row in data:
+            yield [
+                '{}-{}'.format('nontender' if self.ctx.non_tender else 'tender', row[0]),
+                row[0],
+                'nontender' if self.ctx.non_tender else 'tender',
+                row[8],
+                0
+            ]
 
     def resume(self):
         pass

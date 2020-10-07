@@ -134,6 +134,15 @@ class DownloaderTest(unittest.TestCase):
             self.assertTrue(type(total), int)
 
     def test_download_index(self):
+        from pathlib import Path
+        import sqlite3
         downloader = Downloader()
         downloader.get_ctx("--log=DEBUG http://lpse.kepahiangkab.go.id".split())
         downloader.download_index()
+
+        db_file = Path.cwd() / 'http_lpse_kepahiangkab_go_id.csv.idx'
+        self.assertTrue(db_file.is_file())
+
+        db = sqlite3.connect(db_file)
+        result = db.execute("SELECT COUNT(1) FROM INDEX_PAKET").fetchone()[0]
+        self.assertTrue(result > 0)
