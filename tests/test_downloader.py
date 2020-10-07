@@ -130,5 +130,6 @@ class DownloaderTest(unittest.TestCase):
 
         for lpse_host in downloader.ctx.lpse_host:
             lpse = Lpse(lpse_host.url)
-            total = downloader.get_total_package(lpse)
+            index_downloader = IndexDownloader(downloader.ctx, lpse)
+            total = index_downloader.get_total_package()
             self.assertTrue(type(total), int)

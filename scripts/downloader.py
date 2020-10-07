@@ -147,6 +147,24 @@ class DownloaderContext(object):
         return str(self.__dict__)
 
 
+class IndexDownloader(object):
+
+    def __init__(self, ctx, lpse):
+        self.ctx = ctx
+        self.lpse = lpse
+
+    def get_total_package(self):
+        if self.ctx.non_tender:
+            jenis_paket = 'pl'
+        else:
+            jenis_paket = 'lelang'
+
+        data = self.lpse.get_paket(jenis_paket=jenis_paket, kategori=self.ctx.kategori,
+                                   nama_penyedia=self.ctx.nama_penyedia, search_keyword=self.ctx.keyword)
+
+        logging.debug("Jumlah record {}".format(str(data)))
+        return data['recordsTotal']
+
 class Downloader(object):
 
     ctx = None
@@ -207,22 +225,9 @@ class Downloader(object):
 
         return self.ctx
 
-    def get_total_package(self, lpse):
-        if self.ctx.non_tender:
-            jenis_paket = 'pl'
-        else:
-            jenis_paket = 'lelang'
-
-        data = lpse.get_paket(jenis_paket=jenis_paket, kategori=self.ctx.kategori, nama_penyedia=self.ctx.nama_penyedia,
-                              search_keyword=self.ctx.keyword)
-
-        logging.debug("Jumlah record {}".format(str(data)))
-        return data['recordsTotal']
-
     def download_index(self):
         for lpse_host in self.ctx.lpse_host:
             lpse = Lpse(lpse_host.url, info=False, skip_spse_check=True)
-
 
 
 if __name__ == '__main__':
