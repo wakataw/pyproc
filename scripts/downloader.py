@@ -1,7 +1,10 @@
 import argparse
 import re
 import logging
-from . import text
+import sqlite3
+from time import sleep
+from pyproc import Lpse
+from scripts import text
 from datetime import datetime
 from pathlib import Path
 
@@ -64,6 +67,8 @@ class DownloaderContext(object):
     def __init__(self, args):
         self.keyword = args.keyword
         self.tahun_anggaran = self.parse_tahun_anggaran(args.tahun_anggaran)
+        self.kategori = args.kategori
+        self.nama_penyedia = args.nama_penyedia
         self.chunk_size = args.chunk_size
         self.workers = args.workers
         self.timeout = args.timeout
@@ -120,7 +125,7 @@ class DownloaderContext(object):
             yield LpseHost(line)
 
     @property
-    def lpse_host(self):
+    def lpse_host_list(self):
         """
         Parse argument host, asumsi awal nilai yang diberikan oleh user adalah nama file. Jika file tidak ditemukan,
         nilai tersebut dianggap sebagai host name dari aplikasi SPSE instansi.
@@ -143,7 +148,105 @@ class DownloaderContext(object):
         return str(self.__dict__)
 
 
+class IndexDownloader(object):
+
+    def __init__(self, ctx, lpse_host):
+        self.ctx = ctx
+        self.lpse_host = lpse_host
+        self.lpse = Lpse(lpse_host.url)
+        self.db = self.get_index_db(self.lpse_host.filename)
+
+    def get_index_db(self, filename):
+        """
+        Generate index database and table
+        table columns:
+            - data_id, concat(jenis, idpaket).
+            - nama_instansi
+            - jenis_paket
+            - kategori_tahun_anggaran
+            - status (0 belum download, 1 oke)
+        :param filename: Database Filename
+        :return: SQLite database object
+        """
+        db_filename = filename.name + ".idx"
+        db_file = Path.cwd() / db_filename
+        logging.debug("Generate index database: {}".format(db_file.name))
+        db = sqlite3.connect(db_file)
+        logging.debug("Create index table")
+
+        try:
+            db.execute("DROP TABLE IF EXISTS INDEX_PAKET")
+            db.execute("""CREATE TABLE INDEX_PAKET
+            (
+            ROW_ID varchar(100) unique primary key,
+            ID_PAKET VARCHAR(50),
+            JENIS_PAKET VARCHAR(32),
+            KATEGORI_TAHUN_ANGGARAN varchar (100),
+            STATUS int default 0
+            );""")
+            db.execute("CREATE INDEX INDEX_PAKET_KATEGORI_TAHUN_ANGGARAN_IDX ON INDEX_PAKET(KATEGORI_TAHUN_ANGGARAN);")
+            db.execute("CREATE INDEX INDEX_PAKET_ID_PAKET_IDX ON INDEX_PAKET(ID_PAKET);")
+            db.execute("CREATE INDEX INDEX_PAKET_JENIS_PAKET ON INDEX_PAKET(JENIS_PAKET);")
+            db.execute("CREATE INDEX INDEX_PAKET_STATUS_IDX ON INDEX_PAKET(STATUS);")
+        except sqlite3.OperationalError as e:
+            if 'INDEX_PAKET already exists' in str(e):
+                pass
+            else:
+                raise e
+
+        db.commit()
+
+        return db
+
+    def get_jenis_paket(self):
+        if self.ctx.non_tender:
+            jenis_paket = 'pl'
+        else:
+            jenis_paket = 'lelang'
+
+        return jenis_paket
+
+    def get_total_package(self):
+        jenis_paket = self.get_jenis_paket()
+
+        data = self.lpse.get_paket(jenis_paket=jenis_paket, kategori=self.ctx.kategori,
+                                   nama_penyedia=self.ctx.nama_penyedia, search_keyword=self.ctx.keyword)
+
+        logging.debug("Jumlah record {}".format(str(data)))
+        return data['recordsTotal']
+
+    def start(self):
+        total = self.get_total_package()
+        batch_total = -(-total//self.ctx.chunk_size)
+
+        for batch in range(batch_total):
+            logging.debug("Starting batch {} for host {}".format(batch, self.lpse_host.url))
+            data = self.lpse.get_paket(jenis_paket=self.get_jenis_paket(), start=batch*self.ctx.chunk_size,
+                                       length=self.ctx.chunk_size, kategori=self.ctx.kategori,
+                                       search_keyword=self.ctx.keyword, nama_penyedia=self.ctx.nama_penyedia,
+                                       data_only=True)
+            self.db.executemany("INSERT OR IGNORE INTO INDEX_PAKET VALUES(?, ?, ?, ?, ?)", self.convert_index_for_db(data))
+            self.db.commit()
+
+            sleep(self.ctx.index_download_delay)
+
+    def convert_index_for_db(self, data):
+        for row in data:
+            yield [
+                '{}-{}'.format('nontender' if self.ctx.non_tender else 'tender', row[0]),
+                row[0],
+                'nontender' if self.ctx.non_tender else 'tender',
+                row[8],
+                0
+            ]
+
+    def resume(self):
+        pass
+
+
 class Downloader(object):
+
+    ctx = None
 
     def __init__(self):
         print(text.INFO)
@@ -155,6 +258,8 @@ class Downloader(object):
         -k, --keyword               : filter pencarian index paket berdasarkan kata kunci
         -t, --tahun-anggaran        : filter download detail berdasarkan tahun anggaran,
                                       format X-Y atau X;Y;Z
+        --kategori                  : filter pencarian index paket berdasarkan kategori
+        --nama-penyedia             : filter pencarian index paket berdasarkan nama penyedia
         -c, --chunk-size            : jumlah index per-halaman yang diunduh dalam satu iterasi
         -w, --workers               : jumlah workers yang berjalan secara paralel untuk mengunduh detail paket
         -x, --timeout               : waktu timeout respon dari server dalam detik
@@ -173,6 +278,11 @@ class Downloader(object):
         parser.add_argument('-k', '--keyword', type=str, default="", help=text.HELP_KEYWORD)
         parser.add_argument('-t', '--tahun-anggaran', type=str, default="{}".format(datetime.now().year),
                             help=text.HELP_TAHUN_ANGGARAN)
+        parser.add_argument('--kategori',
+                            choices=['PENGADAAN_BARANG', 'PEKERJAAN_KONSTRUKSI', 'KONSULTANSI', 'KONSULTANSI_PERORANGAN'
+                                     'JASA_LAINNYA', None],
+                            help=text.HELP_KATEGORI, default=None)
+        parser.add_argument('--nama-penyedia', type=str, default=None, help=text.HELP_PENYEDIA)
         parser.add_argument('-c', '--chunk-size', type=int, default=100, help=text.HELP_CHUNK_SIZE)
         parser.add_argument('-w', '--workers', type=int, default=8, help=text.HELP_WORKERS)
         parser.add_argument('-x', '--timeout', type=int, default=30, help=text.HELP_TIMEOUT)
@@ -189,4 +299,19 @@ class Downloader(object):
         set_up_log(args.log)
 
         logging.debug('Parsing context')
-        return DownloaderContext(args)
+
+        self.ctx = DownloaderContext(args)
+
+        return self.ctx
+
+    def download_index(self):
+        for lpse_host in self.ctx.lpse_host_list:
+            index_downloader = IndexDownloader(self.ctx, lpse_host)
+            index_downloader.start()
+
+
+if __name__ == '__main__':
+    import sys
+
+    downloader = Downloader()
+    downloader.get_ctx(sys.argv[1:])

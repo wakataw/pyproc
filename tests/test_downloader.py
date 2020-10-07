@@ -7,11 +7,23 @@ class DownloaderTest(unittest.TestCase):
         downloader = Downloader()
         ctx = downloader.get_ctx("--keyword WKWK --tahun-anggaran 2020 --chunk-size 1000 --workers 999 --timeout 99 "
                                  "--non-tender --index-download-delay 5 --keep-workdir --force --clear "
+                                 "--kategori PEKERJAAN_KONSTRUKSI --nama-penyedia HAHA "
                                  "https://lpse.sumbarprov.go.id".split(' '))
-        expected_condition = {'keyword': 'WKWK', 'tahun_anggaran': [2020], 'chunk_size': 1000, 'workers': 999,
-                              'timeout': 99, 'non_tender': True, 'index_download_delay': 5, 'keep_workdir': True,
-                              'force': True, 'clear': True,
-                              '_DownloaderContext__lpse_host': 'https://lpse.sumbarprov.go.id'}
+        expected_condition = {
+            '_DownloaderContext__lpse_host': 'https://lpse.sumbarprov.go.id',
+            'chunk_size': 1000,
+            'clear': True,
+            'force': True,
+            'index_download_delay': 5,
+            'kategori': "PEKERJAAN_KONSTRUKSI",
+            'keep_workdir': True,
+            'keyword': 'WKWK',
+            'nama_penyedia': "HAHA",
+            'non_tender': True,
+            'tahun_anggaran': [2020],
+            'timeout': 99,
+            'workers': 999
+        }
         self.assertEqual(ctx.__dict__, expected_condition)
 
     def test_tahun_anggaran_parser_single_tahun(self):
@@ -48,7 +60,7 @@ class DownloaderTest(unittest.TestCase):
         downloader = Downloader()
         ctx = downloader.get_ctx("--log=DEBUG http://lpse.sumbarprov.go.id".split(' '))
 
-        for i in ctx.lpse_host:
+        for i in ctx.lpse_host_list:
             self.assertTrue(i.is_valid)
             self.assertIsNone(i.error)
             self.assertEqual('http://lpse.sumbarprov.go.id', i.url)
@@ -60,7 +72,7 @@ class DownloaderTest(unittest.TestCase):
         urls = ['http://lpse.sumbarprov.go.id', 'https://lpse.bengkuluprov.go.id']
         filename = ['http_lpse_sumbarprov_go_id.csv', 'https_lpse_bengkuluprov_go_id.csv']
 
-        for i in ctx.lpse_host:
+        for i in ctx.lpse_host_list:
             self.assertTrue(i.is_valid)
             self.assertIsNone(i.error)
             self.assertTrue(i.url in urls and i.filename.name in filename)
@@ -69,7 +81,7 @@ class DownloaderTest(unittest.TestCase):
         downloader = Downloader()
         ctx = downloader.get_ctx("--log=DEBUG http://lpse.sumbarprov.go.id;hasil-sumbarprov.csv".split(' '))
 
-        for i in ctx.lpse_host:
+        for i in ctx.lpse_host_list:
             self.assertTrue(i.is_valid)
             self.assertIsNone(i.error)
             self.assertEqual('http://lpse.sumbarprov.go.id', i.url)
@@ -81,7 +93,7 @@ class DownloaderTest(unittest.TestCase):
         urls = ['http://lpse.sumbarprov.go.id', 'https://lpse.bengkuluprov.go.id']
         filename = ['sumbar.csv', 'bengkulu.csv']
 
-        for i in ctx.lpse_host:
+        for i in ctx.lpse_host_list:
             self.assertTrue(i.is_valid)
             self.assertIsNone(i.error)
             self.assertTrue(i.url in urls and i.filename.name in filename)
@@ -92,7 +104,7 @@ class DownloaderTest(unittest.TestCase):
         urls = ['http://lpse.sumbarprov.go.id', 'http://lpse.bengkuluprov.go.id']
         filename = ['http_lpse_sumbarprov_go_id.csv', 'http_lpse_bengkuluprov_go_id.csv']
 
-        for i in ctx.lpse_host:
+        for i in ctx.lpse_host_list:
             self.assertTrue(i.is_valid)
             self.assertIsNone(i.error)
             self.assertTrue(i.url in urls and i.filename.name in filename)
@@ -103,7 +115,34 @@ class DownloaderTest(unittest.TestCase):
         urls = ['http://lpse.sumbarprov.go.id', 'http://lpse.bengkuluprov.go.id']
         filename = ['sumbar.csv', 'bengkulu.csv']
 
-        for i in ctx.lpse_host:
+        for i in ctx.lpse_host_list:
             self.assertTrue(i.is_valid)
             self.assertIsNone(i.error)
             self.assertTrue(i.url in urls and i.filename.name in filename)
+
+    def test_kategori_not_in_choices(self):
+        downloader = Downloader()
+        self.assertRaises(SystemExit, downloader.get_ctx, "--kategori HOHO http://lpse.sumbarprov.go.id".split())
+
+    def test_get_records_total(self):
+        downloader = Downloader()
+        downloader.get_ctx("--log=DEBUG --kategori PEKERJAAN_KONSTRUKSI http://lpse.sumbarprov.go.id/eproc4,http://lpse.bengkuluprov.go.id".split())
+
+        for lpse_host in downloader.ctx.lpse_host_list:
+            index_downloader = IndexDownloader(downloader.ctx, lpse_host)
+            total = index_downloader.get_total_package()
+            self.assertTrue(type(total), int)
+
+    def test_download_index(self):
+        from pathlib import Path
+        import sqlite3
+        downloader = Downloader()
+        downloader.get_ctx("--log=DEBUG http://lpse.kepahiangkab.go.id".split())
+        downloader.download_index()
+
+        db_file = Path.cwd() / 'http_lpse_kepahiangkab_go_id.csv.idx'
+        self.assertTrue(db_file.is_file())
+
+        db = sqlite3.connect(db_file)
+        result = db.execute("SELECT COUNT(1) FROM INDEX_PAKET").fetchone()[0]
+        self.assertTrue(result > 0)

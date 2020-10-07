@@ -28,6 +28,8 @@ HELP_FORCE = "menjalankan program tanpa memperhatikan cache yang sudah ada sebel
 HELP_CLEAR = "membersihkan folder cache di direktori home"
 HELP_LPSE_HOST = "host LPSE atau file teks berisi daftar host LPSE. Format dapat dilihat di dokumentasi"
 HELP_LOG_LEVEL = "Set log level"
+HELP_KATEGORI = "filter pencarian index paket berdasarkan kategori"
+HELP_PENYEDIA = "filter pencarian index paket berdasarkan nama penyedia"
 
 #####################
 # Error Information #
