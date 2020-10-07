@@ -149,9 +149,10 @@ class DownloaderContext(object):
 
 class IndexDownloader(object):
 
-    def __init__(self, ctx, lpse):
+    def __init__(self, ctx, lpse_host):
         self.ctx = ctx
-        self.lpse = lpse
+        self.lpse_host = lpse_host
+        self.lpse = Lpse(lpse_host.url, info=False, skip_spse_check=True)
 
     def get_total_package(self):
         if self.ctx.non_tender:
@@ -164,6 +165,13 @@ class IndexDownloader(object):
 
         logging.debug("Jumlah record {}".format(str(data)))
         return data['recordsTotal']
+
+    def start(self):
+        pass
+
+    def resume(self):
+        pass
+
 
 class Downloader(object):
 
@@ -227,7 +235,8 @@ class Downloader(object):
 
     def download_index(self):
         for lpse_host in self.ctx.lpse_host:
-            lpse = Lpse(lpse_host.url, info=False, skip_spse_check=True)
+            index_downloader = IndexDownloader(self.ctx, lpse_host)
+            index_downloader.start()
 
 
 if __name__ == '__main__':
