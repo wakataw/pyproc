@@ -148,6 +148,19 @@ class DownloaderContext(object):
         return str(self.__dict__)
 
 
+class LpseIndex():
+
+    def __init__(self, kwargs):
+        self.row_id = kwargs['row_id']
+        self.id_paket = kwargs['id_paket']
+        self.jenis_paket = kwargs['jenis_paket']
+        self.kategori_tahun_anggaran = kwargs['kategori_tahun_anggaran']
+        self.status = kwargs['status']
+
+    def __str__(self):
+        return str(self.__dict__)
+
+
 class IndexDownloader(object):
 
     def __init__(self, ctx, lpse_host):
@@ -155,6 +168,7 @@ class IndexDownloader(object):
         self.lpse_host = lpse_host
         self.lpse = Lpse(lpse_host.url)
         self.db = self.get_index_db(self.lpse_host.filename)
+        self.db.row_factory = self.index_factory
 
     def get_index_db(self, filename):
         """
@@ -258,6 +272,22 @@ class IndexDownloader(object):
                 0
             ]
 
+    @staticmethod
+    def index_factory(cursor, row):
+        d = {}
+        for idx, col in enumerate(cursor.description):
+            d[col[0].lower()] = row[idx]
+
+        return LpseIndex(d)
+
+    def get_index(self):
+        logging.debug("[SQL] get index from database")
+        result = self.db.execute("SELECT * FROM INDEX_PAKET")
+
+        for row in result.fetchall():
+            logging.debug("row data {}".format(row))
+            yield row
+
     def resume(self):
         """
         Fungsi untuk melanjutkan proses pengunduhan index berdasarkan kondisi terakhir
@@ -273,6 +303,8 @@ class IndexDownloader(object):
         if self.db:
             self.db.close()
             del self.db
+
+        del self.lpse
 
 
 class DetailDownloader(object):
@@ -348,6 +380,7 @@ class Downloader(object):
         for lpse_host in self.ctx.lpse_host_list:
             index_downloader = IndexDownloader(self.ctx, lpse_host)
             index_downloader.start()
+            del index_downloader
 
 
 if __name__ == '__main__':
