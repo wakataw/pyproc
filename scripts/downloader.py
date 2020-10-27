@@ -149,6 +149,7 @@ class DownloaderContext(object):
 
 
 class LpseIndex():
+    """Lpse Index object"""
 
     def __init__(self, kwargs):
         self.row_id = kwargs['row_id']
