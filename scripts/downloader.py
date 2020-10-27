@@ -199,6 +199,10 @@ class IndexDownloader(object):
         return db
 
     def get_jenis_paket(self):
+        """
+        Wrapper variable jenis paket
+        :return:
+        """
         if self.ctx.non_tender:
             jenis_paket = 'pl'
         else:
@@ -207,6 +211,10 @@ class IndexDownloader(object):
         return jenis_paket
 
     def get_total_package(self):
+        """
+        Fungsi untuk mendapatkan total data dengan melakukan requests dengan length 0 data
+        :return: Integer jumlah data
+        """
         jenis_paket = self.get_jenis_paket()
 
         data = self.lpse.get_paket(jenis_paket=jenis_paket, kategori=self.ctx.kategori,
@@ -216,6 +224,10 @@ class IndexDownloader(object):
         return data['recordsTotal']
 
     def start(self):
+        """
+        Start index downloader
+        :return:
+        """
         total = self.get_total_package()
         batch_total = -(-total//self.ctx.chunk_size)
 
@@ -225,12 +237,18 @@ class IndexDownloader(object):
                                        length=self.ctx.chunk_size, kategori=self.ctx.kategori,
                                        search_keyword=self.ctx.keyword, nama_penyedia=self.ctx.nama_penyedia,
                                        data_only=True)
-            self.db.executemany("INSERT OR IGNORE INTO INDEX_PAKET VALUES(?, ?, ?, ?, ?)", self.convert_index_for_db(data))
+            self.db.executemany("INSERT OR IGNORE INTO INDEX_PAKET VALUES(?, ?, ?, ?, ?)",
+                                self.convert_index_for_db(data))
             self.db.commit()
 
             sleep(self.ctx.index_download_delay)
 
     def convert_index_for_db(self, data):
+        """
+        Fungsi untuk menyesuaikan format index dari aplikasi spse ke database
+        :param data:
+        :return:
+        """
         for row in data:
             yield [
                 '{}-{}'.format('nontender' if self.ctx.non_tender else 'tender', row[0]),
@@ -241,9 +259,17 @@ class IndexDownloader(object):
             ]
 
     def resume(self):
+        """
+        Fungsi untuk melanjutkan proses pengunduhan index berdasarkan kondisi terakhir
+        :return:
+        """
         pass
 
     def __del__(self):
+        """
+        Make sure everything is closed when object is garbage collected
+        :return:
+        """
         if self.db:
             self.db.close()
             del self.db
