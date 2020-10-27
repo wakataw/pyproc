@@ -275,6 +275,15 @@ class IndexDownloader(object):
             del self.db
 
 
+class DetailDownloader(object):
+
+    def __init__(self, index_downloader):
+        self.index_downloader = index_downloader
+
+    def start(self):
+        pass
+
+
 class Downloader(object):
 
     ctx = None
