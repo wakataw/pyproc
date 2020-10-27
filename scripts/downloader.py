@@ -243,6 +243,11 @@ class IndexDownloader(object):
     def resume(self):
         pass
 
+    def __del__(self):
+        if self.db:
+            self.db.close()
+            del self.db
+
 
 class Downloader(object):
 
