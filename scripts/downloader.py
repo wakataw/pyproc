@@ -2,6 +2,8 @@ import argparse
 import re
 import logging
 import sqlite3
+import threading
+from queue import Queue
 from time import sleep
 from pyproc import Lpse
 from scripts import text
@@ -164,7 +166,7 @@ class LpseIndex():
 class IndexDownloader(object):
 
     def __init__(self, ctx, lpse_host):
-        self.ctx = ctx
+        self.ctx: DownloaderContext = ctx
         self.lpse_host = lpse_host
         self.lpse = Lpse(lpse_host.url)
         self.db = self.get_index_db(self.lpse_host.filename)
@@ -309,8 +311,33 @@ class IndexDownloader(object):
 
 class DetailDownloader(object):
 
-    def __init__(self, index_downloader):
+    def __init__(self, index_downloader: IndexDownloader):
         self.index_downloader = index_downloader
+        self.detail_queue = Queue()
+        self.lock = threading.Lock()
+
+    def detail_worker(self):
+        """
+        Read detail from self.detail_queue and write result to database
+        :return:
+        """
+
+    def get_detail(self, package_id):
+        """
+        Get detail paket berdasarkan paket ID
+        :param package_id:
+        :return:
+        """
+        if self.index_downloader.ctx.non_tender:
+            package_detail = self.index_downloader.lpse.detil_paket_non_tender(package_id)
+        else:
+            package_detail = self.index_downloader.lpse.detil_paket_tender(package_id)
+
+        package_detail.get_pengumuman()
+        package_detail.get_jadwal()
+        package_detail.get_hasil_evaluasi()
+
+        self.detail_queue.put(package_detail)
 
     def start(self):
         pass
