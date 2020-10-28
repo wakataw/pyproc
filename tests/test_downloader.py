@@ -158,3 +158,14 @@ class DownloaderTest(unittest.TestCase):
 
             for index in index_downloader.get_index():
                 self.assertIsInstance(index, LpseIndex)
+
+    def test_detail_downloader(self):
+        downloader = Downloader()
+        downloader.get_ctx("--log=DEBUG http://lpse.kepahiangkab.go.id".split())
+
+        for lpse_host in downloader.ctx.lpse_host_list:
+            index_downloader = IndexDownloader(downloader.ctx, lpse_host)
+            index_downloader.start()
+
+            detail_downloader = DetailDownloader(index_downloader)
+            detail_downloader.start()

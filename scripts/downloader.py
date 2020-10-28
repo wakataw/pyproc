@@ -1,9 +1,9 @@
 import argparse
+import json
 import re
 import logging
 import sqlite3
 import threading
-from queue import Queue
 from time import sleep
 from pyproc import Lpse
 from scripts import text
@@ -158,12 +158,15 @@ class LpseIndex():
         self.jenis_paket = kwargs['jenis_paket']
         self.kategori_tahun_anggaran = kwargs['kategori_tahun_anggaran']
         self.status = kwargs['status']
+        self.detail = kwargs['detail']
 
     def __str__(self):
         return str(self.__dict__)
 
 
 class IndexDownloader(object):
+
+    __tahun_anggaran_pattern = re.compile('(\d+)')
 
     def __init__(self, ctx, lpse_host):
         self.ctx: DownloaderContext = ctx
@@ -187,7 +190,7 @@ class IndexDownloader(object):
         db_filename = filename.name + ".idx"
         db_file = Path.cwd() / db_filename
         logging.debug("Generate index database: {}".format(db_file.name))
-        db = sqlite3.connect(db_file)
+        db = sqlite3.connect(db_file, check_same_thread=False)
         logging.debug("Create index table")
 
         try:
@@ -198,7 +201,8 @@ class IndexDownloader(object):
             ID_PAKET VARCHAR(50),
             JENIS_PAKET VARCHAR(32),
             KATEGORI_TAHUN_ANGGARAN varchar (100),
-            STATUS int default 0
+            STATUS int default 0,
+            DETAIL text
             );""")
             db.execute("CREATE INDEX INDEX_PAKET_KATEGORI_TAHUN_ANGGARAN_IDX ON INDEX_PAKET(KATEGORI_TAHUN_ANGGARAN);")
             db.execute("CREATE INDEX INDEX_PAKET_ID_PAKET_IDX ON INDEX_PAKET(ID_PAKET);")
@@ -253,7 +257,7 @@ class IndexDownloader(object):
                                        length=self.ctx.chunk_size, kategori=self.ctx.kategori,
                                        search_keyword=self.ctx.keyword, nama_penyedia=self.ctx.nama_penyedia,
                                        data_only=True)
-            self.db.executemany("INSERT OR IGNORE INTO INDEX_PAKET VALUES(?, ?, ?, ?, ?)",
+            self.db.executemany("INSERT OR IGNORE INTO INDEX_PAKET VALUES(?, ?, ?, ?, ?, ?)",
                                 self.convert_index_for_db(data))
             self.db.commit()
 
@@ -271,7 +275,8 @@ class IndexDownloader(object):
                 row[0],
                 'nontender' if self.ctx.non_tender else 'tender',
                 row[8],
-                0
+                0,
+                None # detail paket kosong
             ]
 
     @staticmethod
@@ -284,9 +289,13 @@ class IndexDownloader(object):
 
     def get_index(self):
         logging.debug("[SQL] get index from database")
-        result = self.db.execute("SELECT * FROM INDEX_PAKET")
+        result = self.db.execute("SELECT * FROM INDEX_PAKET WHERE STATUS = 0")
 
         for row in result.fetchall():
+            tahun_anggaran = map(int, self.__tahun_anggaran_pattern.findall(row.kategori_tahun_anggaran))
+            if not tahun_anggaran or not set(tahun_anggaran).intersection(set(self.ctx.tahun_anggaran)):
+                continue
+
             logging.debug("row data {}".format(row))
             yield row
 
@@ -312,35 +321,71 @@ class IndexDownloader(object):
 class DetailDownloader(object):
 
     def __init__(self, index_downloader: IndexDownloader):
+        logging.debug("initialize detail downloader object")
         self.index_downloader = index_downloader
-        self.detail_queue = Queue()
         self.lock = threading.Lock()
 
-    def detail_worker(self):
-        """
-        Read detail from self.detail_queue and write result to database
-        :return:
-        """
-
-    def get_detail(self, package_id):
+    def get_detail(self, lpse_index):
         """
         Get detail paket berdasarkan paket ID
         :param package_id:
         :return:
         """
+        logging.debug("[DETAIL DOWNLOADER] download detail for {}".format(lpse_index))
         if self.index_downloader.ctx.non_tender:
-            package_detail = self.index_downloader.lpse.detil_paket_non_tender(package_id)
+            package_detail = self.index_downloader.lpse.detil_paket_non_tender(lpse_index.id_paket)
         else:
-            package_detail = self.index_downloader.lpse.detil_paket_tender(package_id)
+            package_detail = self.index_downloader.lpse.detil_paket_tender(lpse_index.id_paket)
 
         package_detail.get_pengumuman()
         package_detail.get_jadwal()
         package_detail.get_hasil_evaluasi()
+        lpse_index.detail = package_detail
 
-        self.detail_queue.put(package_detail)
+        logging.debug("[DETAIL DOWNLOADER] update database detail data")
+        self.update_detail(lpse_index)
+
+    def update_detail(self, lpse_index):
+        with self.lock:
+            logging.debug("[DETAIL DOWNLOADER] update detail data {}".format(lpse_index))
+            self.index_downloader.db.execute(
+                "UPDATE INDEX_PAKET SET DETAIL = ?, STATUS = 1 WHERE ROW_ID = ?",
+                (json.dumps(lpse_index.detail.todict()), lpse_index.row_id)
+            )
+            self.index_downloader.db.commit()
 
     def start(self):
-        pass
+        index_generator = self.index_downloader.get_index()
+        while True:
+            lpse_index = []
+
+            for i in range(self.index_downloader.ctx.workers):
+                try:
+                    lpse_index.append(index_generator.__next__())
+                except StopIteration:
+                    pass
+
+            logging.debug("[DETAIL DOWNLOADER] starting batch for {}".format(lpse_index))
+
+            threads = []
+            for i, index in enumerate(lpse_index):
+                t = threading.Thread(target=self.get_detail, args=(index,), name='detail-thread-{}'.format(i))
+                t.start()
+                logging.debug("[DETAIL DOWNLOADER] {} started".format(t.name))
+                threads.append(t)
+
+            for t in threads:
+                logging.debug("[DETAIL DOWNLOADER] thread {} join".format(t.name))
+                t.join()
+
+            for t in threads:
+                logging.debug("[DETAIL DOWNLOADER] thread {} deleted".format(t.name))
+                del t
+
+            del threads
+
+            if len(lpse_index) != self.index_downloader.ctx.workers:
+                break
 
 
 class Downloader(object):
