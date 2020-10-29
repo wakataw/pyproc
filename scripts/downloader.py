@@ -448,15 +448,25 @@ class Downloader(object):
 
         return self.ctx
 
-    def download_index(self):
+    def start(self):
         for lpse_host in self.ctx.lpse_host_list:
             index_downloader = IndexDownloader(self.ctx, lpse_host)
             index_downloader.start()
+
+            detail_downloader = DetailDownloader(index_downloader)
+            detail_downloader.start()
+
             del index_downloader
+            del detail_downloader
 
 
-if __name__ == '__main__':
+def main():
     import sys
 
     downloader = Downloader()
     downloader.get_ctx(sys.argv[1:])
+    downloader.start()
+
+
+if __name__ == '__main__':
+    main()
