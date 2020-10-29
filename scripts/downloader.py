@@ -79,6 +79,7 @@ class DownloaderContext(object):
         self.keep_workdir = args.keep_workdir
         self.force = args.force
         self.clear = args.clear
+        self.log_level = args.log
         self.__lpse_host = args.lpse_host
 
     def parse_tahun_anggaran(self, tahun_anggaran):
@@ -173,7 +174,11 @@ class IndexDownloader(object):
         self.lpse_host = lpse_host
         self.lpse = Lpse(lpse_host.url)
         self.db = self.get_index_db(self.lpse_host.filename)
-        self.db.row_factory = self.index_factory
+
+        logging.info("{} - Mulai pengunduhan data {} tahun {}".format(
+            lpse_host.url, "Pengadaan Langsung" if self.ctx.non_tender else "Tender",
+            ', '.join(map(str, self.ctx.tahun_anggaran))
+        ))
 
     def get_index_db(self, filename):
         """
@@ -250,9 +255,9 @@ class IndexDownloader(object):
         """
         total = self.get_total_package()
         batch_total = -(-total//self.ctx.chunk_size)
+        data_count = 0
 
         for batch in range(batch_total):
-            logging.debug("Starting batch {} for host {}".format(batch, self.lpse_host.url))
             data = self.lpse.get_paket(jenis_paket=self.get_jenis_paket(), start=batch*self.ctx.chunk_size,
                                        length=self.ctx.chunk_size, kategori=self.ctx.kategori,
                                        search_keyword=self.ctx.keyword, nama_penyedia=self.ctx.nama_penyedia,
@@ -260,6 +265,20 @@ class IndexDownloader(object):
             self.db.executemany("INSERT OR IGNORE INTO INDEX_PAKET VALUES(?, ?, ?, ?, ?, ?)",
                                 self.convert_index_for_db(data))
             self.db.commit()
+
+            # update data count
+            data_count += len(data)
+            logging.info(
+                "{host} - Indexing batch {batch} dari {total_batch}, "
+                "{data_count}/{data_total} data ({persentase:,.2f}%)".format(
+                    host=self.lpse_host.url,
+                    batch=batch,
+                    total_batch=batch_total,
+                    data_count=data_count,
+                    data_total=total,
+                    persentase=data_count/total*100
+                )
+            )
 
             sleep(self.ctx.index_download_delay)
 
@@ -292,6 +311,7 @@ class IndexDownloader(object):
         result = self.db.execute("SELECT * FROM INDEX_PAKET WHERE STATUS = 0")
 
         for row in result.fetchall():
+            row = self.index_factory(result, row)
             tahun_anggaran = map(int, self.__tahun_anggaran_pattern.findall(row.kategori_tahun_anggaran))
             if not tahun_anggaran or not set(tahun_anggaran).intersection(set(self.ctx.tahun_anggaran)):
                 continue
@@ -321,9 +341,10 @@ class IndexDownloader(object):
 class DetailDownloader(object):
 
     def __init__(self, index_downloader: IndexDownloader):
-        logging.debug("initialize detail downloader object")
         self.index_downloader = index_downloader
         self.lock = threading.Lock()
+
+        logging.info("{} - Mulai pengunduhan detail data".format(self.index_downloader.lpse_host.url))
 
     def get_detail(self, lpse_index):
         """
@@ -356,7 +377,12 @@ class DetailDownloader(object):
 
     def start(self):
         index_generator = self.index_downloader.get_index()
+        total_downloaded = 0
+
         while True:
+            if self.index_downloader.ctx.log_level == 'INFO':
+                print("", end='.', flush=True)
+
             lpse_index = []
 
             for i in range(self.index_downloader.ctx.workers):
@@ -384,9 +410,12 @@ class DetailDownloader(object):
 
             del threads
 
+            total_downloaded += len(lpse_index)
+
             if len(lpse_index) != self.index_downloader.ctx.workers:
                 break
 
+        print("\n{} data berhasil diunduh".format(total_downloaded))
 
 class Downloader(object):
 
