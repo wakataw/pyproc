@@ -139,7 +139,13 @@ class TestPaketTenderRUP(unittest.TestCase):
         lpse = Lpse('https://lpse.kalselprov.go.id')
         detail = lpse.detil_paket_tender('9316181')
         detail.get_pengumuman()
-        print(detail.pengumuman['rencana_umum_pengadaan'])
+        self.assertTrue(len(detail.pengumuman['rencana_umum_pengadaan']) > 1)
+
+    def test_get_rup_empty(self):
+        lpse = Lpse('https://lpse.kalselprov.go.id')
+        detail = lpse.detil_paket_tender('2181')
+        detail.get_pengumuman()
+        self.assertEqual(detail.pengumuman['rencana_umum_pengadaan'], '')
 
 
 class TestPaketNonTender(unittest.TestCase):
@@ -351,46 +357,48 @@ class TestLpsePemenangDoubleTender(unittest.TestCase):
 #     def tearDown(self):
 #         del self.lpse
 
+# test removed, data sepertinya sudah di cleansing oleh pihak lpse
+# class TestNpwpNamaSplitter(unittest.TestCase):
+#
+#     def test_hasil_evaluasi_npwp_nama_split(self):
+#         with open(
+#             os.path.join(
+#                 os.path.dirname(os.path.realpath(__file__)),
+#                 'supporting_files',
+#                 'hasil_evaluasi_nama_npwp_test.txt'
+#             )
+#         ) as f:
+#             f.readline()
+#             csv_reader = csv.reader(f)
+#             total = 0
+#             success = 0
+#
+#             for row in csv_reader:
+#                 status = "ERROR"
+#                 print("{}Test package {} from {} ...".format(" "*4, row[0], row[-1]), end='')
+#
+#                 try:
+#                     lpse = Lpse(row[-1], timeout=60)
+#                     detil = lpse.detil_paket_non_tender(row[0])
+#                     detil.get_hasil_evaluasi()
+#                 except Exception:
+#                     pass
+#                 else:
+#                     pemenang = pyproc.utils.get_pemenang_from_hasil_evaluasi(detil.hasil)
+#                     non_digit = re.findall('[a-zA-Z]+', pemenang[0]['npwp'])
+#
+#                     self.assertEqual([], non_digit)
+#                     status = "OK"
+#                     del lpse
+#
+#                 total += 1
+#                 success = success + (1 if status == "OK" else 0)
+#                 print(status)
+#
+#             print("Success Rate", success/total)
+#             self.assertEqual(True, success/total >= 0.8)
+#
 
-class TestNpwpNamaSplitter(unittest.TestCase):
-
-    def test_hasil_evaluasi_npwp_nama_split(self):
-        with open(
-            os.path.join(
-                os.path.dirname(os.path.realpath(__file__)),
-                'supporting_files',
-                'hasil_evaluasi_nama_npwp_test.txt'
-            )
-        ) as f:
-            f.readline()
-            csv_reader = csv.reader(f)
-            total = 0
-            success = 0
-
-            for row in csv_reader:
-                status = "ERROR"
-                print("{}Test package {} from {} ...".format(" "*4, row[0], row[-1]), end='')
-
-                try:
-                    lpse = Lpse(row[-1], timeout=60)
-                    detil = lpse.detil_paket_non_tender(row[0])
-                    detil.get_hasil_evaluasi()
-                except Exception:
-                    pass
-                else:
-                    pemenang = pyproc.utils.get_pemenang_from_hasil_evaluasi(detil.hasil)
-                    non_digit = re.findall('[a-zA-Z]+', pemenang[0]['npwp'])
-
-                    self.assertEqual([], non_digit)
-                    status = "OK"
-                    del lpse
-
-                total += 1
-                success = success + (1 if status == "OK" else 0)
-                print(status)
-
-            print("Success Rate", success/total)
-            self.assertEqual(True, success/total >= 0.8)
 
 if __name__ == '__main__':
     unittest.main()
