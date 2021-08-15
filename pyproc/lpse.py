@@ -483,7 +483,10 @@ class LpseDetilPengumumanParser(BaseLpseDetilParser):
         for row in raw_data[1:]:
             item = {}
             item.update(zip(header, row))
-            item.pop('')
+            try:
+                item.pop('')
+            except KeyError:
+                pass
             data.append(item)
 
         return data
@@ -500,6 +503,9 @@ class LpseDetilPesertaParser(BaseLpseDetilParser):
         soup = Bs(content, 'html5lib')
         table = soup.find('div', {'class': 'content'})\
             .find('table', {'class': 'table-condensed'})
+
+        if not table:
+            return
 
         raw_data = [[i for i in tr.stripped_strings] for tr in table.find_all('tr')]
 
@@ -707,6 +713,7 @@ class LpseDetilPemenangNonTenderParser(LpseDetilPemenangParser):
 #                 value = self.parse_currency(value)
 #
 #             yield (key, value)
+
 
 class LpseDetilPemenangBerkontrakNonTenderParser(LpseDetilPemenangNonTenderParser):
 
