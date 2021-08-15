@@ -57,21 +57,21 @@ def get_last_downloaded_rows(index_path):
 
     return 0
 
-def download_index(lpse, fetch_size, timeout, non_tender, index_path, index_path_exists, force, delay):
-    lpse.timeout = timeout
+def download_index(base_lpse, fetch_size, timeout, non_tender, index_path, index_path_exists, force, delay):
+    base_lpse.timeout = timeout
 
-    print("url SPSE       :", lpse.host)
-    print("versi SPSE     :", lpse.version)
-    print("last update    :", lpse.last_update)
+    print("url SPSE       :", base_lpse.host)
+    print("versi SPSE     :", base_lpse.version)
+    print("last update    :", base_lpse.last_update)
     print("\nIndexing Data")
 
     if index_path_exists and not force:
         yield "- Menggunakan cache"
     else:
         if non_tender:
-            total_data = lpse.get_paket_non_tender()['recordsTotal']
+            total_data = base_lpse.get_paket_non_tender()['recordsTotal']
         else:
-            total_data = lpse.get_paket_tender()['recordsTotal']
+            total_data = base_lpse.get_paket_tender()['recordsTotal']
 
         batch_size = int(ceil(total_data / fetch_size))
         last_downloaded_rows = get_last_downloaded_rows(index_path)
@@ -85,6 +85,8 @@ def download_index(lpse, fetch_size, timeout, non_tender, index_path, index_path
             writer = csv.writer(index_file, delimiter='|', quoting=csv.QUOTE_ALL)
 
             for page in range(batch_size):
+                # reinitialize lpse object untuk menghindari connection reset
+                lpse = Lpse(base_lpse.host, timeout=base_lpse.timeout, skip_spse_check=base_lpse.skip_spse_check)
 
                 temp_downloaded_row += fetch_size
 
@@ -103,6 +105,10 @@ def download_index(lpse, fetch_size, timeout, non_tender, index_path, index_path
                     set_last_downloaded_rows(index_path, downloaded_row)
 
                     time.sleep(delay)
+
+                # deconstruct lpse object to close all connection
+                del lpse
+                lpse = None
 
                 yield [page+1, batch_size, downloaded_row]
 
