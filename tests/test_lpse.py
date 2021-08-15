@@ -1,24 +1,25 @@
 import unittest
-import re
-import csv
-import os
-import pyproc.utils
 
 from pyproc import Lpse
 from pyproc.exceptions import LpseHostExceptions, LpseServerExceptions
 
 
 class TestLpse(unittest.TestCase):
+    id_tender_selesai = None
+
     def setUp(self):
         self.lpse = Lpse('lpse.jakarta.go.id', timeout=60, skip_spse_check=True)
         self.id_tender_selesai = self.get_id_for_testing()
 
-    def get_id_for_testing(self):
-        paket = self.lpse.get_paket_tender(start=0, length=50)
+    def get_id_for_testing(self, batch=0):
+        paket = self.lpse.get_paket_tender(start=0+batch*50, length=50)
 
         for i in paket['data']:
             if i[3].lower().strip() == 'tender sudah selesai':
                 return i[0]
+
+        if self.id_tender_selesai is None:
+            return self.get_id_for_testing(batch=batch+1)
 
     def test_get_auth_token(self):
         token = self.lpse.get_auth_token()
@@ -112,6 +113,8 @@ class TestLpse(unittest.TestCase):
             self.assertEqual(True, key in jadwal_key)
 
     def test_detil_todict(self):
+        print(self.lpse.host)
+        print(self.id_tender_selesai)
         detil = self.lpse.detil_paket_tender(self.id_tender_selesai)
         detil.get_all_detil()
 
