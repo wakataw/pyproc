@@ -18,6 +18,18 @@ class By(Enum):
     HPS = 4
 
 
+class JenisPengadaan(Enum):
+    """
+    Objek untuk menampung data kodifikasi jenis pengadaan
+    """
+    PENGADAAN_BARANG = 0
+    JASA_KONSULTANSI_BADAN_USAHA_NON_KONSTRUKSI = 1
+    PEKERJAAN_KONSTRUKSI = 2
+    JASA_LAINNYA = 3
+    JASA_KONSULTANSI_PERORANGAN = 4
+    JASA_KONSULTANSI_BADAN_USAHA_KONSTRUKSI = 5
+
+
 class Lpse(object):
 
     def __init__(self, host, timeout=10, info=True, skip_spse_check=False):
@@ -131,18 +143,20 @@ class Lpse(object):
 
     def get_paket(self, jenis_paket, start=0, length=0, data_only=False,
                   kategori=None, search_keyword=None, nama_penyedia=None,
-                  order=By.KODE, ascending=False):
+                  order=By.KODE, tahun=None, ascending=False, instansi_id=None):
         """
         Melakukan pencarian paket pengadaan
         :param jenis_paket: Paket Pengadaan Lelang (lelang) atau Penunjukkan Langsung (pl)
         :param start: index data awal
         :param length: jumlah data yang ditampilkan
         :param data_only: hanya menampilkan data tanpa menampilkan informasi lain
-        :param kategori: kategori pengadaan (lihat di pypro.kategori)
+        :param kategori: kategori pengadaan (lihat di lpse.JenisPengadaan)
         :param search_keyword: keyword pencarian paket pengadaan
         :param nama_penyedia: filter berdasarkan nama penyedia
         :param order: Mengurutkan data berdasarkan kolom
+        :param tahun: Tahun Pengadaan
         :param ascending: Ascending, descending jika diset False
+        :param instansi_id: Filter pencarian berdasarkan instansi atau satker tertentu
         :return: dictionary dari hasil pencarian paket (atau list jika data_only=True)
         """
 
@@ -156,6 +170,7 @@ class Lpse(object):
             'draw': 1,
             'start': start,
             'length': length,
+            'tahun': tahun,
             'search[value]': search_keyword if search_keyword else '',
             'search[regex]': 'false',
             'order[0][column]': order.value,
@@ -177,10 +192,13 @@ class Lpse(object):
             )
 
         if kategori:
-            params.update({'kategori': kategori})
+            params.update({'kategoriId': kategori.value})
 
         if nama_penyedia:
-            params.update({'rkn_nama': nama_penyedia})
+            params.update({'rekanan': nama_penyedia})
+
+        if instansi_id:
+            params.update({'instansiId': instansi_id})
 
         data = self.session.get(
             self.host + '/dt/' + jenis_paket,
@@ -209,7 +227,7 @@ class Lpse(object):
 
     def get_paket_tender(self, start=0, length=0, data_only=False,
                          kategori=None, search_keyword=None, nama_penyedia=None,
-                         order=By.KODE, ascending=False):
+                         order=By.KODE, tahun=None, ascending=False, instansi_id=None):
         """
         Wrapper pencarian paket tender
         :param start: index data awal
@@ -219,14 +237,16 @@ class Lpse(object):
         :param search_keyword: keyword pencarian paket pengadaan
         :param nama_penyedia: filter berdasarkan nama penyedia
         :param order: Mengurutkan data berdasarkan kolom
+        :param tahun: Tahun Pengadaan
         :param ascending: Ascending, descending jika diset False
+        :param instansi_id: Filter pencarian berdasarkan instansi atau satker tertentu
         :return: dictionary dari hasil pencarian paket (atau list jika data_only=True)
         """
         return self.get_paket('lelang', start, length, data_only, kategori, search_keyword, nama_penyedia,
-                              order, ascending)
+                              order, tahun, ascending, instansi_id)
 
-    def get_paket_non_tender(self, start=0, length=0, data_only=False,
-                             kategori=None, search_keyword=None, order=By.KODE, ascending=False):
+    def get_paket_non_tender(self, start=0, length=0, data_only=False, kategori=None, search_keyword=None,
+                             order=By.KODE, tahun=None, ascending=False, instansi_id=None):
         """
         Wrapper pencarian paket non tender
         :param start: index data awal
@@ -236,10 +256,13 @@ class Lpse(object):
         :param search_keyword: keyword pencarian paket pengadaan
         :param nama_penyedia: filter berdasarkan nama penyedia
         :param order: Mengurutkan data berdasarkan kolom
+        :param tahun: Tahun pengadaan
         :param ascending: Ascending, descending jika diset False
+        :param instansi_id: Filter pencarian berdasarkan instansi atau satker tertentu
         :return: dictionary dari hasil pencarian paket (atau list jika data_only=True)
         """
-        return self.get_paket('pl', start, length, data_only, kategori, search_keyword, None, order, ascending)
+        return self.get_paket('pl', start, length, data_only, kategori, search_keyword, None, order, tahun,
+                              ascending, instansi_id)
 
     def detil_paket_tender(self, id_paket):
         """
@@ -413,6 +436,10 @@ class BaseLpseDetilParser(object):
             error_message = "Paket tidak ditemukan"
 
         if not error_message is None:
+            error_message = "{}; {}".format(
+                self.lpse.host+self.detil_path.format(self.id_paket),
+                error_message
+            )
             raise LpseServerExceptions(error_message)
 
     @abstractmethod
