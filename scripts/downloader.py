@@ -1,4 +1,5 @@
 import argparse
+import csv
 import json
 import re
 import logging
@@ -53,7 +54,7 @@ class LpseHost(object):
         try:
             filename = url_and_filename[1]
         except IndexError:
-            filename = '_'.join(re.findall(r'([a-z0-9]+)', url.lower())) + '.csv'
+            filename = '_'.join(re.findall(r'([a-z0-9]+)', url.lower()))
 
         # set host is valid
         self.is_valid = True
@@ -84,6 +85,7 @@ class DownloaderContext(object):
         self.force = args.force
         self.clear = args.clear
         self.log_level = args.log
+        self.output_format = args.output_format
         self.__lpse_host = args.lpse_host
 
     def parse_tahun_anggaran(self, tahun_anggaran):
@@ -162,7 +164,14 @@ class LpseIndex:
         self.jenis_paket = kwargs['jenis_paket']
         self.kategori_tahun_anggaran = kwargs['kategori_tahun_anggaran']
         self.status = kwargs['status']
-        self.detail = kwargs['detail']
+        self.detail = self.parse_detail(kwargs['detail'])
+
+    @staticmethod
+    def parse_detail(detail):
+        try:
+            return json.loads(detail)
+        except TypeError:
+            return {}
 
     def __str__(self):
         return str(self.__dict__)
@@ -429,23 +438,48 @@ class Exporter:
     def __init__(self, index_downloader: IndexDownloader):
         self.index_downloader = index_downloader
 
+    def get_detail(self):
+        logging.info("{} - Export Data".format(self.index_downloader.lpse_host.url))
+        result = self.index_downloader.db.execute("SELECT * from INDEX_PAKET WHERE STATUS = 1")
+        for data in result.fetchall():
+            data = self.index_downloader.index_factory(result, data)
+            yield data.detail
+
+    def get_file_obj(self, ext):
+        filename = self.index_downloader.lpse_host.filename.name + '.' + ext
+        file_obj = Path.cwd() / filename
+
+        return file_obj
+
     def to_csv(self):
         """
         Export detail data ke csv
         :return:
         """
+        with open(self.index_downloader.lpse_host.filename, 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow("")
 
     def to_json(self):
         """
         Export detail data ke format json
         :return:
         """
+        with self.get_file_obj('json').open('w') as f:
+            f.write("[")
+            for item in self.get_detail():
+                f.write(json.dumps(item))
+                f.write(",")
+            f.seek(f.tell() - 1)
+            f.write("]")
 
     def to_excel(self):
         """
         Export detail data ke format excel (xlsx)
         :return:
         """
+        ...
+
 
 class Downloader(object):
 
@@ -491,6 +525,7 @@ class Downloader(object):
         parser.add_argument('-x', '--timeout', type=int, default=30, help=text.HELP_TIMEOUT)
         parser.add_argument('-n', '--non-tender', action='store_true', help=text.HELP_NONTENDER)
         parser.add_argument('-d', '--index-download-delay', type=int, default=1, help=text.HELP_INDEX_DOWNLOAD_DELAY)
+        parser.add_argument('-o', '--output-format', choices=['json', 'csv', 'xlsx'], default='csv')
         parser.add_argument('-f', '--force', action='store_true', help=text.HELP_FORCE)
         parser.add_argument('--clear', action='store_true', help=text.HELP_CLEAR)
         parser.add_argument('--keep-workdir', action='store_true', help=text.HELP_KEEP)
@@ -515,8 +550,18 @@ class Downloader(object):
             detail_downloader = DetailDownloader(index_downloader)
             detail_downloader.start()
 
+            exporter = Exporter(index_downloader)
+
+            if self.ctx.output_format == 'json':
+                exporter.to_json()
+            elif self.ctx.output_format == 'csv':
+                exporter.to_csv()
+            elif self.ctx.output_format == 'xlsx':
+                exporter.to_excel()
+
             del index_downloader
             del detail_downloader
+            del exporter
 
 
 def main():
