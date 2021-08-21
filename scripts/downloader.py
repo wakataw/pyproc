@@ -451,14 +451,45 @@ class Exporter:
 
         return file_obj
 
+    def get_pemenang(self, detil):
+        """
+        Pengambilan data pemenang dari halaman hasil evaluasi
+        :param detil:
+        :return:
+        """
+        field = ['npwp', 'nama_peserta', 'penawaran', 'penawaran_terkoreksi', 'hasil_negosiasi', 'p', 'pk']
+        if detil['hasil']:
+            pemenang_hasil_evaluasi = list(filter(lambda x: x.get('pk') == True or x.get('p') == True, detil['hasil']))
+
+            if pemenang_hasil_evaluasi:
+                p = pemenang_hasil_evaluasi[0]
+                return [p.get(i) for i in field]
+
+        return [None]*len(field)
+
     def to_csv(self):
         """
         Export detail data ke csv
         :return:
         """
-        with open(self.index_downloader.lpse_host.filename, 'w', newline='') as f:
+        header = [
+            'id_paket', 'nama_tender', 'tanggal_pembuatan', 'tahap_tender_saat_ini', 'k/l/pd',
+            'satuan_kerja', 'jenis_pengadaan', 'metode_pengadaan', 'tahun_anggaran', 'nilai_pagu_paket',
+            'nilai_hps', 'jenis_kontrak', 'lokasi_pekerjaan', 'kualifikasi_usaha', 'peserta_tender',
+        ]
+
+        header_pemenang = ['npwp', 'nama_peserta', 'penawaran', 'penawaran_terkoreksi', 'hasil_negosiasi', 'p', 'pk']
+
+        with self.get_file_obj('csv').open('w', newline='') as f:
             writer = csv.writer(f)
-            writer.writerow("")
+            writer.writerow(header+header_pemenang)
+
+            for item in self.get_detail():
+                writer.writerow(
+                    [item.get('id_paket')] +
+                    [item['pengumuman'].get(i) for i in header[1:]] +
+                    self.get_pemenang(item)
+                )
 
     def to_json(self):
         """
