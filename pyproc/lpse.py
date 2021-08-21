@@ -3,6 +3,7 @@ import bs4
 import requests
 import re
 import logging
+import backoff
 from . import utils
 from bs4 import BeautifulSoup as Bs, NavigableString
 from .exceptions import LpseVersionException, LpseHostExceptions, LpseServerExceptions, LpseAuthTokenNotFound
@@ -416,28 +417,33 @@ class BaseLpseDetilParser(object):
         self.lpse = lpse
         self.id_paket = id_paket
 
+    @backoff.on_exception(backoff.fibo, LpseServerExceptions, max_tries=3, jitter=None)
     def get_detil(self):
-        r = self.lpse.session.get(self.lpse.host+self.detil_path.format(self.id_paket), timeout=self.lpse.timeout)
+        url = self.lpse.host+self.detil_path.format(self.id_paket)
+        r = self.lpse.session.get(url, timeout=self.lpse.timeout)
 
-        self._check_error(r.text)
+        self._check_error(r)
 
         return self.parse_detil(r.content)
 
-    def _check_error(self, content):
+    def _check_error(self, resp):
         error_message = None
+        content = resp.text
 
-        if re.findall(r'Maaf, terjadi error pada aplikasi SPSE.', content):
+        if resp.status_code >= 400 or \
+                re.findall(r'Maaf, terjadi error pada aplikasi SPSE.', content) or \
+                re.findall(r'Terjadi Kesalahan', content):
             error_message = "Terjadi error pada aplikasi SPSE."
-            error_code = re.findall(r'Kode Error: ([0-9a-zA-Z]{9})', content)
+            error_code = re.findall(r'Kode Error: ([0-9a-zA-Z]+)', content)
 
             if error_code:
                 error_message += ' Kode Error: ' + error_code[0]
         elif re.findall('Halaman yang dituju tidak ditemukan', content):
             error_message = "Paket tidak ditemukan"
 
-        if not error_message is None:
+        if error_message is not None:
             error_message = "{}; {}".format(
-                self.lpse.host+self.detil_path.format(self.id_paket),
+                resp.url,
                 error_message
             )
             raise LpseServerExceptions(error_message)
@@ -738,6 +744,7 @@ class LpseDetilPemenangNonTenderParser(LpseDetilPemenangParser):
 #                 value = self.parse_currency(value)
 #
 #             yield (key, value)
+
 
 class LpseDetilPemenangBerkontrakNonTenderParser(LpseDetilPemenangNonTenderParser):
 
