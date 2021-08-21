@@ -9,6 +9,10 @@ from pyproc import Lpse
 from scripts import text
 from datetime import datetime
 from pathlib import Path
+from urllib3.exceptions import InsecureRequestWarning
+from urllib3 import disable_warnings
+
+disable_warnings(InsecureRequestWarning)
 
 
 def set_up_log(level):
@@ -151,8 +155,7 @@ class DownloaderContext(object):
         return str(self.__dict__)
 
 
-class LpseIndex():
-
+class LpseIndex:
     def __init__(self, kwargs):
         self.row_id = kwargs['row_id']
         self.id_paket = kwargs['id_paket']
@@ -235,7 +238,7 @@ class IndexDownloader(object):
 
         return jenis_paket
 
-    def get_total_package(self):
+    def get_total_package(self, tahun):
         """
         Fungsi untuk mendapatkan total data dengan melakukan requests dengan length 0 data
         :return: Integer jumlah data
@@ -243,7 +246,8 @@ class IndexDownloader(object):
         jenis_paket = self.get_jenis_paket()
 
         data = self.lpse.get_paket(jenis_paket=jenis_paket, kategori=self.ctx.kategori,
-                                   nama_penyedia=self.ctx.nama_penyedia, search_keyword=self.ctx.keyword)
+                                   nama_penyedia=self.ctx.nama_penyedia, search_keyword=self.ctx.keyword,
+                                   tahun=tahun)
 
         logging.debug("Jumlah record {}".format(str(data)))
         return data['recordsTotal']
@@ -253,34 +257,36 @@ class IndexDownloader(object):
         Start index downloader
         :return:
         """
-        total = self.get_total_package()
-        batch_total = -(-total//self.ctx.chunk_size)
-        data_count = 0
+        for tahun in self.ctx.tahun_anggaran:
+            total = self.get_total_package(tahun=tahun)
+            batch_total = -(-total//self.ctx.chunk_size)
+            data_count = 0
 
-        for batch in range(batch_total):
-            data = self.lpse.get_paket(jenis_paket=self.get_jenis_paket(), start=batch*self.ctx.chunk_size,
-                                       length=self.ctx.chunk_size, kategori=self.ctx.kategori,
-                                       search_keyword=self.ctx.keyword, nama_penyedia=self.ctx.nama_penyedia,
-                                       data_only=True)
-            self.db.executemany("INSERT OR IGNORE INTO INDEX_PAKET VALUES(?, ?, ?, ?, ?, ?)",
-                                self.convert_index_for_db(data))
-            self.db.commit()
+            for batch in range(batch_total):
+                data = self.lpse.get_paket(jenis_paket=self.get_jenis_paket(), start=batch*self.ctx.chunk_size,
+                                           length=self.ctx.chunk_size, kategori=self.ctx.kategori,
+                                           search_keyword=self.ctx.keyword, nama_penyedia=self.ctx.nama_penyedia,
+                                           data_only=True, tahun=tahun)
+                self.db.executemany("INSERT OR IGNORE INTO INDEX_PAKET VALUES(?, ?, ?, ?, ?, ?)",
+                                    self.convert_index_for_db(data))
+                self.db.commit()
 
-            # update data count
-            data_count += len(data)
-            logging.info(
-                "{host} - Indexing batch {batch} dari {total_batch}, "
-                "{data_count}/{data_total} data ({persentase:,.2f}%)".format(
-                    host=self.lpse_host.url,
-                    batch=batch,
-                    total_batch=batch_total,
-                    data_count=data_count,
-                    data_total=total,
-                    persentase=data_count/total*100
+                # update data count
+                data_count += len(data)
+                logging.info(
+                    "{host} - TA {tahun} - Indexing batch {batch} dari {total_batch}, "
+                    "{data_count}/{data_total} data ({persentase:,.2f}%)".format(
+                        host=self.lpse_host.url,
+                        batch=batch+1,
+                        total_batch=batch_total,
+                        data_count=data_count,
+                        data_total=total,
+                        persentase=data_count/total*100,
+                        tahun=tahun
+                    )
                 )
-            )
 
-            sleep(self.ctx.index_download_delay)
+                sleep(self.ctx.index_download_delay)
 
     def convert_index_for_db(self, data):
         """
@@ -312,9 +318,6 @@ class IndexDownloader(object):
 
         for row in result.fetchall():
             row = self.index_factory(result, row)
-            tahun_anggaran = map(int, self.__tahun_anggaran_pattern.findall(row.kategori_tahun_anggaran))
-            if not tahun_anggaran or not set(tahun_anggaran).intersection(set(self.ctx.tahun_anggaran)):
-                continue
 
             logging.debug("row data {}".format(row))
             yield row
@@ -361,6 +364,8 @@ class DetailDownloader(object):
         package_detail.get_pengumuman()
         package_detail.get_jadwal()
         package_detail.get_hasil_evaluasi()
+        package_detail.get_pemenang()
+        package_detail.get_pemenang_berkontrak()
         lpse_index.detail = package_detail
 
         logging.debug("[DETAIL DOWNLOADER] update database detail data")
@@ -380,9 +385,6 @@ class DetailDownloader(object):
         total_downloaded = 0
 
         while True:
-            if self.index_downloader.ctx.log_level == 'INFO':
-                print("", end='.', flush=True)
-
             lpse_index = []
 
             for i in range(self.index_downloader.ctx.workers):
@@ -394,6 +396,7 @@ class DetailDownloader(object):
             logging.debug("[DETAIL DOWNLOADER] starting batch for {}".format(lpse_index))
 
             threads = []
+
             for i, index in enumerate(lpse_index):
                 t = threading.Thread(target=self.get_detail, args=(index,), name='detail-thread-{}'.format(i))
                 t.start()
@@ -412,10 +415,37 @@ class DetailDownloader(object):
 
             total_downloaded += len(lpse_index)
 
+            if self.index_downloader.ctx.log_level == 'INFO':
+                print("\r{} data berhasil diunduh".format(total_downloaded), end=' ')
+
             if len(lpse_index) != self.index_downloader.ctx.workers:
                 break
 
-        print("\n{} data berhasil diunduh".format(total_downloaded))
+        print()
+        logging.info("{} - {} data berhasil diunduh".format(self.index_downloader.lpse_host.url, total_downloaded))
+
+
+class Exporter:
+    def __init__(self, index_downloader: IndexDownloader):
+        self.index_downloader = index_downloader
+
+    def to_csv(self):
+        """
+        Export detail data ke csv
+        :return:
+        """
+
+    def to_json(self):
+        """
+        Export detail data ke format json
+        :return:
+        """
+
+    def to_excel(self):
+        """
+        Export detail data ke format excel (xlsx)
+        :return:
+        """
 
 class Downloader(object):
 
