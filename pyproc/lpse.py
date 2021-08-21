@@ -536,7 +536,7 @@ class LpseDetilPesertaParser(BaseLpseDetilParser):
     def parse_detil(self, content):
         soup = Bs(content, 'html5lib')
         table = soup.find('div', {'class': 'content'})\
-            .find('table', {'class': 'table-condensed'})
+            .find('table')
 
         raw_data = [[i for i in tr.stripped_strings] for tr in table.find_all('tr')]
 
@@ -552,7 +552,7 @@ class LpseDetilHasilEvaluasiParser(BaseLpseDetilParser):
     def parse_detil(self, content):
         soup = Bs(content, 'html5lib')
         table = soup.find('div', {'class': 'content'})\
-            .find('table', {'class': 'table-condensed'})
+            .find('table')
 
         if not table:
             return
@@ -721,29 +721,6 @@ class LpseDetilHasilEvaluasiNonTenderParser(LpseDetilHasilEvaluasiParser):
 class LpseDetilPemenangNonTenderParser(LpseDetilPemenangParser):
 
     detil_path = '/evaluasinontender/{}/pemenang'
-#
-#     detil_path = '/evaluasinontender/{}/pemenang'
-#
-#     def parse_detil(self, content):
-#         soup = Bs(content, 'html5lib')
-#         table_pemenang = soup.find('table')
-#
-#         if table_pemenang:
-#             data = dict([(key, value) for key, value in self._parse_table_pemenang(table_pemenang)])
-#
-#             return None if not data else data
-#
-#         return
-#
-#     def _parse_table_pemenang(self, table_pemenang):
-#         for tr in table_pemenang.find_all('tr'):
-#             key = '_'.join(tr.find('th').text.strip().split()).lower()
-#             value = ' '.join(tr.find('td').text.strip().split())
-#
-#             if key in ['hps', 'pagu', 'hasil_negosiasi']:
-#                 value = self.parse_currency(value)
-#
-#             yield (key, value)
 
 
 class LpseDetilPemenangBerkontrakNonTenderParser(LpseDetilPemenangNonTenderParser):
