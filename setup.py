@@ -45,7 +45,8 @@ setup(
     install_requires=[
         'requests',
         'BeautifulSoup4',
-        'html5lib'
+        'html5lib',
+        'backoff',
     ],
     entry_points={
         'console_scripts': ['pyproc=scripts.downloader:main']
