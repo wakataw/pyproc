@@ -6,7 +6,7 @@ import logging
 import sqlite3
 import threading
 from time import sleep
-from pyproc import Lpse
+from pyproc import Lpse, JenisPengadaan
 from scripts import text
 from datetime import datetime
 from pathlib import Path
@@ -74,7 +74,7 @@ class DownloaderContext(object):
     def __init__(self, args):
         self.keyword = args.keyword
         self.tahun_anggaran = self.parse_tahun_anggaran(args.tahun_anggaran)
-        self.kategori = args.kategori
+        self._kategori = args.kategori
         self.nama_penyedia = args.nama_penyedia
         self.chunk_size = args.chunk_size
         self.workers = args.workers
@@ -87,6 +87,13 @@ class DownloaderContext(object):
         self.log_level = args.log
         self.output_format = args.output_format
         self.__lpse_host = args.lpse_host
+
+    @property
+    def kategori(self):
+        try:
+            return JenisPengadaan[self._kategori]
+        except KeyError:
+            return None
 
     def parse_tahun_anggaran(self, tahun_anggaran):
         """
@@ -179,6 +186,7 @@ class LpseIndex:
 
 class IndexDownloader(object):
     __tahun_anggaran_pattern = re.compile('(\d+)')
+    db = None
 
     def __init__(self, ctx, lpse_host):
         self.ctx: DownloaderContext = ctx
@@ -438,6 +446,10 @@ class Exporter:
         self.index_downloader = index_downloader
 
     def get_detail(self):
+        """
+        Query data detail dari database untuk diekspor
+        :return: generator result row
+        """
         logging.info("{} - Export Data".format(self.index_downloader.lpse_host.url))
         result = self.index_downloader.db.execute("SELECT * from INDEX_PAKET WHERE STATUS = 1")
         for data in result.fetchall():
@@ -445,6 +457,11 @@ class Exporter:
             yield data.detail
 
     def get_file_obj(self, ext):
+        """
+        Fungsi untuk mempermudah inisiasi objek file untuk export data
+        :param ext:
+        :return: file object
+        """
         filename = self.index_downloader.lpse_host.filename.name + '.' + ext
         file_obj = Path.cwd() / filename
 
@@ -549,8 +566,15 @@ class Downloader(object):
         parser.add_argument('-t', '--tahun-anggaran', type=str, default="{}".format(datetime.now().year),
                             help=text.HELP_TAHUN_ANGGARAN)
         parser.add_argument('--kategori',
-                            choices=['PENGADAAN_BARANG', 'PEKERJAAN_KONSTRUKSI', 'KONSULTANSI', 'KONSULTANSI_PERORANGAN'
-                                                                                                'JASA_LAINNYA', None],
+                            choices=[
+                                "PENGADAAN_BARANG",
+                                "JASA_KONSULTANSI_BADAN_USAHA_NON_KONSTRUKSI",
+                                "PEKERJAAN_KONSTRUKSI",
+                                "JASA_LAINNYA",
+                                "JASA_KONSULTANSI_PERORANGAN",
+                                "JASA_KONSULTANSI_BADAN_USAHA_KONSTRUKSI",
+                                None
+                            ],
                             help=text.HELP_KATEGORI, default=None)
         parser.add_argument('--nama-penyedia', type=str, default=None, help=text.HELP_PENYEDIA)
         parser.add_argument('-c', '--chunk-size', type=int, default=100, help=text.HELP_CHUNK_SIZE)
@@ -558,7 +582,7 @@ class Downloader(object):
         parser.add_argument('-x', '--timeout', type=int, default=30, help=text.HELP_TIMEOUT)
         parser.add_argument('-n', '--non-tender', action='store_true', help=text.HELP_NONTENDER)
         parser.add_argument('-d', '--index-download-delay', type=int, default=1, help=text.HELP_INDEX_DOWNLOAD_DELAY)
-        parser.add_argument('-o', '--output-format', choices=['json', 'csv', 'xlsx'], default='csv')
+        parser.add_argument('-o', '--output-format', choices=['json', 'csv'], default='csv')
         parser.add_argument('-f', '--force', action='store_true', help=text.HELP_FORCE)
         parser.add_argument('--clear', action='store_true', help=text.HELP_CLEAR)
         parser.add_argument('--keep-workdir', action='store_true', help=text.HELP_KEEP)
@@ -589,8 +613,6 @@ class Downloader(object):
                 exporter.to_json()
             elif self.ctx.output_format == 'csv':
                 exporter.to_csv()
-            elif self.ctx.output_format == 'xlsx':
-                exporter.to_excel()
 
             del index_downloader
             del detail_downloader
