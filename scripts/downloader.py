@@ -178,7 +178,6 @@ class LpseIndex:
 
 
 class IndexDownloader(object):
-
     __tahun_anggaran_pattern = re.compile('(\d+)')
 
     def __init__(self, ctx, lpse_host):
@@ -268,11 +267,11 @@ class IndexDownloader(object):
         """
         for tahun in self.ctx.tahun_anggaran:
             total = self.get_total_package(tahun=tahun)
-            batch_total = -(-total//self.ctx.chunk_size)
+            batch_total = -(-total // self.ctx.chunk_size)
             data_count = 0
 
             for batch in range(batch_total):
-                data = self.lpse.get_paket(jenis_paket=self.get_jenis_paket(), start=batch*self.ctx.chunk_size,
+                data = self.lpse.get_paket(jenis_paket=self.get_jenis_paket(), start=batch * self.ctx.chunk_size,
                                            length=self.ctx.chunk_size, kategori=self.ctx.kategori,
                                            search_keyword=self.ctx.keyword, nama_penyedia=self.ctx.nama_penyedia,
                                            data_only=True, tahun=tahun)
@@ -286,11 +285,11 @@ class IndexDownloader(object):
                     "{host} - TA {tahun} - Indexing batch {batch} dari {total_batch}, "
                     "{data_count}/{data_total} data ({persentase:,.2f}%)".format(
                         host=self.lpse_host.url,
-                        batch=batch+1,
+                        batch=batch + 1,
                         total_batch=batch_total,
                         data_count=data_count,
                         data_total=total,
-                        persentase=data_count/total*100,
+                        persentase=data_count / total * 100,
                         tahun=tahun
                     )
                 )
@@ -310,7 +309,7 @@ class IndexDownloader(object):
                 'nontender' if self.ctx.non_tender else 'tender',
                 row[8],
                 0,
-                None # detail paket kosong
+                None  # detail paket kosong
             ]
 
     @staticmethod
@@ -459,13 +458,23 @@ class Exporter:
         """
         field = ['npwp', 'nama_peserta', 'penawaran', 'penawaran_terkoreksi', 'hasil_negosiasi', 'p', 'pk']
         if detil['hasil']:
-            pemenang_hasil_evaluasi = list(filter(lambda x: x.get('pk') == True or x.get('p') == True, detil['hasil']))
+            pemenang_hasil_evaluasi = list(filter(lambda x: x.get('pk') is True or x.get('p') is True, detil['hasil']))
 
             if pemenang_hasil_evaluasi:
                 p = pemenang_hasil_evaluasi[0]
                 return [p.get(i) for i in field]
 
-        return [None]*len(field)
+        if detil['pemenang_berkontrak']:
+            p = detil['pemenang_berkontrak'][0]
+            return [p[i] for i in ['npwp', 'nama_pemenang', 'harga_penawaran',
+                                   'harga_terkoreksi', 'hasil_negosiasi']] + [] * 2
+
+        if detil['pemenang']:
+            p = detil['pemenang'][0]
+            return [p[i] for i in ['npwp', 'nama_pemenang', 'harga_penawaran',
+                                   'harga_terkoreksi', 'hasil_negosiasi']] + [] * 2
+
+        return [None] * len(field)
 
     def to_csv(self):
         """
@@ -473,7 +482,8 @@ class Exporter:
         :return:
         """
         header = [
-            'id_paket', 'nama_tender', 'tanggal_pembuatan', 'tahap_tender_saat_ini', 'k/l/pd',
+            'id_paket', 'nama_paket' if self.index_downloader.ctx.non_tender else 'nama_tender',
+            'tanggal_pembuatan', 'tahap_tender_saat_ini', 'k/l/pd',
             'satuan_kerja', 'jenis_pengadaan', 'metode_pengadaan', 'tahun_anggaran', 'nilai_pagu_paket',
             'nilai_hps', 'jenis_kontrak', 'lokasi_pekerjaan', 'kualifikasi_usaha', 'peserta_tender',
         ]
@@ -482,7 +492,7 @@ class Exporter:
 
         with self.get_file_obj('csv').open('w', newline='') as f:
             writer = csv.writer(f)
-            writer.writerow(header+header_pemenang)
+            writer.writerow(header + header_pemenang)
 
             for item in self.get_detail():
                 writer.writerow(
@@ -504,16 +514,8 @@ class Exporter:
             f.seek(f.tell() - 1)
             f.write("]")
 
-    def to_excel(self):
-        """
-        Export detail data ke format excel (xlsx)
-        :return:
-        """
-        ...
-
 
 class Downloader(object):
-
     ctx = None
 
     def __init__(self):
@@ -548,7 +550,7 @@ class Downloader(object):
                             help=text.HELP_TAHUN_ANGGARAN)
         parser.add_argument('--kategori',
                             choices=['PENGADAAN_BARANG', 'PEKERJAAN_KONSTRUKSI', 'KONSULTANSI', 'KONSULTANSI_PERORANGAN'
-                                     'JASA_LAINNYA', None],
+                                                                                                'JASA_LAINNYA', None],
                             help=text.HELP_KATEGORI, default=None)
         parser.add_argument('--nama-penyedia', type=str, default=None, help=text.HELP_PENYEDIA)
         parser.add_argument('-c', '--chunk-size', type=int, default=100, help=text.HELP_CHUNK_SIZE)
