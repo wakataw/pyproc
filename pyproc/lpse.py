@@ -502,7 +502,7 @@ class LpseDetilPesertaParser(BaseLpseDetilParser):
     def parse_detil(self, content):
         soup = Bs(content, 'html5lib')
         table = soup.find('div', {'class': 'content'})\
-            .find('table', {'class': 'table-condensed'})
+            .find('table')
 
         if not table:
             return
@@ -521,7 +521,7 @@ class LpseDetilHasilEvaluasiParser(BaseLpseDetilParser):
     def parse_detil(self, content):
         soup = Bs(content, 'html5lib')
         table = soup.find('div', {'class': 'content'})\
-            .find('table', {'class': 'table-condensed'})
+            .find('table')
 
         if not table:
             return
