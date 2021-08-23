@@ -101,8 +101,12 @@ class DownloaderContext(object):
         :param tahun_anggaran: argumen tipe string dengan format X-Y (untuk range tahun anggaran) dan A,B,X,Z untuk beberapa tahun anggaran
         :return: list dari tahun anggaran
         """
-        tahun_anggaran = re.sub(r'\s+', '', tahun_anggaran)
         list_tahun_anggaran = []
+
+        if tahun_anggaran.lower().strip() == 'all':
+            return [None]
+
+        tahun_anggaran = re.sub(r'\s+', '', tahun_anggaran)
 
         # split argumen tahun anggaran berdasarkan separator koma
         for i in tahun_anggaran.split(','):
@@ -196,7 +200,7 @@ class IndexDownloader(object):
 
         logging.info("{} - Mulai pengunduhan data {} tahun {}".format(
             lpse_host.url, "Pengadaan Langsung" if self.ctx.non_tender else "Tender",
-            ', '.join(map(str, self.ctx.tahun_anggaran))
+            ', '.join(map(str, self.ctx.tahun_anggaran)) if self.ctx.tahun_anggaran[0] is not None else 'ALL'
         ))
 
     def get_index_db(self, filename):
@@ -298,7 +302,7 @@ class IndexDownloader(object):
                         data_count=data_count,
                         data_total=total,
                         persentase=data_count / total * 100,
-                        tahun=tahun
+                        tahun=tahun if tahun is not None else 'ALL'
                     )
                 )
 
