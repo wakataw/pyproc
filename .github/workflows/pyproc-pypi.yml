@@ -21,7 +21,7 @@ jobs:
       with:
         python-version: 3.9
     - name: Clean build directory
-      run: rm -rf ./dists ./pyproc.egg-info
+      run: rm -rf ./dists ./pyproc.egg-info ./tests/*.csv ./tests/*.idx ./*csv ./*idx
     - name: Test Package
       run: python setup.py test
     - name: Build Package
