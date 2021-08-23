@@ -79,8 +79,6 @@ class DownloaderContext(object):
         self.non_tender = args.non_tender
         self.index_download_delay = args.index_download_delay
         self.keep_workdir = args.keep_workdir
-        self.force = args.force
-        self.clear = args.clear
         self.log_level = args.log
         self.output_format = args.output_format
         self.__lpse_host = args.lpse_host
@@ -583,9 +581,7 @@ class Downloader(object):
         parser.add_argument('-x', '--timeout', type=int, default=30, help=text.HELP_TIMEOUT)
         parser.add_argument('-n', '--non-tender', action='store_true', help=text.HELP_NONTENDER)
         parser.add_argument('-d', '--index-download-delay', type=int, default=1, help=text.HELP_INDEX_DOWNLOAD_DELAY)
-        parser.add_argument('-o', '--output-format', choices=['json', 'csv'], default='csv')
-        parser.add_argument('-f', '--force', action='store_true', help=text.HELP_FORCE)
-        parser.add_argument('--clear', action='store_true', help=text.HELP_CLEAR)
+        parser.add_argument('-o', '--output-format', choices=['json', 'csv'], default='csv', help=text.HELP_OUTPUT)
         parser.add_argument('--keep-workdir', action='store_true', help=text.HELP_KEEP)
         parser.add_argument('--log', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], default='INFO',
                             help=text.HELP_LOG_LEVEL)
