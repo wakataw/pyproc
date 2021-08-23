@@ -146,3 +146,30 @@ class DownloaderTest(unittest.TestCase):
         db = sqlite3.connect(db_file)
         result = db.execute("SELECT COUNT(1) FROM INDEX_PAKET").fetchone()[0]
         self.assertTrue(result > 0)
+
+
+    def test_index_db_row_factory(self):
+        downloader = Downloader()
+        downloader.get_ctx("--log=DEBUG http://lpse.kepahiangkab.go.id".split())
+
+        for lpse_host in downloader.ctx.lpse_host_list:
+            index_downloader = IndexDownloader(downloader.ctx, lpse_host)
+            index_downloader.start()
+
+            for index in index_downloader.get_index():
+                self.assertIsInstance(index, LpseIndex)
+
+    def test_detail_downloader(self):
+        downloader = Downloader()
+        downloader.get_ctx("http://lpse.kepahiangkab.go.id".split())
+
+        for lpse_host in downloader.ctx.lpse_host_list:
+            index_downloader = IndexDownloader(downloader.ctx, lpse_host)
+            index_downloader.start()
+
+            detail_downloader = DetailDownloader(index_downloader)
+            detail_downloader.start()
+
+            res = index_downloader.db.execute("SELECT COUNT(1) FROM main.INDEX_PAKET WHERE STATUS = 1").fetchone()
+
+            self.assertTrue(res[0] > 0)

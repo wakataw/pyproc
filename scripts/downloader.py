@@ -1,12 +1,19 @@
 import argparse
+import csv
+import json
 import re
 import logging
 import sqlite3
+import threading
 from time import sleep
-from pyproc import Lpse
+from pyproc import Lpse, JenisPengadaan
 from scripts import text
 from datetime import datetime
 from pathlib import Path
+from urllib3.exceptions import InsecureRequestWarning
+from urllib3 import disable_warnings
+
+disable_warnings(InsecureRequestWarning)
 
 
 def set_up_log(level):
@@ -47,7 +54,7 @@ class LpseHost(object):
         try:
             filename = url_and_filename[1]
         except IndexError:
-            filename = '_'.join(re.findall(r'([a-z0-9]+)', url.lower())) + '.csv'
+            filename = '_'.join(re.findall(r'([a-z0-9]+)', url.lower()))
 
         # set host is valid
         self.is_valid = True
@@ -67,7 +74,7 @@ class DownloaderContext(object):
     def __init__(self, args):
         self.keyword = args.keyword
         self.tahun_anggaran = self.parse_tahun_anggaran(args.tahun_anggaran)
-        self.kategori = args.kategori
+        self._kategori = args.kategori
         self.nama_penyedia = args.nama_penyedia
         self.chunk_size = args.chunk_size
         self.workers = args.workers
@@ -77,7 +84,16 @@ class DownloaderContext(object):
         self.keep_workdir = args.keep_workdir
         self.force = args.force
         self.clear = args.clear
+        self.log_level = args.log
+        self.output_format = args.output_format
         self.__lpse_host = args.lpse_host
+
+    @property
+    def kategori(self):
+        try:
+            return JenisPengadaan[self._kategori]
+        except KeyError:
+            return None
 
     def parse_tahun_anggaran(self, tahun_anggaran):
         """
@@ -148,13 +164,40 @@ class DownloaderContext(object):
         return str(self.__dict__)
 
 
+class LpseIndex:
+    def __init__(self, kwargs):
+        self.row_id = kwargs['row_id']
+        self.id_paket = kwargs['id_paket']
+        self.jenis_paket = kwargs['jenis_paket']
+        self.kategori_tahun_anggaran = kwargs['kategori_tahun_anggaran']
+        self.status = kwargs['status']
+        self.detail = self.parse_detail(kwargs['detail'])
+
+    @staticmethod
+    def parse_detail(detail):
+        try:
+            return json.loads(detail)
+        except TypeError:
+            return {}
+
+    def __str__(self):
+        return str(self.__dict__)
+
+
 class IndexDownloader(object):
+    __tahun_anggaran_pattern = re.compile('(\d+)')
+    db = None
 
     def __init__(self, ctx, lpse_host):
-        self.ctx = ctx
+        self.ctx: DownloaderContext = ctx
         self.lpse_host = lpse_host
         self.lpse = Lpse(lpse_host.url)
         self.db = self.get_index_db(self.lpse_host.filename)
+
+        logging.info("{} - Mulai pengunduhan data {} tahun {}".format(
+            lpse_host.url, "Pengadaan Langsung" if self.ctx.non_tender else "Tender",
+            ', '.join(map(str, self.ctx.tahun_anggaran))
+        ))
 
     def get_index_db(self, filename):
         """
@@ -171,7 +214,7 @@ class IndexDownloader(object):
         db_filename = filename.name + ".idx"
         db_file = Path.cwd() / db_filename
         logging.debug("Generate index database: {}".format(db_file.name))
-        db = sqlite3.connect(db_file)
+        db = sqlite3.connect(db_file, check_same_thread=False)
         logging.debug("Create index table")
 
         try:
@@ -182,7 +225,8 @@ class IndexDownloader(object):
             ID_PAKET VARCHAR(50),
             JENIS_PAKET VARCHAR(32),
             KATEGORI_TAHUN_ANGGARAN varchar (100),
-            STATUS int default 0
+            STATUS int default 0,
+            DETAIL text
             );""")
             db.execute("CREATE INDEX INDEX_PAKET_KATEGORI_TAHUN_ANGGARAN_IDX ON INDEX_PAKET(KATEGORI_TAHUN_ANGGARAN);")
             db.execute("CREATE INDEX INDEX_PAKET_ID_PAKET_IDX ON INDEX_PAKET(ID_PAKET);")
@@ -210,7 +254,7 @@ class IndexDownloader(object):
 
         return jenis_paket
 
-    def get_total_package(self):
+    def get_total_package(self, tahun):
         """
         Fungsi untuk mendapatkan total data dengan melakukan requests dengan length 0 data
         :return: Integer jumlah data
@@ -218,7 +262,8 @@ class IndexDownloader(object):
         jenis_paket = self.get_jenis_paket()
 
         data = self.lpse.get_paket(jenis_paket=jenis_paket, kategori=self.ctx.kategori,
-                                   nama_penyedia=self.ctx.nama_penyedia, search_keyword=self.ctx.keyword)
+                                   nama_penyedia=self.ctx.nama_penyedia, search_keyword=self.ctx.keyword,
+                                   tahun=tahun)
 
         logging.debug("Jumlah record {}".format(str(data)))
         return data['recordsTotal']
@@ -228,20 +273,36 @@ class IndexDownloader(object):
         Start index downloader
         :return:
         """
-        total = self.get_total_package()
-        batch_total = -(-total//self.ctx.chunk_size)
+        for tahun in self.ctx.tahun_anggaran:
+            total = self.get_total_package(tahun=tahun)
+            batch_total = -(-total // self.ctx.chunk_size)
+            data_count = 0
 
-        for batch in range(batch_total):
-            logging.debug("Starting batch {} for host {}".format(batch, self.lpse_host.url))
-            data = self.lpse.get_paket(jenis_paket=self.get_jenis_paket(), start=batch*self.ctx.chunk_size,
-                                       length=self.ctx.chunk_size, kategori=self.ctx.kategori,
-                                       search_keyword=self.ctx.keyword, nama_penyedia=self.ctx.nama_penyedia,
-                                       data_only=True)
-            self.db.executemany("INSERT OR IGNORE INTO INDEX_PAKET VALUES(?, ?, ?, ?, ?)",
-                                self.convert_index_for_db(data))
-            self.db.commit()
+            for batch in range(batch_total):
+                data = self.lpse.get_paket(jenis_paket=self.get_jenis_paket(), start=batch * self.ctx.chunk_size,
+                                           length=self.ctx.chunk_size, kategori=self.ctx.kategori,
+                                           search_keyword=self.ctx.keyword, nama_penyedia=self.ctx.nama_penyedia,
+                                           data_only=True, tahun=tahun)
+                self.db.executemany("INSERT OR IGNORE INTO INDEX_PAKET VALUES(?, ?, ?, ?, ?, ?)",
+                                    self.convert_index_for_db(data))
+                self.db.commit()
 
-            sleep(self.ctx.index_download_delay)
+                # update data count
+                data_count += len(data)
+                logging.info(
+                    "{host} - TA {tahun} - Indexing batch {batch} dari {total_batch}, "
+                    "{data_count}/{data_total} data ({persentase:,.2f}%)".format(
+                        host=self.lpse_host.url,
+                        batch=batch + 1,
+                        total_batch=batch_total,
+                        data_count=data_count,
+                        data_total=total,
+                        persentase=data_count / total * 100,
+                        tahun=tahun
+                    )
+                )
+
+                sleep(self.ctx.index_download_delay)
 
     def convert_index_for_db(self, data):
         """
@@ -255,8 +316,27 @@ class IndexDownloader(object):
                 row[0],
                 'nontender' if self.ctx.non_tender else 'tender',
                 row[8],
-                0
+                0,
+                None  # detail paket kosong
             ]
+
+    @staticmethod
+    def index_factory(cursor, row):
+        d = {}
+        for idx, col in enumerate(cursor.description):
+            d[col[0].lower()] = row[idx]
+
+        return LpseIndex(d)
+
+    def get_index(self):
+        logging.debug("[SQL] get index from database")
+        result = self.db.execute("SELECT * FROM INDEX_PAKET WHERE STATUS = 0")
+
+        for row in result.fetchall():
+            row = self.index_factory(result, row)
+
+            logging.debug("row data {}".format(row))
+            yield row
 
     def resume(self):
         """
@@ -274,9 +354,185 @@ class IndexDownloader(object):
             self.db.close()
             del self.db
 
+        del self.lpse
+
+
+class DetailDownloader(object):
+
+    def __init__(self, index_downloader: IndexDownloader):
+        self.index_downloader = index_downloader
+        self.lock = threading.Lock()
+
+        logging.info("{} - Mulai pengunduhan detail data".format(self.index_downloader.lpse_host.url))
+
+    def get_detail(self, lpse_index):
+        """
+        Get detail paket berdasarkan paket ID
+        :param package_id:
+        :return:
+        """
+        logging.debug("[DETAIL DOWNLOADER] download detail for {}".format(lpse_index))
+        if self.index_downloader.ctx.non_tender:
+            package_detail = self.index_downloader.lpse.detil_paket_non_tender(lpse_index.id_paket)
+        else:
+            package_detail = self.index_downloader.lpse.detil_paket_tender(lpse_index.id_paket)
+
+        package_detail.get_pengumuman()
+        package_detail.get_jadwal()
+        package_detail.get_hasil_evaluasi()
+        package_detail.get_pemenang()
+        package_detail.get_pemenang_berkontrak()
+        lpse_index.detail = package_detail
+
+        logging.debug("[DETAIL DOWNLOADER] update database detail data")
+        self.update_detail(lpse_index)
+
+    def update_detail(self, lpse_index):
+        with self.lock:
+            logging.debug("[DETAIL DOWNLOADER] update detail data {}".format(lpse_index))
+            self.index_downloader.db.execute(
+                "UPDATE INDEX_PAKET SET DETAIL = ?, STATUS = 1 WHERE ROW_ID = ?",
+                (json.dumps(lpse_index.detail.todict()), lpse_index.row_id)
+            )
+            self.index_downloader.db.commit()
+
+    def start(self):
+        index_generator = self.index_downloader.get_index()
+        total_downloaded = 0
+
+        while True:
+            lpse_index = []
+
+            for i in range(self.index_downloader.ctx.workers):
+                try:
+                    lpse_index.append(index_generator.__next__())
+                except StopIteration:
+                    pass
+
+            logging.debug("[DETAIL DOWNLOADER] starting batch for {}".format(lpse_index))
+
+            threads = []
+
+            for i, index in enumerate(lpse_index):
+                t = threading.Thread(target=self.get_detail, args=(index,), name='detail-thread-{}'.format(i))
+                t.start()
+                logging.debug("[DETAIL DOWNLOADER] {} started".format(t.name))
+                threads.append(t)
+
+            for t in threads:
+                logging.debug("[DETAIL DOWNLOADER] thread {} join".format(t.name))
+                t.join()
+
+            for t in threads:
+                logging.debug("[DETAIL DOWNLOADER] thread {} deleted".format(t.name))
+                del t
+
+            del threads
+
+            total_downloaded += len(lpse_index)
+
+            if self.index_downloader.ctx.log_level == 'INFO':
+                print("\r{} data berhasil diunduh".format(total_downloaded), end=' ')
+
+            if len(lpse_index) != self.index_downloader.ctx.workers:
+                break
+
+        print()
+        logging.info("{} - {} data berhasil diunduh".format(self.index_downloader.lpse_host.url, total_downloaded))
+
+
+class Exporter:
+    def __init__(self, index_downloader: IndexDownloader):
+        self.index_downloader = index_downloader
+
+    def get_detail(self):
+        """
+        Query data detail dari database untuk diekspor
+        :return: generator result row
+        """
+        logging.info("{} - Export Data".format(self.index_downloader.lpse_host.url))
+        result = self.index_downloader.db.execute("SELECT * from INDEX_PAKET WHERE STATUS = 1")
+        for data in result.fetchall():
+            data = self.index_downloader.index_factory(result, data)
+            yield data.detail
+
+    def get_file_obj(self, ext):
+        """
+        Fungsi untuk mempermudah inisiasi objek file untuk export data
+        :param ext:
+        :return: file object
+        """
+        filename = self.index_downloader.lpse_host.filename.name + '.' + ext
+        file_obj = Path.cwd() / filename
+
+        return file_obj
+
+    def get_pemenang(self, detil):
+        """
+        Pengambilan data pemenang dari halaman hasil evaluasi
+        :param detil:
+        :return:
+        """
+        field = ['npwp', 'nama_peserta', 'penawaran', 'penawaran_terkoreksi', 'hasil_negosiasi', 'p', 'pk']
+        if detil['hasil']:
+            pemenang_hasil_evaluasi = list(filter(lambda x: x.get('pk') is True or x.get('p') is True, detil['hasil']))
+
+            if pemenang_hasil_evaluasi:
+                p = pemenang_hasil_evaluasi[0]
+                return [p.get(i) for i in field]
+
+        if detil['pemenang_berkontrak']:
+            p = detil['pemenang_berkontrak'][0]
+            return [p[i] for i in ['npwp', 'nama_pemenang', 'harga_penawaran',
+                                   'harga_terkoreksi', 'hasil_negosiasi']] + [] * 2
+
+        if detil['pemenang']:
+            p = detil['pemenang'][0]
+            return [p[i] for i in ['npwp', 'nama_pemenang', 'harga_penawaran',
+                                   'harga_terkoreksi', 'hasil_negosiasi']] + [] * 2
+
+        return [None] * len(field)
+
+    def to_csv(self):
+        """
+        Export detail data ke csv
+        :return:
+        """
+        header = [
+            'id_paket', 'nama_paket' if self.index_downloader.ctx.non_tender else 'nama_tender',
+            'tanggal_pembuatan', 'tahap_tender_saat_ini', 'k/l/pd',
+            'satuan_kerja', 'jenis_pengadaan', 'metode_pengadaan', 'tahun_anggaran', 'nilai_pagu_paket',
+            'nilai_hps', 'jenis_kontrak', 'lokasi_pekerjaan', 'kualifikasi_usaha', 'peserta_tender',
+        ]
+
+        header_pemenang = ['npwp', 'nama_peserta', 'penawaran', 'penawaran_terkoreksi', 'hasil_negosiasi', 'p', 'pk']
+
+        with self.get_file_obj('csv').open('w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(header + header_pemenang)
+
+            for item in self.get_detail():
+                writer.writerow(
+                    [item.get('id_paket')] +
+                    [item['pengumuman'].get(i) for i in header[1:]] +
+                    self.get_pemenang(item)
+                )
+
+    def to_json(self):
+        """
+        Export detail data ke format json
+        :return:
+        """
+        with self.get_file_obj('json').open('w') as f:
+            f.write("[")
+            for item in self.get_detail():
+                f.write(json.dumps(item))
+                f.write(",")
+            f.seek(f.tell() - 1)
+            f.write("]")
+
 
 class Downloader(object):
-
     ctx = None
 
     def __init__(self):
@@ -310,8 +566,15 @@ class Downloader(object):
         parser.add_argument('-t', '--tahun-anggaran', type=str, default="{}".format(datetime.now().year),
                             help=text.HELP_TAHUN_ANGGARAN)
         parser.add_argument('--kategori',
-                            choices=['PENGADAAN_BARANG', 'PEKERJAAN_KONSTRUKSI', 'KONSULTANSI', 'KONSULTANSI_PERORANGAN'
-                                     'JASA_LAINNYA', None],
+                            choices=[
+                                "PENGADAAN_BARANG",
+                                "JASA_KONSULTANSI_BADAN_USAHA_NON_KONSTRUKSI",
+                                "PEKERJAAN_KONSTRUKSI",
+                                "JASA_LAINNYA",
+                                "JASA_KONSULTANSI_PERORANGAN",
+                                "JASA_KONSULTANSI_BADAN_USAHA_KONSTRUKSI",
+                                None
+                            ],
                             help=text.HELP_KATEGORI, default=None)
         parser.add_argument('--nama-penyedia', type=str, default=None, help=text.HELP_PENYEDIA)
         parser.add_argument('-c', '--chunk-size', type=int, default=100, help=text.HELP_CHUNK_SIZE)
@@ -319,6 +582,7 @@ class Downloader(object):
         parser.add_argument('-x', '--timeout', type=int, default=30, help=text.HELP_TIMEOUT)
         parser.add_argument('-n', '--non-tender', action='store_true', help=text.HELP_NONTENDER)
         parser.add_argument('-d', '--index-download-delay', type=int, default=1, help=text.HELP_INDEX_DOWNLOAD_DELAY)
+        parser.add_argument('-o', '--output-format', choices=['json', 'csv'], default='csv')
         parser.add_argument('-f', '--force', action='store_true', help=text.HELP_FORCE)
         parser.add_argument('--clear', action='store_true', help=text.HELP_CLEAR)
         parser.add_argument('--keep-workdir', action='store_true', help=text.HELP_KEEP)
@@ -335,14 +599,33 @@ class Downloader(object):
 
         return self.ctx
 
-    def download_index(self):
+    def start(self):
         for lpse_host in self.ctx.lpse_host_list:
             index_downloader = IndexDownloader(self.ctx, lpse_host)
             index_downloader.start()
 
+            detail_downloader = DetailDownloader(index_downloader)
+            detail_downloader.start()
 
-if __name__ == '__main__':
+            exporter = Exporter(index_downloader)
+
+            if self.ctx.output_format == 'json':
+                exporter.to_json()
+            elif self.ctx.output_format == 'csv':
+                exporter.to_csv()
+
+            del index_downloader
+            del detail_downloader
+            del exporter
+
+
+def main():
     import sys
 
     downloader = Downloader()
     downloader.get_ctx(sys.argv[1:])
+    downloader.start()
+
+
+if __name__ == '__main__':
+    main()
