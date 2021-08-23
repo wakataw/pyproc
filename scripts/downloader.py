@@ -7,6 +7,7 @@ import sqlite3
 import threading
 from time import sleep
 from pyproc import Lpse, JenisPengadaan
+from pyproc.exceptions import DownloaderContextException
 from scripts import text
 from datetime import datetime
 from pathlib import Path
@@ -22,10 +23,6 @@ def set_up_log(level):
         raise ValueError('Invalid log level: {}'.format(level))
 
     logging.basicConfig(level=numeric_level, format='[%(asctime)s %(levelname)s] %(message)s')
-
-
-class DownloaderContextException(Exception):
-    pass
 
 
 class LpseHost(object):

@@ -12,3 +12,7 @@ class LpseServerExceptions(Exception):
 
 class LpseAuthTokenNotFound(Exception):
     pass
+
+
+class DownloaderContextException(Exception):
+    pass
