@@ -61,6 +61,29 @@ class Lpse(object):
 
         return '{}://{}'.format(scheme, netloc.strip('/'))
 
+    @staticmethod
+    def check_error(resp):
+        error_message = None
+        content = resp.text
+
+        if resp.status_code >= 400 or \
+                re.findall(r'Maaf, terjadi error pada aplikasi SPSE.', content) or \
+                re.findall(r'Terjadi Kesalahan', content):
+            error_message = "Terjadi error pada aplikasi SPSE."
+            error_code = re.findall(r'Kode Error: ([0-9a-zA-Z]+)', content)
+
+            if error_code:
+                error_message += ' Kode Error: ' + error_code[0]
+        elif re.findall('Halaman yang dituju tidak ditemukan', content):
+            error_message = "Paket tidak ditemukan"
+
+        if error_message is not None:
+            error_message = "{}; {}".format(
+                resp.url,
+                error_message
+            )
+            raise LpseServerExceptions(error_message)
+
     def update_info(self):
         """
         Update Informasi mengenai versi SPSE dan waktu update data terakhir
@@ -142,6 +165,7 @@ class Lpse(object):
 
         return utils.parse_token(r.text)
 
+    @backoff.on_exception(backoff.fibo, LpseServerExceptions, jitter=None, max_tries=3)
     def get_paket(self, jenis_paket, start=0, length=0, data_only=False,
                   kategori=None, search_keyword=None, nama_penyedia=None,
                   order=By.KODE, tahun=None, ascending=False, instansi_id=None):
@@ -218,6 +242,7 @@ class Lpse(object):
         )
 
         logging.debug(data.content)
+        self.check_error(data)
 
         data.encoding = 'UTF-8'
 
@@ -422,31 +447,9 @@ class BaseLpseDetilParser(object):
         url = self.lpse.host+self.detil_path.format(self.id_paket)
         r = self.lpse.session.get(url, timeout=self.lpse.timeout)
 
-        self._check_error(r)
+        self.lpse.check_error(r)
 
         return self.parse_detil(r.content)
-
-    def _check_error(self, resp):
-        error_message = None
-        content = resp.text
-
-        if resp.status_code >= 400 or \
-                re.findall(r'Maaf, terjadi error pada aplikasi SPSE.', content) or \
-                re.findall(r'Terjadi Kesalahan', content):
-            error_message = "Terjadi error pada aplikasi SPSE."
-            error_code = re.findall(r'Kode Error: ([0-9a-zA-Z]+)', content)
-
-            if error_code:
-                error_message += ' Kode Error: ' + error_code[0]
-        elif re.findall('Halaman yang dituju tidak ditemukan', content):
-            error_message = "Paket tidak ditemukan"
-
-        if error_message is not None:
-            error_message = "{}; {}".format(
-                resp.url,
-                error_message
-            )
-            raise LpseServerExceptions(error_message)
 
     @abstractmethod
     def parse_detil(self, content):
