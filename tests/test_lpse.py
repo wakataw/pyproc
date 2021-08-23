@@ -1,12 +1,10 @@
 import unittest
-
-from pyproc import Lpse
+from datetime import datetime
+from pyproc import Lpse, JenisPengadaan
 from pyproc.exceptions import LpseHostExceptions, LpseServerExceptions
 
 
 class TestLpse(unittest.TestCase):
-    id_tender_selesai = None
-
     def setUp(self):
         self.lpse = Lpse('lpse.jakarta.go.id', timeout=60, skip_spse_check=True)
         self.id_tender_selesai = self.get_id_for_testing()
@@ -30,6 +28,43 @@ class TestLpse(unittest.TestCase):
         data = self.lpse.get_paket_tender()
 
         self.assertIsInstance(data, dict)
+
+    def test_get_paket_tender_by_tahun(self):
+        """
+        khusus lpse dengan versi >= 4.4
+        :return:
+        """
+        current_year = datetime.now().year
+        for tahun in range(current_year-3, current_year+1):
+            lpse = Lpse('https://lpse.kepahiangkab.go.id')
+            data = lpse.get_paket_tender(
+                length=25,
+                tahun=tahun,
+                data_only=True
+            )
+            for i in data:
+                self.assertTrue(str(tahun) in i[8])
+
+    def test_get_paket_tender_by_kategori(self):
+        lpse = Lpse('https://lpse.kepahiangkab.go.id')
+        data = lpse.get_paket_tender(
+            length=25,
+            tahun=2021,
+            data_only=True,
+            kategori=JenisPengadaan.PENGADAAN_BARANG
+        )
+        for i in data:
+            self.assertTrue('pengadaan barang' in i[8].lower())
+
+    def test_get_paket_tender_by_instansi(self):
+        lpse = Lpse('https://lpse.kepahiangkab.go.id')
+        data = lpse.get_paket_tender(
+            length=25,
+            data_only=True,
+            instansi_id='L47' # KEPOLISIAN
+        )
+        for i in data:
+            self.assertTrue('kepolisian negara republik indonesia' in i[2].lower())
 
     def test_get_paket_tender_isi(self):
         data = self.lpse.get_paket_tender(length=2)
@@ -75,7 +110,7 @@ class TestLpse(unittest.TestCase):
         self.assertIsInstance(detil.hasil, list)
 
     def test_get_pemenang_tender(self):
-        detil = self.lpse.detil_paket_tender(self.id_tender_selesai)
+        detil = self.lpse.detil_paket_tender(48793127)
         detil.get_pemenang()
         for i, v in detil.pemenang[0].items():
             self.assertIsNotNone(v)
@@ -113,8 +148,6 @@ class TestLpse(unittest.TestCase):
             self.assertEqual(True, key in jadwal_key)
 
     def test_detil_todict(self):
-        print(self.lpse.host)
-        print(self.id_tender_selesai)
         detil = self.lpse.detil_paket_tender(self.id_tender_selesai)
         detil.get_all_detil()
 
@@ -135,20 +168,6 @@ class TestLpse(unittest.TestCase):
 
     def tearDown(self):
         del self.lpse
-
-
-class TestPaketTenderRUP(unittest.TestCase):
-    def test_get_rup_multiple_rows(self):
-        lpse = Lpse('https://lpse.kalselprov.go.id')
-        detail = lpse.detil_paket_tender('9316181')
-        detail.get_pengumuman()
-        self.assertTrue(len(detail.pengumuman['rencana_umum_pengadaan']) > 1)
-
-    def test_get_rup_empty(self):
-        lpse = Lpse('https://lpse.kalselprov.go.id')
-        detail = lpse.detil_paket_tender('2181')
-        detail.get_pengumuman()
-        self.assertEqual(detail.pengumuman['rencana_umum_pengadaan'], '')
 
 
 class TestPaketNonTender(unittest.TestCase):
@@ -253,63 +272,6 @@ class TestLpseHostError(unittest.TestCase):
         self.assertIn('sepertinya bukan aplikasi SPSE'.format(host), str(context.exception))
 
 
-# Data terlalu dinamis untuk di test
-# class TestLpseDetailKosong(unittest.TestCase):
-#
-#     def setUp(self):
-#         host = 'lpse.padang.go.id'
-#
-#         lpse = Lpse(host, timeout=30)
-#         paket = lpse.get_paket_tender(start=0, length=1)['data']
-#         self.detil = lpse.detil_paket_tender(paket[0][0])
-#
-#     def test_hasil_evaluasi_kosong(self):
-#         hasil_evaluasi = self.detil.get_hasil_evaluasi()
-#
-#         self.assertEqual(None, hasil_evaluasi)
-#
-#     def test_pemenang_kosong(self):
-#         pemenang = self.detil.get_pemenang()
-#
-#         self.assertEqual(None, pemenang)
-#
-#     def test_pemenang_berkontrak_kosong(self):
-#         pemenang_kontrak = self.detil.get_pemenang_berkontrak()
-#
-#         self.assertEqual(None, pemenang_kontrak)
-
-
-# Data terlalu dinamis untuk di test
-# class TestLpseDetailKosongNonTender(unittest.TestCase):
-#
-#     def setUp(self):
-#         host = 'http://lpse.bengkuluprov.go.id'
-#
-#         lpse = Lpse(host)
-#         paket = lpse.get_paket_non_tender(start=0, length=1)['data']
-#         self.detil = lpse.detil_paket_non_tender(paket[0][0])
-#
-#     def test_hasil_evaluasi(self):
-#         hasil_evaluasi = self.detil.get_hasil_evaluasi()
-#
-#         for row in hasil_evaluasi:
-#             for key in ['no', 'nama_peserta', 'npwp']:
-#                 self.assertEqual(key in row, True)
-#
-#     def test_pemenang(self):
-#         pemenang = self.detil.get_pemenang()
-#
-#         self.assertEqual(None, pemenang)
-#
-#     def test_pemenang_berkontrak(self):
-#         pemenang_berkontrak = self.detil.get_pemenang_berkontrak()
-#
-#         self.assertEqual(None, pemenang_berkontrak)
-#
-#     def tearDown(self):
-#         del self.detil
-
-
 class TestLpsePemenangDoubleTender(unittest.TestCase):
 
     def setUp(self):
@@ -340,67 +302,25 @@ class TestLpsePemenangDoubleTender(unittest.TestCase):
     def tearDown(self):
         del self.lpse
 
-# akun lpse kaltara di suspend pihak penyedia hosting
-# class TestLpseKolomPemenangTidakLengkap(unittest.TestCase):
-#
-#     def setUp(self):
-#         host = 'www.lpse-kaltara.go.id'
-#         self.lpse = Lpse(host, skip_spse_check=True)
-#
-#     def test_get_pemenang(self):
-#         detil = self.lpse.detil_paket_tender(1569716)
-#         pemenang = detil.get_pemenang()
-#         self.assertEqual(
-#             pemenang,
-#             [{'nama_pemenang': 'CV. NAJAH',
-#               'alamat': 'JL. IMAM BONJOL TANJUNG SELOR - Bulungan (Kab.) - Kalimantan Utara',
-#               'npwp': '02.673.860.9-727.000', 'harga_penawaran': '', 'hasil_negosiasi': ''}]
-#         )
-#
-#     def tearDown(self):
-#         del self.lpse
 
-# test removed, data sepertinya sudah di cleansing oleh pihak lpse
-# class TestNpwpNamaSplitter(unittest.TestCase):
-#
-#     def test_hasil_evaluasi_npwp_nama_split(self):
-#         with open(
-#             os.path.join(
-#                 os.path.dirname(os.path.realpath(__file__)),
-#                 'supporting_files',
-#                 'hasil_evaluasi_nama_npwp_test.txt'
-#             )
-#         ) as f:
-#             f.readline()
-#             csv_reader = csv.reader(f)
-#             total = 0
-#             success = 0
-#
-#             for row in csv_reader:
-#                 status = "ERROR"
-#                 print("{}Test package {} from {} ...".format(" "*4, row[0], row[-1]), end='')
-#
-#                 try:
-#                     lpse = Lpse(row[-1], timeout=60)
-#                     detil = lpse.detil_paket_non_tender(row[0])
-#                     detil.get_hasil_evaluasi()
-#                 except Exception:
-#                     pass
-#                 else:
-#                     pemenang = pyproc.utils.get_pemenang_from_hasil_evaluasi(detil.hasil)
-#                     non_digit = re.findall('[a-zA-Z]+', pemenang[0]['npwp'])
-#
-#                     self.assertEqual([], non_digit)
-#                     status = "OK"
-#                     del lpse
-#
-#                 total += 1
-#                 success = success + (1 if status == "OK" else 0)
-#                 print(status)
-#
-#             print("Success Rate", success/total)
-#             self.assertEqual(True, success/total >= 0.8)
-#
+class TestLpseKolomPemenangTidakLengkap(unittest.TestCase):
+
+    def setUp(self):
+        host = 'https://lpse.kaltaraprov.go.id'
+        self.lpse = Lpse(host, skip_spse_check=True)
+
+    def test_get_pemenang(self):
+        detil = self.lpse.detil_paket_tender(1569716)
+        pemenang = detil.get_pemenang()
+        self.assertEqual(
+            pemenang,
+            [{'nama_pemenang': 'CV. NAJAH',
+              'alamat': 'JL. IMAM BONJOL TANJUNG SELOR - Bulungan (Kab.) - Kalimantan Utara',
+              'npwp': '02.673.860.9-727.000', 'harga_penawaran': '', 'hasil_negosiasi': ''}]
+        )
+
+    def tearDown(self):
+        del self.lpse
 
 
 if __name__ == '__main__':

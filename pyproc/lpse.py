@@ -2,7 +2,8 @@ import time
 import bs4
 import requests
 import re
-
+import logging
+import backoff
 from . import utils
 from bs4 import BeautifulSoup as Bs, NavigableString
 from .exceptions import LpseVersionException, LpseHostExceptions, LpseServerExceptions, LpseAuthTokenNotFound
@@ -16,6 +17,18 @@ class By(Enum):
     NAMA_PAKET = 1
     INSTANSI = 2
     HPS = 4
+
+
+class JenisPengadaan(Enum):
+    """
+    Objek untuk menampung data kodifikasi jenis pengadaan
+    """
+    PENGADAAN_BARANG = 0
+    JASA_KONSULTANSI_BADAN_USAHA_NON_KONSTRUKSI = 1
+    PEKERJAAN_KONSTRUKSI = 2
+    JASA_LAINNYA = 3
+    JASA_KONSULTANSI_PERORANGAN = 4
+    JASA_KONSULTANSI_BADAN_USAHA_KONSTRUKSI = 5
 
 
 class Lpse(object):
@@ -47,6 +60,29 @@ class Lpse(object):
             netloc = parsed_url.path
 
         return '{}://{}'.format(scheme, netloc.strip('/'))
+
+    @staticmethod
+    def check_error(resp):
+        error_message = None
+        content = resp.text
+
+        if resp.status_code >= 400 or \
+                re.findall(r'Maaf, terjadi error pada aplikasi SPSE.', content) or \
+                re.findall(r'Terjadi Kesalahan', content):
+            error_message = "Terjadi error pada aplikasi SPSE."
+            error_code = re.findall(r'Kode Error: ([0-9a-zA-Z]+)', content)
+
+            if error_code:
+                error_message += ' Kode Error: ' + error_code[0]
+        elif re.findall('Halaman yang dituju tidak ditemukan', content):
+            error_message = "Paket tidak ditemukan"
+
+        if error_message is not None:
+            error_message = "{}; {}".format(
+                resp.url,
+                error_message
+            )
+            raise LpseServerExceptions(error_message)
 
     def update_info(self):
         """
@@ -129,20 +165,23 @@ class Lpse(object):
 
         return utils.parse_token(r.text)
 
+    @backoff.on_exception(backoff.fibo, LpseServerExceptions, jitter=None, max_tries=3)
     def get_paket(self, jenis_paket, start=0, length=0, data_only=False,
                   kategori=None, search_keyword=None, nama_penyedia=None,
-                  order=By.KODE, ascending=False):
+                  order=By.KODE, tahun=None, ascending=False, instansi_id=None):
         """
         Melakukan pencarian paket pengadaan
         :param jenis_paket: Paket Pengadaan Lelang (lelang) atau Penunjukkan Langsung (pl)
         :param start: index data awal
         :param length: jumlah data yang ditampilkan
         :param data_only: hanya menampilkan data tanpa menampilkan informasi lain
-        :param kategori: kategori pengadaan (lihat di pypro.kategori)
+        :param kategori: kategori pengadaan (lihat di lpse.JenisPengadaan)
         :param search_keyword: keyword pencarian paket pengadaan
         :param nama_penyedia: filter berdasarkan nama penyedia
         :param order: Mengurutkan data berdasarkan kolom
+        :param tahun: Tahun Pengadaan
         :param ascending: Ascending, descending jika diset False
+        :param instansi_id: Filter pencarian berdasarkan instansi atau satker tertentu
         :return: dictionary dari hasil pencarian paket (atau list jika data_only=True)
         """
 
@@ -156,6 +195,7 @@ class Lpse(object):
             'draw': 1,
             'start': start,
             'length': length,
+            'tahun': tahun,
             'search[value]': search_keyword if search_keyword else '',
             'search[regex]': 'false',
             'order[0][column]': order.value,
@@ -177,10 +217,13 @@ class Lpse(object):
             )
 
         if kategori:
-            params.update({'kategori': kategori})
+            params.update({'kategoriId': kategori.value})
 
         if nama_penyedia:
-            params.update({'rkn_nama': nama_penyedia})
+            params.update({'rekanan': nama_penyedia})
+
+        if instansi_id:
+            params.update({'instansiId': instansi_id})
 
         data = self.session.get(
             self.host + '/dt/' + jenis_paket,
@@ -198,6 +241,9 @@ class Lpse(object):
             }
         )
 
+        logging.debug(data.content)
+        self.check_error(data)
+
         data.encoding = 'UTF-8'
 
         if data_only:
@@ -207,7 +253,7 @@ class Lpse(object):
 
     def get_paket_tender(self, start=0, length=0, data_only=False,
                          kategori=None, search_keyword=None, nama_penyedia=None,
-                         order=By.KODE, ascending=False):
+                         order=By.KODE, tahun=None, ascending=False, instansi_id=None):
         """
         Wrapper pencarian paket tender
         :param start: index data awal
@@ -217,14 +263,16 @@ class Lpse(object):
         :param search_keyword: keyword pencarian paket pengadaan
         :param nama_penyedia: filter berdasarkan nama penyedia
         :param order: Mengurutkan data berdasarkan kolom
+        :param tahun: Tahun Pengadaan
         :param ascending: Ascending, descending jika diset False
+        :param instansi_id: Filter pencarian berdasarkan instansi atau satker tertentu
         :return: dictionary dari hasil pencarian paket (atau list jika data_only=True)
         """
         return self.get_paket('lelang', start, length, data_only, kategori, search_keyword, nama_penyedia,
-                              order, ascending)
+                              order, tahun, ascending, instansi_id)
 
-    def get_paket_non_tender(self, start=0, length=0, data_only=False,
-                             kategori=None, search_keyword=None, order=By.KODE, ascending=False):
+    def get_paket_non_tender(self, start=0, length=0, data_only=False, kategori=None, search_keyword=None,
+                             order=By.KODE, tahun=None, ascending=False, instansi_id=None):
         """
         Wrapper pencarian paket non tender
         :param start: index data awal
@@ -234,10 +282,13 @@ class Lpse(object):
         :param search_keyword: keyword pencarian paket pengadaan
         :param nama_penyedia: filter berdasarkan nama penyedia
         :param order: Mengurutkan data berdasarkan kolom
+        :param tahun: Tahun pengadaan
         :param ascending: Ascending, descending jika diset False
+        :param instansi_id: Filter pencarian berdasarkan instansi atau satker tertentu
         :return: dictionary dari hasil pencarian paket (atau list jika data_only=True)
         """
-        return self.get_paket('pl', start, length, data_only, kategori, search_keyword, None, order, ascending)
+        return self.get_paket('pl', start, length, data_only, kategori, search_keyword, None, order, tahun,
+                              ascending, instansi_id)
 
     def detil_paket_tender(self, id_paket):
         """
@@ -391,27 +442,14 @@ class BaseLpseDetilParser(object):
         self.lpse = lpse
         self.id_paket = id_paket
 
+    @backoff.on_exception(backoff.fibo, LpseServerExceptions, max_tries=3, jitter=None)
     def get_detil(self):
-        r = self.lpse.session.get(self.lpse.host+self.detil_path.format(self.id_paket), timeout=self.lpse.timeout)
+        url = self.lpse.host+self.detil_path.format(self.id_paket)
+        r = self.lpse.session.get(url, timeout=self.lpse.timeout)
 
-        self._check_error(r.text)
+        self.lpse.check_error(r)
 
         return self.parse_detil(r.content)
-
-    def _check_error(self, content):
-        error_message = None
-
-        if re.findall(r'Maaf, terjadi error pada aplikasi SPSE.', content):
-            error_message = "Terjadi error pada aplikasi SPSE."
-            error_code = re.findall(r'Kode Error: ([0-9a-zA-Z]{9})', content)
-
-            if error_code:
-                error_message += ' Kode Error: ' + error_code[0]
-        elif re.findall('Halaman yang dituju tidak ditemukan', content):
-            error_message = "Paket tidak ditemukan"
-
-        if not error_message is None:
-            raise LpseServerExceptions(error_message)
 
     @abstractmethod
     def parse_detil(self, content):
@@ -474,20 +512,19 @@ class LpseDetilPengumumanParser(BaseLpseDetilParser):
 
     def parse_rup(self, tbody_rup):
         raw_data = []
-        for tr in tbody_rup.find_all('tr'):
+        for tr in tbody_rup.find_all('tr', recursive=False):
             raw_data.append([' '.join(i.text.strip().split()) for i in tr.children if not isinstance(i, NavigableString)])
 
         header = ['_'.join(i.split()).lower() for i in raw_data[0]]
-        data = []
+        data = {}
 
         for row in raw_data[1:]:
-            item = {}
-            item.update(zip(header, row))
-            try:
-                item.pop('')
-            except KeyError:
-                pass
-            data.append(item)
+            data.update(zip(header, row))
+
+        try:
+            data.pop('')
+        except KeyError:
+            pass
 
         return data
 
@@ -503,9 +540,6 @@ class LpseDetilPesertaParser(BaseLpseDetilParser):
         soup = Bs(content, 'html5lib')
         table = soup.find('div', {'class': 'content'})\
             .find('table')
-
-        if not table:
-            return
 
         raw_data = [[i for i in tr.stripped_strings] for tr in table.find_all('tr')]
 
@@ -690,29 +724,6 @@ class LpseDetilHasilEvaluasiNonTenderParser(LpseDetilHasilEvaluasiParser):
 class LpseDetilPemenangNonTenderParser(LpseDetilPemenangParser):
 
     detil_path = '/evaluasinontender/{}/pemenang'
-#
-#     detil_path = '/evaluasinontender/{}/pemenang'
-#
-#     def parse_detil(self, content):
-#         soup = Bs(content, 'html5lib')
-#         table_pemenang = soup.find('table')
-#
-#         if table_pemenang:
-#             data = dict([(key, value) for key, value in self._parse_table_pemenang(table_pemenang)])
-#
-#             return None if not data else data
-#
-#         return
-#
-#     def _parse_table_pemenang(self, table_pemenang):
-#         for tr in table_pemenang.find_all('tr'):
-#             key = '_'.join(tr.find('th').text.strip().split()).lower()
-#             value = ' '.join(tr.find('td').text.strip().split())
-#
-#             if key in ['hps', 'pagu', 'hasil_negosiasi']:
-#                 value = self.parse_currency(value)
-#
-#             yield (key, value)
 
 
 class LpseDetilPemenangBerkontrakNonTenderParser(LpseDetilPemenangNonTenderParser):
