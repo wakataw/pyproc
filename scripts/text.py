@@ -29,6 +29,7 @@ HELP_LOG_LEVEL = "Set log level"
 HELP_KATEGORI = "filter pencarian index paket berdasarkan kategori"
 HELP_PENYEDIA = "filter pencarian index paket berdasarkan nama penyedia"
 HELP_OUTPUT = "format output hasil download"
+HELP_RESUME = "melanjutkan proses sebelumnya"
 
 #####################
 # Error Information #

@@ -3,6 +3,7 @@ import csv
 import json
 import re
 import logging
+import signal
 import sqlite3
 import threading
 from time import sleep
@@ -23,6 +24,19 @@ def set_up_log(level):
         raise ValueError('Invalid log level: {}'.format(level))
 
     logging.basicConfig(level=numeric_level, format='[%(asctime)s %(levelname)s] %(message)s')
+
+
+class Killer:
+    kill_now = False
+
+    def __init__(self):
+        signal.signal(signal.SIGINT, self.exit_gracefully)
+        signal.signal(signal.SIGTERM, self.exit_gracefully)
+
+    def exit_gracefully(self, *args):
+        logging.debug("Get {} signal".format(args))
+        logging.info("Proses dibatalkan user")
+        self.kill_now = True
 
 
 class LpseHost(object):
@@ -81,6 +95,7 @@ class DownloaderContext(object):
         self.keep_workdir = args.keep_workdir
         self.log_level = args.log
         self.output_format = args.output_format
+        self.resume = args.resume
         self.__lpse_host = args.lpse_host
 
     @property
@@ -212,8 +227,13 @@ class IndexDownloader(object):
         """
         db_filename = filename.name + ".idx"
         db_file = Path.cwd() / db_filename
-        logging.debug("Generate index database: {}".format(db_file.name))
         db = sqlite3.connect(db_file, check_same_thread=False)
+
+        if self.ctx.resume:
+            logging.info("{} - skip db init".format(self.lpse_host.url))
+            return db
+
+        logging.debug("Generate index database: {}".format(db_file.name))
         logging.debug("Create index table")
 
         try:
@@ -272,12 +292,18 @@ class IndexDownloader(object):
         Start index downloader
         :return:
         """
+        killer = Killer()
+
         for tahun in self.ctx.tahun_anggaran:
             total = self.get_total_package(tahun=tahun)
             batch_total = -(-total // self.ctx.chunk_size)
             data_count = 0
 
             for batch in range(batch_total):
+                if killer.kill_now:
+                    del self.db
+                    exit(1)
+
                 data = self.lpse.get_paket(jenis_paket=self.get_jenis_paket(), start=batch * self.ctx.chunk_size,
                                            length=self.ctx.chunk_size, kategori=self.ctx.kategori,
                                            search_keyword=self.ctx.keyword, nama_penyedia=self.ctx.nama_penyedia,
@@ -396,10 +422,11 @@ class DetailDownloader(object):
             self.index_downloader.db.commit()
 
     def start(self):
+        killer = Killer()
         index_generator = self.index_downloader.get_index()
         total_downloaded = 0
 
-        while True:
+        while not killer.kill_now:
             lpse_index = []
 
             for i in range(self.index_downloader.ctx.workers):
@@ -435,6 +462,10 @@ class DetailDownloader(object):
 
             if len(lpse_index) != self.index_downloader.ctx.workers:
                 break
+
+        if killer.kill_now:
+            del killer
+            exit(1)
 
         print()
         logging.info("{} - {} data berhasil diunduh".format(self.index_downloader.lpse_host.url, total_downloaded))
@@ -583,6 +614,7 @@ class Downloader(object):
         parser.add_argument('-d', '--index-download-delay', type=int, default=1, help=text.HELP_INDEX_DOWNLOAD_DELAY)
         parser.add_argument('-o', '--output-format', choices=['json', 'csv'], default='csv', help=text.HELP_OUTPUT)
         parser.add_argument('--keep-workdir', action='store_true', help=text.HELP_KEEP)
+        parser.add_argument('-r', '--resume', action='store_true', help=text.HELP_RESUME)
         parser.add_argument('--log', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], default='INFO',
                             help=text.HELP_LOG_LEVEL)
 
@@ -599,7 +631,9 @@ class Downloader(object):
     def start(self):
         for lpse_host in self.ctx.lpse_host_list:
             index_downloader = IndexDownloader(self.ctx, lpse_host)
-            index_downloader.start()
+
+            if not self.ctx.resume:
+                index_downloader.start()
 
             detail_downloader = DetailDownloader(index_downloader)
             detail_downloader.start()
