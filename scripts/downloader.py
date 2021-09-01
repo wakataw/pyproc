@@ -562,6 +562,21 @@ class Exporter:
             f.write("]")
 
 
+class QualityAssurance:
+
+    def __init__(self, index_downloader: IndexDownloader):
+        self.index_downloader = index_downloader
+
+    def check(self):
+        all_data = self.index_downloader.db.execute("SELECT STATUS, COUNT(1) FROM INDEX_PAKET GROUP BY STATUS")
+        result = dict(all_data.fetchall())
+        success = result.get(1, 0)
+        fail = result.get(0, 0)
+        total = sum(result.values())
+
+        return total, success, fail
+
+
 class Downloader(object):
     ctx = None
 
@@ -644,6 +659,14 @@ class Downloader(object):
                 exporter.to_json()
             elif self.ctx.output_format == 'csv':
                 exporter.to_csv()
+
+            qa = QualityAssurance(index_downloader)
+            total, success, fail = qa.check()
+            if fail == 0:
+                logging.info("Proses selesai: {}/{} ({:,.2f}) terunduh".format(success, total, success/total*100))
+            else:
+                logging.info("Proses gagal: {}/{} ({:,.2f}%).".format(fail, total, fail/total*100))
+                logging.info("Jalankan perintah dengan parameter --fix untuk mengunduh ulang paket yang gagal")
 
             del index_downloader
             del detail_downloader
