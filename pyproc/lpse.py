@@ -165,7 +165,10 @@ class Lpse(object):
 
         return utils.parse_token(r.text)
 
-    @backoff.on_exception(backoff.fibo, LpseServerExceptions, jitter=None, max_tries=3)
+    @backoff.on_exception(backoff.fibo,
+                          (LpseServerExceptions, requests.exceptions.RequestException,
+                           requests.exceptions.ConnectionError),
+                          jitter=None, max_tries=3)
     def get_paket(self, jenis_paket, start=0, length=0, data_only=False,
                   kategori=None, search_keyword=None, nama_penyedia=None,
                   order=By.KODE, tahun=None, ascending=False, instansi_id=None):
@@ -442,7 +445,10 @@ class BaseLpseDetilParser(object):
         self.lpse = lpse
         self.id_paket = id_paket
 
-    @backoff.on_exception(backoff.fibo, LpseServerExceptions, max_tries=3, jitter=None)
+    @backoff.on_exception(backoff.fibo,
+                          (LpseServerExceptions, requests.exceptions.RequestException,
+                           requests.exceptions.ConnectionError),
+                          max_tries=3, jitter=None)
     def get_detil(self):
         url = self.lpse.host+self.detil_path.format(self.id_paket)
         r = self.lpse.session.get(url, timeout=self.lpse.timeout)
