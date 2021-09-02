@@ -628,7 +628,7 @@ class Downloader(object):
         parser.add_argument('-n', '--non-tender', action='store_true', help=text.HELP_NONTENDER)
         parser.add_argument('-d', '--index-download-delay', type=int, default=1, help=text.HELP_INDEX_DOWNLOAD_DELAY)
         parser.add_argument('-o', '--output-format', choices=['json', 'csv'], default='csv', help=text.HELP_OUTPUT)
-        parser.add_argument('--keep-workdir', action='store_true', help=text.HELP_KEEP)
+        parser.add_argument('--keep-index', action='store_true', help=text.HELP_KEEP)
         parser.add_argument('-r', '--resume', action='store_true', help=text.HELP_RESUME)
         parser.add_argument('--log', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], default='INFO',
                             help=text.HELP_LOG_LEVEL)
@@ -666,7 +666,7 @@ class Downloader(object):
                 logging.info("Proses selesai: {}/{} ({:,.2f}) terunduh".format(success, total, success/total*100))
             else:
                 logging.info("Proses gagal: {}/{} ({:,.2f}%).".format(fail, total, fail/total*100))
-                logging.info("Jalankan perintah dengan parameter --fix untuk mengunduh ulang paket yang gagal")
+                logging.info("Jalankan perintah dengan parameter --resume / -r untuk mengunduh ulang paket yang gagal")
 
             del index_downloader
             del detail_downloader

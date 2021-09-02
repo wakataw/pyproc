@@ -7,17 +7,15 @@ class DownloaderTest(unittest.TestCase):
     def test_context_parser(self):
         downloader = Downloader()
         ctx = downloader.get_ctx("--keyword WKWK --tahun-anggaran 2020 --chunk-size 1000 --workers 999 --timeout 99 "
-                                 "--non-tender --index-download-delay 5 --keep-workdir --force --clear "
-                                 "--kategori PEKERJAAN_KONSTRUKSI --nama-penyedia HAHA "
+                                 "--non-tender --index-download-delay 5 --keep-workdir "
+                                 "--kategori PEKERJAAN_KONSTRUKSI --nama-penyedia HAHA --resume "
                                  "https://lpse.sumbarprov.go.id".split(' '))
         expected_condition = {
             '_DownloaderContext__lpse_host': 'https://lpse.sumbarprov.go.id',
             'chunk_size': 1000,
-            'clear': True,
-            'force': True,
+            'keep_workdir': True,
             'index_download_delay': 5,
             '_kategori': "PEKERJAAN_KONSTRUKSI",
-            'keep_workdir': True,
             'keyword': 'WKWK',
             'nama_penyedia': "HAHA",
             'non_tender': True,
@@ -25,7 +23,8 @@ class DownloaderTest(unittest.TestCase):
             'timeout': 99,
             'workers': 999,
             'log_level': 'INFO',
-            'output_format': 'csv'
+            'output_format': 'csv',
+            'resume': True
         }
 
         for key, v in ctx.__dict__.items():
