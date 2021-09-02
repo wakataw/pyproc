@@ -323,5 +323,13 @@ class TestLpseKolomPemenangTidakLengkap(unittest.TestCase):
         del self.lpse
 
 
+class TestPaketTenderRUP(unittest.TestCase):
+    def test_get_rup_multiple_rows(self):
+        lpse = Lpse('https://lpse.kalselprov.go.id')
+        detail = lpse.detil_paket_tender('9316181')
+        detail.get_pengumuman()
+        print(detail.pengumuman['rencana_umum_pengadaan'])
+
+
 if __name__ == '__main__':
     unittest.main()
