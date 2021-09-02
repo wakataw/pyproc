@@ -507,7 +507,7 @@ class LpseDetilPengumumanParser(BaseLpseDetilParser):
                         data_value = int(td.text.strip().split()[0])
                     except ValueError:
                         data_value = -1
-                elif data_key == 'nama_tender':
+                elif data_key == 'nama_tender' or data_key == 'nama_paket':
                     data_value, label = self.parse_nama_tender(td)
                     data.update({
                         'label_paket': label
