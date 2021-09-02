@@ -523,19 +523,17 @@ class LpseDetilPengumumanParser(BaseLpseDetilParser):
 
     def parse_rup(self, tbody_rup):
         raw_data = []
-        for tr in tbody_rup.find_all('tr', recursive=False):
+        for tr in tbody_rup.find_all('tr'):
             raw_data.append([' '.join(i.text.strip().split()) for i in tr.children if not isinstance(i, NavigableString)])
 
         header = ['_'.join(i.split()).lower() for i in raw_data[0]]
-        data = {}
+        data = []
 
         for row in raw_data[1:]:
-            data.update(zip(header, row))
-
-        try:
-            data.pop('')
-        except KeyError:
-            pass
+            item = {}
+            item.update(zip(header, row))
+            item.pop('')
+            data.append(item)
 
         return data
 
