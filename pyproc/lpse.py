@@ -507,6 +507,11 @@ class LpseDetilPengumumanParser(BaseLpseDetilParser):
                         data_value = int(td.text.strip().split()[0])
                     except ValueError:
                         data_value = -1
+                elif data_key == 'nama_tender':
+                    data_value, label = self.parse_nama_tender(td)
+                    data.update({
+                        'label_paket': label
+                    })
                 else:
                     data_value = ' '.join(td.text.strip().split())
 
@@ -536,6 +541,16 @@ class LpseDetilPengumumanParser(BaseLpseDetilParser):
 
     def parse_lokasi_pekerjaan(self, td_pekerjaan):
         return [' '.join(li.text.strip().split()) for li in td_pekerjaan.find_all('li')]
+
+    def parse_nama_tender(self, element):
+        label = []
+        for i in element.find_all('span'):
+            label.append(i.text.strip())
+            i.decompose()
+
+        text = element.text.strip()
+
+        return text, label
 
 
 class LpseDetilPesertaParser(BaseLpseDetilParser):
