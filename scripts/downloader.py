@@ -92,7 +92,7 @@ class DownloaderContext(object):
         self.timeout = args.timeout
         self.non_tender = args.non_tender
         self.index_download_delay = args.index_download_delay
-        self.keep_workdir = args.keep_workdir
+        self.keep_index = args.keep_index
         self.log_level = args.log
         self.output_format = args.output_format
         self.resume = args.resume
