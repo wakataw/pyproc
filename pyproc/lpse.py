@@ -532,7 +532,10 @@ class LpseDetilPengumumanParser(BaseLpseDetilParser):
         for row in raw_data[1:]:
             item = {}
             item.update(zip(header, row))
-            item.pop('')
+            try:
+                item.pop('')
+            except KeyError:
+                pass
             data.append(item)
 
         return data
