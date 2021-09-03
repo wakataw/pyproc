@@ -201,6 +201,7 @@ class LpseIndex:
 class IndexDownloader(object):
     __tahun_anggaran_pattern = re.compile('(\d+)')
     db = None
+    db_status_for_resume = False
 
     def __init__(self, ctx, lpse_host):
         self.ctx: DownloaderContext = ctx
@@ -212,6 +213,21 @@ class IndexDownloader(object):
             lpse_host.url, "Pengadaan Langsung" if self.ctx.non_tender else "Tender",
             ', '.join(map(str, self.ctx.tahun_anggaran)) if self.ctx.tahun_anggaran[0] is not None else 'ALL'
         ))
+
+    def __check_index_db(self, db):
+        status = False
+        try:
+            total = db.execute("SELECT COUNT(1) FROM INDEX_PAKET").fetchone()[0]
+            logging.info("{} - total previous index {}".format(self.lpse_host.url, total))
+            if total > 0:
+                status = True
+        except Exception as e:
+            logging.info("{} - check index db gagal, error: {}".format(self.lpse_host.url, e))
+            status = False
+
+        logging.info("{} - status previous index db {}".format(self.lpse_host.url, status))
+        self.db_status_for_resume = status
+        return status
 
     def get_index_db(self, filename):
         """
@@ -229,8 +245,8 @@ class IndexDownloader(object):
         db_file = Path.cwd() / db_filename
         db = sqlite3.connect(db_file, check_same_thread=False)
 
-        if self.ctx.resume:
-            logging.info("{} - skip db init".format(self.lpse_host.url))
+        if self.ctx.resume and self.__check_index_db(db):
+            logging.info("{} - skip db init, melanjutkan proses".format(self.lpse_host.url))
             return db
 
         logging.debug("Generate index database: {}".format(db_file.name))
@@ -292,6 +308,9 @@ class IndexDownloader(object):
         Start index downloader
         :return:
         """
+        if self.ctx.resume and self.db_status_for_resume:
+            return
+
         killer = Killer()
 
         for tahun in self.ctx.tahun_anggaran:
@@ -647,8 +666,7 @@ class Downloader(object):
         for lpse_host in self.ctx.lpse_host_list:
             index_downloader = IndexDownloader(self.ctx, lpse_host)
 
-            if not self.ctx.resume:
-                index_downloader.start()
+            index_downloader.start()
 
             detail_downloader = DetailDownloader(index_downloader)
             detail_downloader.start()
@@ -662,6 +680,7 @@ class Downloader(object):
 
             qa = QualityAssurance(index_downloader)
             total, success, fail = qa.check()
+
             if fail == 0:
                 logging.info("Proses selesai: {}/{} ({:,.2f}) terunduh".format(success, total, success/total*100))
             else:

@@ -1,3 +1,4 @@
+import time
 import unittest
 from scripts.downloader import *
 
@@ -179,6 +180,49 @@ class DownloaderTest(unittest.TestCase):
             res = index_downloader.db.execute("SELECT COUNT(1) FROM main.INDEX_PAKET WHERE STATUS = 1").fetchone()
 
             self.assertTrue(res[0] > 0)
+
+    def __init_db(self):
+        downloader = Downloader()
+        downloader.get_ctx("http://lpse.kepahiangkab.go.id".split())
+
+        logging.info("Start index download without detail")
+
+        for lpse_host in downloader.ctx.lpse_host_list:
+            index_downloader = IndexDownloader(downloader.ctx, lpse_host)
+            index_downloader.start()
+
+            total = index_downloader.db.execute("SELECT COUNT(1) FROM INDEX_PAKET WHERE DETAIL IS NOT NULL").fetchone()[0]
+            self.assertEqual(total, 0)
+
+    def test_resume_download(self):
+        self.__init_db()
+        downloader = Downloader()
+        downloader.get_ctx("http://lpse.kepahiangkab.go.id -r".split())
+
+        logging.info("Start index download with detail")
+
+        downloader.start()
+
+        for lpse_host in downloader.ctx.lpse_host_list:
+            index_downloader = IndexDownloader(downloader.ctx, lpse_host)
+            total = index_downloader.db.execute("SELECT COUNT(1) FROM INDEX_PAKET WHERE DETAIL IS NULL").fetchone()[0]
+            self.assertEqual(total, 0)
+
+    def test_resume_without_db(self):
+        """
+        Test argument resume untuk lpse yang sebenarnya belum pernah didownload
+        :return:
+        """
+        downloader = Downloader()
+        timestamp = int(time.time())
+        downloader.get_ctx(f"http://lpse.kepahiangkab.go.id;{timestamp} -r".split())
+
+        downloader.start()
+
+        for lpse_host in downloader.ctx.lpse_host_list:
+            index_downloader = IndexDownloader(downloader.ctx, lpse_host)
+            total = index_downloader.db.execute("SELECT COUNT(1) FROM INDEX_PAKET WHERE DETAIL IS NULL").fetchone()[0]
+            self.assertEqual(total, 0)
 
 
 if __name__ == '__main__':
