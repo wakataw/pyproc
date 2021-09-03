@@ -160,8 +160,6 @@ class Lpse(object):
 
             if auth_token:
                 return auth_token[0]
-            else:
-                raise LpseAuthTokenNotFound
 
         return utils.parse_token(r.text)
 

@@ -1,3 +1,4 @@
+import logging
 import unittest
 from datetime import datetime
 from pyproc import Lpse, JenisPengadaan
@@ -23,6 +24,12 @@ class TestLpse(unittest.TestCase):
         token = self.lpse.get_auth_token()
         token_from_session = self.lpse.session.cookies['SPSE_SESSION'].split('___')[1].split('=')[1].strip('&')
         self.assertEqual(token, token_from_session)
+
+    def test_get_encoded_session_auth_token(self):
+        lpse = Lpse('https://lpse.lampungprov.go.id')
+        token = lpse.get_auth_token()
+        print("auth token: {}".format(token))
+        self.assertTrue(len(token) > 10)
 
     def test_get_paket_tender_kosong(self):
         data = self.lpse.get_paket_tender()
