@@ -4,23 +4,13 @@
 
 PyProc (Python Procurement) merupakan wrapper untuk API SPSE Versi 4 yang ditulis dalam bahasa Python. Sistem Pengadaan Secara Elektronik (SPSE) SPSE merupakan aplikasi e-Procurement yang dikembangkan oleh LKPP untuk digunakan oleh LPSE di instansi pemerintah seluruh Indonesia.
 
-# Quickstart
-
-## TL;DR
-
-1. Installasi
-
-   ```bash
-   $ pip install pyproc
-   ```
-
-2. Download Data LPSE
-
-   ```bash
-   $ pyproc --host lpse.pu.go.id
-   ```
-
-3. Profit???
+> DISCLAIMER: 
+> 
+> Penulis tidak terafiliasi dengan pengembang SPSE atau pemilik aplikasi SPSE. Software ini dikembangkan dengan tujuan akademis, bentuk pengawasan oleh masyarakat, dan membantu pengusaha untuk mempermudah otomasi perolehan informasi pengadaan dari pemerintah.
+> 
+> Penggunaan yang tidak wajar dan mengganggu sebagian atau seluruh fungsi aplikasi SPSE pada satuan kerja menjadi tanggung jawab masing-masing pengguna.
+> 
+> PyProc ada karena SPSE ada, jadi gunakanlah dengan bijak dan secukupnya.
 
 ## Pemasangan
 
@@ -29,89 +19,94 @@ Pemasangan PyProc via `pip`:
 $ pip install pyproc
 ```
 
+Upgrade PyProc via `pip`:
+```bash
+$ pip install pyproc --upgrade
+```
+
+Instalasi versi unstable:
+```bash
+$ pip install git+https://github.com/wakataw/pyproc.git
+```
+
 ## Testing
 
 Anda bisa menjalankan beberapa Test Case untuk memastikan semua fungsi berjalan dengan baik.
 Clone repository ini lalu jalankan perintah berikut:
 
 ```bash
+$ git clone https://github.com/wakataw/pyproc.git
+$ cd pyproc
 $ python setup.py test
 ```
 
 ## Penggunaan Command Line Interface
 
+Format Command
 ```bash
-usage: pyproc [-h] [--host LPSE_HOST] [--out OUT] [-r FILENAME]
-              [--tahun-anggaran TAHUN_ANGGARAN] [--workers WORKERS]
-              [--pool-size POOL_SIZE] [--fetch-size FETCH_SIZE] [--timeout TIMEOUT] 
-              [--keep] [--index-download-delay INDEX_DOWNLOAD_DELAY] [--non-tender]
-              [--force]
+$ pyproc [ARGUMENT] DAFTAR_LPSE
 ```
 **Arguments**
 
-argumen | diperlukan | keterangan
----|---|---
-`-h, --help`| optional | menampilkan bantuan
-`--host LPSE_HOST` | Optional | Alamat website aplikasi LPSE, pisahkan dengan `,` untuk multiple lpse
-`--out OUT` | Optional, default nama domain | Nama file untuk hasil download LPSE
-`--read FILENAME`, `-r FILENAME` | Optional | Membaca daftar alamat lpse dari file 
-`--tahun-anggaran TAHUN_ANGGARAN` | Optional, default tahun berjalan | Filter download hanya untuk tahun yang diberikan
-`--pool-size POOL_SIZE` | Optional, default 4 | Jumlah koneksi dalam connection pool untuk mendownload index paket
-`--fetch-size FETCH_SIZE` | optional, default 30 | Jumlah row yang didownload per halaman
-`--workers WORKERS` | optional, default 8 | Workers untuk mendownload detil pengumuman dan pemenang
-`--timeout TIMEOUT` | optional, default 10 (dalam detik) | Time out jika server tidak merespon dalam waktu tertentu
-`--index-download-delay` | optional, default 1 (dalam detik) | Menambahkan delay untuk setiap iterasi halaman index paket
-`--keep` | optional, default `false` | saat download berjalan, `pyproc` akan membentuk sebuah folder yang digunakan sebagai *working directory* dan akan dihapus jika proses download telah selesai. Gunakan argumen `--keep` apabila tidak ingin menghapus *working directory* `pyproc`.
-`--non-tender` | optional, default `false` | Download paket non tender
-`--force` | optional, default `false` | PyProc akan menyimpan index paket dan hanya akan melakukan indexing ulang jika terdapat perbedaan antara data terbaru dan index cache. Argumen `--force` akan selalu menggunakan index terbaru tanpa memperdulikan index cache.
+argumen | contoh | diperlukan | default | keterangan
+---|---|---|---|---
+`-h --help` | `pyproc --help` | optional | - | menampilkan keterangan dan bantuan
+`-k --keyword` | `pyproc --keyword "mobil dinas" ...` | optional | - | filter pencarian index paket berdasarkan kata kunci tertentu
+`-t --tahun-anggaran` | `pyproc --tahun-anggaran 2021 ...` | optional | Tahun Berjalan | Filter pencarian index paket berdasarkan tahun anggaran tertentu. Fungsi ini hanya berlaku mulai dari SPSE 4.4. <br><br>Format Penulisan: <br>**ALL**: mengunduh seluruh data <br>**2021**: mengunduh data untuk tahun 2021 <br>**2015,2018,2019**: mengunduh data untuk tahun 2015, 2018, dan 2019<br>**2011-2020** mengunduh data untuk tahun 2011 s.d. 2020
+`--kategori` | `pyproc --kategori PENGADAAN_BARANG ...` | optional | - | Filter pencarian berdasarkan kategori pengadaan. <br>Daftar kategori: `PENGADAAN_BARANG`, `JASA_KONSULTANSI_BADAN_USAHA_NON_KONSTRUKSI`, `PEKERJAAN_KONSTRUKSI`, `JASA_LAINNYA`, `JASA_KONSULTANSI_PERORANGAN`, `JASA_KONSULTANSI_BADAN_USAHA_KONSTRUKSI`
+`--nama-penyedia` | `pyproc --nama-penyedia "PT SUKA MAJU" ...` | optional | - | Filter pencarian index paket berdasarkan nama penyedia
+`-c --chunk-size` | `pyproc --chunk-size 25 ...` | optional | 25 | Jumlah daftar paket per halaman yang diunduh. Semakin besar jumlah tidak menjamin proses download semakin cepat. Gunakanlah jumlah data yang wajar sehingga tidak membebani server SPSE.
+`-w --workers` | `pyproc --workers 4 ...` | optional | 8 | Jumlah koneksi yang berjalan secara bersamaan saat mengunduh detil paket dengan maksimal 10 worker.
+`-x --timeout` | `pyproc --timeout 60 ...` | optional | 30 | Waktu tunggu jika koneksi lambat (dalam detik)
+`-n --non-tender` | `pyproc --non-tender ...` | optional | FALSE | Tambahkan argumen ini untuk mengunduh data non-tender/pengadaan langsung
+`-d --index-download-delay` | `pyproc --index-download-delay 5 ...` | optional | 1 | Waktu jeda download index paket untuk setiap halaman/batch
+`-o --output` | `pyproc --ouput csv ...` | optional | csv | Jenis data keluaran/hasil dari download. Format yang didukung csv dan json. Karena keterbatasan format, tidak semua data ditampilkan pada format csv. Jika memerlukan data detil yang komprehensif, gunakan format json karena mencangkup semua data detail.
+`--keep-index` | `pyproc --keep-index ...` | optinal | FALSE | pyproc akan membentuk file idx (sqlite3 database) saat proses download dan akan dihapus ketika proses selesai. Tambahkan argumen ini jika tidak ingin menghapus database tersebut.
+`-r --resume` | `pyproc --resume ...` | optinal | FALSE | Tambahkan argument ini untuk melanjutkan proses yang gagal (karena internet putus atau gangguan koneksi lainnya). Namun pastikan bahwa seluruh index sudah berhasil diunduh karena argumen --resume akan melewati proses download index.
+`--log` | `pyproc --log INFO ...` | optional | INFO | Argumen untuk setting informasi yang ditampilkan pyproc pada terminal. Daftar nilai yang didukung: <br>`DEBUG`: menampilkan informasi sedetil mungkin<br>`INFO`: menampilkan informasi penting saja <br>`WARNING`: hanya menampilkan informasi yang bersifat warning <br>`ERROR`: hanya menampilkan error <br>`CRITICAL`: hanya menampilkan permasalahan yang bersifat kritis saja
+DAFTAR_LPSE | `pyproc http://lpse.pu.go.id` | Ya | - | Daftar alamat LPSE yang akan diunduh disertai protokol (http/https). <br>Format yang didukung:<br>`https://lpse.pu.go.id`:  download data lpse dari https://lpse.pu.go.id
 
-**Contoh**
+## Format Daftar LPSE (lanjutan)
+PyProc dapat mengunduh data dari 1 atau lebih LPSE. Proses tersebut akan berjalan sesuai dengan nilai `DAFTAR_LPSE` yang diberikan user. Beberapa format yang didukung oleh PyProc adalah sebagai berikut:
+- Download data dengan menyertakan nama file hasil download
+  
+  Untuk set nama file secara manual, gunakan format `"alamatlpse[titik_koma]namafile"`.
+  
+  ```bash
+  $ pyproc "http://lpse.pu.go.id;namaoutput" --output json
+  ```
+  
+  perintah ini akan mengunduh data LPSE PU dan mengekspor data ke file `namaoutput.json`
 
-Download daftar paket lelang dari https://lpse.pu.go.id untuk tahun berjalan
-```bash
-$ pyproc --host https://lpse.pu.go.id
+- Download data lebih dari 1 LPSE
+  
+  Untuk mengunduh lebih dari 1 lpse secara bersamaan, gunakan format `"alamat1[koma]alamat2[koma]alamat3"`
 
-# atau dengan memberikan nama spesifik untuk hasil download
-$ pyproc --host https://lpse.pu.go.id --out hasil_download_lpse_pu.csv
-```
+  ```bash
+  $ pyproc https://lpse.jakarta.go.id,http://lpse.pu.go.id
+  ```
+  
+  atau dengan menyertakan namafile dengan format `"alamat1[titikkoma]nama1[koma]alamat2[titikkoma]nama2"`
 
-Download daftar paket lelang tahun 2017
-```bash
-$ pyproc --tahun-anggaran 2017 --host lpse.pu.go.id 
-```
+  ```bash
+  $ pyproc "https://lpse.jakarta.go.id;filejakarta,http://lpse.pu.go.id;filepu"
+  ```
 
-Download paket pengadaan non tender (penunjukkan langsung)
-```bash
-$ pyproc --non-tender --host lpse.jakarta.go.id
-```
+  - Download data berdasrakan daftar lpse pada file csv
+  Download paket LPSE dengan sumber alamat dari file
+  ```bash
+  $ pyproc daftarlpse.csv
 
-Download paket pengadaan tender untuk rentang tahun anggaran tertentu
-```bash
-$ pyproc --host lpse.padang.go.id --tahun-anggaran 2017-2019
-```
-
-Download paket pengadaan tender dari 2 lpse dengan set jumlah workers, timeout, fetch size secara manual
-```bash
-$ pyproc --host lpse.pu.go.id,lpse.sumbarprov.go.id --workers 30 --timeout 600 --fetch-size 1000
-
-# jika ingin menambahkan nama file hasil secara manual
-$ pyproc --host lpse.pu.go.id;hasil-pu.csv,lpse.sumbarprov.go.id;hasil-sumbar.csv --workers 30 --timeout 600 --fetch-size 1000
-```
-
-Download paket LPSE dengan sumber alamat dari file
-```bash
-$ pyproc -r daftarlpse.csv
-
-# konten daftarlpse.csv
-lpse.sumbarprov.go.id
-lpse.pu.go.id
-lpse.kemenkeu.go.id
-
-# konten daftarlpse.csv dengan nama hasil download
-lpse.sumbarprov.go.id;lpse-sumbar.csv
-lpse.pu.go.id;lpse-pu.csv
-lpse.kemenkeu.go.id;lpse-kemenkeu.csv
-```
+  # konten daftarlpse.csv
+  lpse.sumbarprov.go.id
+  lpse.pu.go.id
+  lpse.kemenkeu.go.id
+  
+  # konten daftarlpse.csv dengan nama hasil download
+  lpse.sumbarprov.go.id;lpse-sumbar
+  lpse.pu.go.id;lpse-pu.csv
+  lpse.kemenkeu.go.id;lpse-kemenkeu
+  ```
 
 ## Penggunaan PyProc Sebagai Package
 
@@ -157,12 +152,12 @@ daftar_lelang = lpse.get_paket_tender(start=0, length=30, order=By.HPS)
 Filter pencarian paket berdasarkan kategori pengadaan
 ```python
 from pyproc import Lpse
-from pyproc import PENGADAAN_BARANG, PEKERJAAN_KONSTRUKSI, JASA_KONSULTANSI, JASA_KONSULTANSI_PERORANGAN, JASA_LAINNYA
+from pyproc import JenisPengadaan
 lpse = Lpse('http://lpse.padang.go.id')
 
 # Kategori Pengadaan Barang
-paket_pengadaan_barang = lpse.get_paket_tender(start=0, length=30, kategori=PENGADAAN_BARANG)
-paket_konstruksi = lpse.get_paket_tender(start=0, length=30, kategori=PEKERJAAN_KONSTRUKSI)
+paket_pengadaan_barang = lpse.get_paket_tender(start=0, length=30, kategori=JenisPengadaan.PENGADAAN_BARANG)
+paket_konstruksi = lpse.get_paket_tender(start=0, length=30, kategori=JenisPengadaan.PEKERJAAN_KONSTRUKSI)
 
 # dst untuk kategori lainnya
 ```
@@ -190,13 +185,6 @@ Untuk uninstall package jalankan perintah berikut:
 ```bash
 $ pip uninstall pyproc
 ```
-
-Pada saat installasi, `PyProc` akan membentuk folder cache. Untuk clean uninstall hapus manual folder di lokasi berikut:
-
-OS |Lokasi
----|---
-GNU/Linux | `~/.pyproc`
-Windows | `C:\Users\<username>\.pyproc` (asumsi system windows berada di drive `C:`)
 
 ## License
 Paket ini di-release di bawah lisensi MIT.
