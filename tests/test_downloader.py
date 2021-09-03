@@ -145,7 +145,7 @@ class DownloaderTest(unittest.TestCase):
         from pathlib import Path
         import sqlite3
         downloader = Downloader()
-        downloader.get_ctx("--log=DEBUG http://lpse.kepahiangkab.go.id".split())
+        downloader.get_ctx("--log=DEBUG http://lpse.kepahiangkab.go.id --tahun-anggaran 2021 --keep-index".split())
         downloader.start()
 
         db_file = Path.cwd() / 'http_lpse_kepahiangkab_go_id.idx'
@@ -223,6 +223,44 @@ class DownloaderTest(unittest.TestCase):
             index_downloader = IndexDownloader(downloader.ctx, lpse_host)
             total = index_downloader.db.execute("SELECT COUNT(1) FROM INDEX_PAKET WHERE DETAIL IS NULL").fetchone()[0]
             self.assertEqual(total, 0)
+
+    def test_clear_working_dir(self):
+        downloader = Downloader()
+        downloader.get_ctx("http://lpse.kepahiangkab.go.id;index-deleted".split())
+
+        logging.info("Start index download with detail")
+
+        downloader.start()
+
+        index_path = Path.cwd() / 'index-deleted.idx'
+        csv_path = Path.cwd() / 'index-deleted.csv'
+
+        self.assertFalse(index_path.is_file())
+        self.assertTrue(csv_path.is_file())
+
+    def test_args_keep_index(self):
+        downloader = Downloader()
+        downloader.get_ctx("http://lpse.kepahiangkab.go.id;index-deleted --keep-index".split())
+
+        logging.info("Start index download with detail")
+
+        downloader.start()
+
+        index_path = Path.cwd() / 'index-deleted.idx'
+        csv_path = Path.cwd() / 'index-deleted.csv'
+
+        self.assertTrue(index_path.is_file())
+        self.assertTrue(csv_path.is_file())
+
+    def tearDown(self):
+        csv = Path.cwd().glob('*.csv')
+        idx = Path.cwd().glob('*.idx')
+
+        for i in csv:
+            i.unlink()
+
+        for i in idx:
+            i.unlink()
 
 
 if __name__ == '__main__':

@@ -202,6 +202,7 @@ class IndexDownloader(object):
     __tahun_anggaran_pattern = re.compile('(\d+)')
     db = None
     db_status_for_resume = False
+    db_file = None
 
     def __init__(self, ctx, lpse_host):
         self.ctx: DownloaderContext = ctx
@@ -242,14 +243,14 @@ class IndexDownloader(object):
         :return: SQLite database object
         """
         db_filename = filename.name + ".idx"
-        db_file = Path.cwd() / db_filename
-        db = sqlite3.connect(db_file, check_same_thread=False)
+        self.db_file = Path.cwd() / db_filename
+        db = sqlite3.connect(self.db_file, check_same_thread=False)
 
         if self.ctx.resume and self.__check_index_db(db):
             logging.info("{} - skip db init, melanjutkan proses".format(self.lpse_host.url))
             return db
 
-        logging.debug("Generate index database: {}".format(db_file.name))
+        logging.debug("Generate index database: {}".format(self.db_file.name))
         logging.debug("Create index table")
 
         try:
@@ -686,6 +687,10 @@ class Downloader(object):
             else:
                 logging.info("Proses gagal: {}/{} ({:,.2f}%).".format(fail, total, fail/total*100))
                 logging.info("Jalankan perintah dengan parameter --resume / -r untuk mengunduh ulang paket yang gagal")
+
+            if not index_downloader.ctx.keep_index:
+                logging.info("{} - membersihkan direktori".format(lpse_host.url))
+                index_downloader.db_file.unlink(missing_ok=True)
 
             del index_downloader
             del detail_downloader
