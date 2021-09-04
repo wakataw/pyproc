@@ -302,7 +302,7 @@ class IndexDownloader(object):
                                    tahun=tahun)
 
         logging.debug("Jumlah record {}".format(str(data)))
-        return data['recordsTotal']
+        return data['recordsFiltered']
 
     def start(self):
         """
