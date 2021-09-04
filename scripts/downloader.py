@@ -682,7 +682,9 @@ class Downloader(object):
             qa = QualityAssurance(index_downloader)
             total, success, fail = qa.check()
 
-            if fail == 0:
+            if total == 0:
+                logging.info("Proses selesai, tidak ada data yang ditemukan.")
+            elif fail == 0:
                 logging.info("Proses selesai: {}/{} ({:,.2f}) terunduh".format(success, total, success/total*100))
             else:
                 logging.info("Proses gagal: {}/{} ({:,.2f}%).".format(fail, total, fail/total*100))
