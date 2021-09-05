@@ -603,6 +603,26 @@ class Downloader(object):
     def __init__(self):
         print(text.INFO)
 
+    @staticmethod
+    def get_args_from_interactive_menu():
+        args = [
+            input("Alamat LPSE: "),
+            "--tahun-anggaran",
+            ''.join(input("Tahun Anggaran [X atau X,Y,Z atau X-Z]: ").strip().split()),
+            "--keyword",
+            input("Kata kunci pencarian [default kosong]: ")
+        ]
+        is_tender = input("Jenis pengadan [tender/pl]: ").lower().strip()
+
+        if is_tender in ['tender', 'pl']:
+            if is_tender == 'pl':
+                args.append('--non-tender')
+        else:
+            print("Pilihan {} tidak valid".format(is_tender))
+            exit(1)
+
+        return args
+
     def get_ctx(self, sys_args):
         """
         Parse command line argument.
@@ -625,6 +645,11 @@ class Downloader(object):
                                       pertama dari program adalah membaca file.
         :return: Lpse Downloader Context
         """
+
+        # if there is no argument, show interactive menu
+        if len(sys_args) == 0:
+            sys_args = self.get_args_from_interactive_menu()
+
         parser = argparse.ArgumentParser()
         parser.add_argument('lpse_host', type=str, help=text.HELP_LPSE_HOST)
         parser.add_argument('-k', '--keyword', type=str, default="", help=text.HELP_KEYWORD)
