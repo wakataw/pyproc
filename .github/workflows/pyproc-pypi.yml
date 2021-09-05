@@ -6,6 +6,9 @@ name: PyProc PyPi
 on:
   push:
     branches: [ master ]
+  release:
+    types:
+      - published
   pull_request:
     branches: [ master ]
 
@@ -26,14 +29,14 @@ jobs:
       run: python setup.py test
     - name: Build Package
       run: python setup.py sdist
-    - name: Release to PyPi
+    - name: Release to PyPi Test
       uses: pypa/gh-action-pypi-publish@v1.4.2
       with:
         repository_url: https://test.pypi.org/legacy/
         user: __token__
         password: ${{ secrets.TEST_PYPI_API_TOKEN }}
     - name: Release to PyPi
-      if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
+      if: github.event_name == 'release'
       uses: pypa/gh-action-pypi-publish@v1.4.2
       with:
         user: __token__
