@@ -64,7 +64,7 @@ argumen | contoh | diperlukan | default | keterangan
 `--keep-index` | `pyproc --keep-index ...` | optinal | FALSE | pyproc akan membentuk file idx (sqlite3 database) saat proses download dan akan dihapus ketika proses selesai. Tambahkan argumen ini jika tidak ingin menghapus database tersebut.
 `-r --resume` | `pyproc --resume ...` | optinal | FALSE | Tambahkan argument ini untuk melanjutkan proses yang gagal (karena internet putus atau gangguan koneksi lainnya). Namun pastikan bahwa seluruh index sudah berhasil diunduh karena argumen --resume akan melewati proses download index.
 `--log` | `pyproc --log INFO ...` | optional | INFO | Argumen untuk setting informasi yang ditampilkan pyproc pada terminal. Daftar nilai yang didukung: <br>`DEBUG`: menampilkan informasi sedetil mungkin<br>`INFO`: menampilkan informasi penting saja <br>`WARNING`: hanya menampilkan informasi yang bersifat warning <br>`ERROR`: hanya menampilkan error <br>`CRITICAL`: hanya menampilkan permasalahan yang bersifat kritis saja
-DAFTAR_LPSE | `pyproc http://lpse.pu.go.id` | Ya | - | Daftar alamat LPSE yang akan diunduh disertai protokol (http/https). <br>Format yang didukung:<br>`https://lpse.pu.go.id`:  download data lpse dari https://lpse.pu.go.id
+DAFTAR_LPSE | `pyproc http://lpse.pu.go.id` | Ya | - | Daftar alamat LPSE yang akan diunduh. <br>Format yang didukung:<br>`https://lpse.pu.go.id`:  download data lpse dari https://lpse.pu.go.id
 
 ## Format Daftar LPSE (lanjutan)
 PyProc dapat mengunduh data dari 1 atau lebih LPSE. Proses tersebut akan berjalan sesuai dengan nilai `DAFTAR_LPSE` yang diberikan user. Beberapa format yang didukung oleh PyProc adalah sebagai berikut:
