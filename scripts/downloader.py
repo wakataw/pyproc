@@ -47,11 +47,6 @@ class LpseHost(object):
         self.url, self.filename = self.parse_host(args)
 
     def parse_host(self, args):
-        # cek jika terdapat skema url
-        if not args.startswith('http'):
-            self.error = text.ERROR_CTX_HOST_SKEMA
-            return None, None
-
         url_and_filename = args.split(';')
         logging.debug("Url dan Filename {}".format(url_and_filename))
 
