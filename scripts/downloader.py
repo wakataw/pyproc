@@ -665,6 +665,10 @@ class Downloader(object):
 
     def start(self):
         for lpse_host in self.ctx.lpse_host_list:
+            if not lpse_host.is_valid:
+                logging.info("{} - {}".format(lpse_host.url, lpse_host.error))
+                continue
+
             index_downloader = IndexDownloader(self.ctx, lpse_host)
 
             index_downloader.start()

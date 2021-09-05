@@ -37,5 +37,5 @@ HELP_RESUME = "melanjutkan proses sebelumnya"
 
 ERROR_CTX_TAHUN_ANGGARAN = "Gagal parsing tahun anggaran, format yang diperbolehkan X-Y atau X;Y;Z"
 ERROR_CTX_RANGE_TAHUN = "Nilai tahun harus di antara 2000 dan {}"
-ERROR_CTX_HOST_SKEMA = "Skema URL tidak ditemukan"
+ERROR_CTX_HOST_SKEMA = "Skema URL tidak ditemukan. URL harus diawali http/https"
 ERROR_CTX_HOST_FORMAT = "Argumen host `{}` tidak sesuai format"
