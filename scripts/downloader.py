@@ -19,6 +19,11 @@ disable_warnings(InsecureRequestWarning)
 
 
 def set_up_log(level):
+    """
+    Set log level berdasarkan argumen yang diberikan user
+    :param level:
+    :return:
+    """
     numeric_level = getattr(logging, level.upper(), None)
     if not isinstance(numeric_level, int):
         raise ValueError('Invalid log level: {}'.format(level))
@@ -239,7 +244,7 @@ class IndexDownloader(object):
         """
         db_filename = filename.name + ".idx"
         self.db_file = Path.cwd() / db_filename
-        db = sqlite3.connect(self.db_file, check_same_thread=False)
+        db = sqlite3.connect(str(self.db_file), check_same_thread=False)
 
         if self.ctx.resume and self.__check_index_db(db):
             logging.info("{} - skip db init, melanjutkan proses".format(self.lpse_host.url))
