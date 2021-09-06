@@ -29,7 +29,9 @@ jobs:
     - name: Clean build directory
       run: rm -rf ./dists ./pyproc.egg-info ./tests/*.csv ./tests/*.idx ./*csv ./*idx
     - name: Test Package
-      run: python setup.py test
+      run: |
+        pip install backoff
+        python setup.py test
     - name: Build Package
       run: python setup.py sdist
     - name: Release to PyPi Test
