@@ -546,21 +546,25 @@ class Exporter:
         header = [
             'id_paket', 'nama_paket' if self.index_downloader.ctx.non_tender else 'nama_tender',
             'tanggal_pembuatan', 'tahap_tender_saat_ini', 'k/l/pd',
-            'satuan_kerja', 'jenis_pengadaan', 'metode_pengadaan', 'tahun_anggaran', 'nilai_pagu_paket',
-            'nilai_hps', 'jenis_kontrak', 'lokasi_pekerjaan', 'kualifikasi_usaha', 'peserta_tender',
+            'satuan_kerja', 'jenis_pengadaan', 'kategori', 'metode_pengadaan', 'sistem_pengadaan', 'tahun_anggaran',
+            'nilai_pagu_paket', 'nilai_hps', 'jenis_kontrak', 'lokasi_pekerjaan', 'kualifikasi_usaha',
+            'peserta_tender', 'label_paket', 'khusus_pelaku_usaha_oap',
+
         ]
 
         header_pemenang = ['npwp', 'nama_peserta', 'penawaran', 'penawaran_terkoreksi', 'hasil_negosiasi', 'p', 'pk']
+        other_header = ['jadwal']
 
         with self.get_file_obj('csv').open('w', newline='') as f:
             writer = csv.writer(f)
-            writer.writerow(header + header_pemenang)
+            writer.writerow(header + header_pemenang + other_header)
 
             for item in self.get_detail():
                 writer.writerow(
                     [item.get('id_paket')] +
                     [item['pengumuman'].get(i) for i in header[1:]] +
-                    self.get_pemenang(item)
+                    self.get_pemenang(item) +
+                    [item.get('jadwal')],
                 )
 
     def to_json(self):
