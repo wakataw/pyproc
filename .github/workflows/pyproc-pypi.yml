@@ -15,15 +15,12 @@ on:
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ['3.6', '3.7', '3.8', '3.9']
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: '3.6'
     - name: Display Python Version
       run: python -c "import sys; print(sys.version)"
     - name: Clean build directory
@@ -35,7 +32,6 @@ jobs:
     - name: Build Package
       run: python setup.py sdist
     - name: Release to PyPi Test
-      if: matrix.python-version == '3.9'
       uses: pypa/gh-action-pypi-publish@v1.4.2
       with:
         repository_url: https://test.pypi.org/legacy/
