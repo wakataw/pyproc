@@ -205,7 +205,7 @@ class IndexDownloader(object):
     db_file = None
 
     def __init__(self, ctx, lpse_host):
-        self.ctx: DownloaderContext = ctx
+        self.ctx = ctx
         self.lpse_host = lpse_host
         self.lpse = Lpse(lpse_host.url)
         self.db = self.get_index_db(self.lpse_host.filename)
@@ -404,7 +404,7 @@ class IndexDownloader(object):
 
 class DetailDownloader(object):
 
-    def __init__(self, index_downloader: IndexDownloader):
+    def __init__(self, index_downloader):
         self.index_downloader = index_downloader
         self.lock = threading.Lock()
 
@@ -492,7 +492,7 @@ class DetailDownloader(object):
 
 
 class Exporter:
-    def __init__(self, index_downloader: IndexDownloader):
+    def __init__(self, index_downloader):
         self.index_downloader = index_downloader
 
     def get_detail(self):
@@ -588,7 +588,7 @@ class Exporter:
 
 class QualityAssurance:
 
-    def __init__(self, index_downloader: IndexDownloader):
+    def __init__(self, index_downloader):
         self.index_downloader = index_downloader
 
     def check(self):
