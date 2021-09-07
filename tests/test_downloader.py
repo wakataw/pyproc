@@ -151,7 +151,7 @@ class DownloaderTest(unittest.TestCase):
         db_file = Path.cwd() / 'http_lpse_kepahiangkab_go_id.idx'
         self.assertTrue(db_file.is_file())
 
-        db = sqlite3.connect(db_file)
+        db = sqlite3.connect(str(db_file))
         result = db.execute("SELECT COUNT(1) FROM INDEX_PAKET").fetchone()[0]
         self.assertTrue(result > 0)
 
