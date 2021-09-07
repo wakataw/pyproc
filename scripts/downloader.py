@@ -726,7 +726,10 @@ class Downloader(object):
             if not index_downloader.ctx.keep_index:
                 logging.info("{} - membersihkan direktori".format(lpse_host.url))
                 index_downloader.db.close()
-                index_downloader.db_file.unlink(missing_ok=True)
+                try:
+                    index_downloader.db_file.unlink()
+                except FileNotFoundError:
+                    pass
 
             del index_downloader
             del detail_downloader
