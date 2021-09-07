@@ -560,7 +560,7 @@ class Exporter:
         header_pemenang = ['npwp', 'nama_peserta', 'penawaran', 'penawaran_terkoreksi', 'hasil_negosiasi', 'p', 'pk']
         other_header = ['jadwal']
 
-        with self.get_file_obj('csv').open('w', newline='') as f:
+        with self.get_file_obj('csv').open('w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
             writer.writerow(header + header_pemenang + other_header)
 
