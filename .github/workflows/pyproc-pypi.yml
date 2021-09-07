@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.5', '3.6', '3.7', '3.8', '3.9']
+        python-version: ['3.6', '3.7', '3.8', '3.9']
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python
@@ -35,7 +35,7 @@ jobs:
     - name: Build Package
       run: python setup.py sdist
     - name: Release to PyPi Test
-      if: matrix.python-version == '3.5'
+      if: matrix.python-version == '3.9'
       uses: pypa/gh-action-pypi-publish@v1.4.2
       with:
         repository_url: https://test.pypi.org/legacy/
