@@ -720,6 +720,11 @@ class Downloader(object):
             qa = QualityAssurance(index_downloader)
             total, success, fail = qa.check()
 
+            with open('statistic.txt', 'a') as f:
+                f.write("{} total={} success={} fail={} tahun={}\n".format(
+                    lpse_host.url, total, success, fail, self.ctx.tahun_anggaran
+                ))
+
             if total == 0:
                 logging.info("Proses selesai, tidak ada data yang ditemukan.")
             elif fail == 0:
