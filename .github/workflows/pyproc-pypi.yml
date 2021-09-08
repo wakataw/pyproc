@@ -5,12 +5,8 @@ name: PyProc PyPi
 
 on:
   push:
-    branches: [ master ]
-  release:
-    types:
-      - published
-  pull_request:
-    branches: [ master ]
+    tags:
+      - 'v*'
 
 jobs:
   build-and-release:
