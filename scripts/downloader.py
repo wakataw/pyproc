@@ -7,6 +7,8 @@ import signal
 import sqlite3
 import threading
 from time import sleep
+
+import pyproc.exceptions
 from pyproc import Lpse, JenisPengadaan
 from pyproc.exceptions import DownloaderContextException
 from scripts import text
@@ -203,6 +205,7 @@ class IndexDownloader(object):
     db = None
     db_status_for_resume = False
     db_file = None
+    lpse = None
 
     def __init__(self, ctx, lpse_host):
         self.ctx = ctx
@@ -399,7 +402,8 @@ class IndexDownloader(object):
             self.db.close()
             del self.db
 
-        del self.lpse
+        if self.lpse is not None:
+            del self.lpse
 
 
 class DetailDownloader(object):
@@ -698,8 +702,11 @@ class Downloader(object):
                 logging.info("{} - {}".format(lpse_host.url, lpse_host.error))
                 continue
 
-            index_downloader = IndexDownloader(self.ctx, lpse_host)
-
+            try:
+                index_downloader = IndexDownloader(self.ctx, lpse_host)
+            except pyproc.exceptions.LpseHostExceptions as e:
+                logging.info("{} - {} {}".format(lpse_host.url, e.__class__, str(e)))
+                continue
             index_downloader.start()
 
             detail_downloader = DetailDownloader(index_downloader)
