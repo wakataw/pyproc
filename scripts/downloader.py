@@ -482,7 +482,7 @@ class DetailDownloader(object):
             total_downloaded += len(lpse_index)
 
             if self.index_downloader.ctx.log_level == 'INFO':
-                print("\r{} data berhasil diunduh".format(total_downloaded), end=' ')
+                print("\rMemproses {} data".format(total_downloaded), end=' ')
 
             if len(lpse_index) != self.index_downloader.ctx.workers:
                 break
@@ -492,7 +492,7 @@ class DetailDownloader(object):
             exit(1)
 
         print()
-        logging.info("{} - {} data berhasil diunduh".format(self.index_downloader.lpse_host.url, total_downloaded))
+        logging.info("{} - {} data selesai diproses".format(self.index_downloader.lpse_host.url, total_downloaded))
 
 
 class Exporter:
@@ -730,7 +730,7 @@ class Downloader(object):
                 logging.info("Proses gagal: {}/{} ({:,.2f}%).".format(fail, total, fail/total*100))
                 logging.info("Jalankan perintah dengan parameter --resume / -r untuk mengunduh ulang paket yang gagal")
 
-            if not index_downloader.ctx.keep_index:
+            if not index_downloader.ctx.keep_index and fail == 0:
                 logging.info("{} - membersihkan direktori".format(lpse_host.url))
                 index_downloader.db.close()
                 try:
