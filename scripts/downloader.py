@@ -704,7 +704,7 @@ class Downloader(object):
 
             try:
                 index_downloader = IndexDownloader(self.ctx, lpse_host)
-            except pyproc.exceptions.LpseHostExceptions as e:
+            except Exception as e:
                 logging.info("{} - {} {}".format(lpse_host.url, e.__class__, str(e)))
                 continue
             index_downloader.start()
