@@ -7,6 +7,8 @@ import signal
 import sqlite3
 import threading
 from time import sleep
+
+import pyproc.utils
 from pyproc import Lpse, JenisPengadaan
 from pyproc.exceptions import DownloaderContextException
 from scripts import text
@@ -748,6 +750,10 @@ class Downloader(object):
 
 def main():
     import sys
+
+    if len(sys.argv) > 1 and sys.argv[1] == 'daftarlpse':
+        pyproc.utils.get_all_host()
+        exit(0)
 
     downloader = Downloader()
     downloader.get_ctx(sys.argv[1:])

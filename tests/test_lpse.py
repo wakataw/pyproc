@@ -1,6 +1,9 @@
 import logging
 import unittest
 from datetime import datetime
+from pathlib import Path
+
+import pyproc.utils
 from pyproc import Lpse, JenisPengadaan
 from pyproc.exceptions import LpseHostExceptions, LpseServerExceptions
 
@@ -336,6 +339,12 @@ class TestPaketTenderRUP(unittest.TestCase):
         detail = lpse.detil_paket_tender('9316181')
         detail.get_pengumuman()
         print(detail.pengumuman['rencana_umum_pengadaan'])
+
+
+class TestGetAllLpseHost(unittest.TestCase):
+    def test_get_all_host(self):
+        pyproc.utils.get_all_host()
+        self.assertTrue((Path.cwd() / 'daftarlpse.csv').is_file())
 
 
 if __name__ == '__main__':
