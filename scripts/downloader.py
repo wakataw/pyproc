@@ -7,8 +7,6 @@ import signal
 import sqlite3
 import threading
 from time import sleep
-
-import pyproc.exceptions
 from pyproc import Lpse, JenisPengadaan
 from pyproc.exceptions import DownloaderContextException
 from scripts import text
@@ -42,7 +40,7 @@ class Killer:
 
     def exit_gracefully(self, *args):
         logging.debug("Get {} signal".format(args))
-        logging.info("Proses dibatalkan user")
+        logging.error("Proses dibatalkan user")
         self.kill_now = True
 
 
@@ -226,7 +224,7 @@ class IndexDownloader(object):
             if total > 0:
                 status = True
         except Exception as e:
-            logging.info("{} - check index db gagal, error: {}".format(self.lpse_host.url, e))
+            logging.error("{} - check index db gagal, error: {}".format(self.lpse_host.url, e))
             status = False
 
         logging.info("{} - status previous index db {}".format(self.lpse_host.url, status))
@@ -699,13 +697,13 @@ class Downloader(object):
     def start(self):
         for lpse_host in self.ctx.lpse_host_list:
             if not lpse_host.is_valid:
-                logging.info("{} - {}".format(lpse_host.url, lpse_host.error))
+                logging.error("{} - {}".format(lpse_host.url, lpse_host.error))
                 continue
 
             try:
                 index_downloader = IndexDownloader(self.ctx, lpse_host)
             except Exception as e:
-                logging.info("{} - {} {}".format(lpse_host.url, e.__class__, str(e)))
+                logging.error("{} - {} {}".format(lpse_host.url, e.__class__, str(e)))
                 continue
             index_downloader.start()
 
@@ -727,7 +725,7 @@ class Downloader(object):
             elif fail == 0:
                 logging.info("Proses selesai: {}/{} ({:,.2f}) terunduh".format(success, total, success/total*100))
             else:
-                logging.info("Proses gagal: {}/{} ({:,.2f}%).".format(fail, total, fail/total*100))
+                logging.error("Proses gagal: {}/{} ({:,.2f}%).".format(fail, total, fail/total*100))
                 logging.info("Jalankan perintah dengan parameter --resume / -r untuk mengunduh ulang paket yang gagal")
 
             if not index_downloader.ctx.keep_index and fail == 0:
