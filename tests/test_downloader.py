@@ -255,11 +255,15 @@ class DownloaderTest(unittest.TestCase):
     def tearDown(self):
         csv = Path.cwd().glob('*.csv')
         idx = Path.cwd().glob('*.idx')
+        txt = Path.cwd().glob('*.txt')
 
         for i in csv:
             i.unlink()
 
         for i in idx:
+            i.unlink()
+
+        for i in txt:
             i.unlink()
 
 

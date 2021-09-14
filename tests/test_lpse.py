@@ -343,7 +343,8 @@ class TestPaketTenderRUP(unittest.TestCase):
 
 class TestGetAllLpseHost(unittest.TestCase):
     def test_get_all_host(self):
-        pyproc.utils.get_all_host()
+        import logging
+        pyproc.utils.get_all_host(logging)
         self.assertTrue((Path.cwd() / 'daftarlpse.csv').is_file())
 
 
