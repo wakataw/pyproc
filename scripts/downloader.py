@@ -608,9 +608,6 @@ class QualityAssurance:
 class Downloader(object):
     ctx = None
 
-    def __init__(self):
-        print(text.INFO)
-
     @staticmethod
     def get_args_from_interactive_menu():
         args = [
@@ -751,13 +748,18 @@ class Downloader(object):
 def main():
     import sys
 
-    if len(sys.argv) > 1 and sys.argv[1] == 'daftarlpse':
-        pyproc.utils.get_all_host()
-        exit(0)
+    print(text.INFO)
 
     downloader = Downloader()
     downloader.get_ctx(sys.argv[1:])
-    downloader.start()
+
+    if len(sys.argv) > 1 and sys.argv[1] == 'daftarlpse':
+        pyproc.utils.get_all_host(logging)
+        exit(0)
+    else:
+        downloader.start()
+
+    del downloader
 
 
 if __name__ == '__main__':
