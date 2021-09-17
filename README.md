@@ -42,6 +42,7 @@ $ python setup.py test
 
 ## Penggunaan Command Line Interface
 
+### Download Data LPSE
 Format Command
 ```bash
 $ pyproc [ARGUMENT] DAFTAR_LPSE
@@ -50,6 +51,7 @@ $ pyproc [ARGUMENT] DAFTAR_LPSE
 
 argumen | contoh | diperlukan | default | keterangan
 ---|---|---|---|---
+`DAFTAR_LPSE` | `pyproc http://lpse.pu.go.id` | Ya | - | Daftar alamat LPSE yang akan diunduh. <br>[Format Daftar LPSE](#format-daftar-lpse-lanjutan)
 `-h --help` | `pyproc --help` | optional | - | menampilkan keterangan dan bantuan
 `-k --keyword` | `pyproc --keyword "mobil dinas" ...` | optional | - | filter pencarian index paket berdasarkan kata kunci tertentu
 `-t --tahun-anggaran` | `pyproc --tahun-anggaran 2021 ...` | optional | Tahun Berjalan | Filter pencarian index paket berdasarkan tahun anggaran tertentu. Fungsi ini hanya berlaku mulai dari SPSE 4.4. <br><br>Format Penulisan: <br>**ALL**: mengunduh seluruh data <br>**2021**: mengunduh data untuk tahun 2021 <br>**2015,2018,2019**: mengunduh data untuk tahun 2015, 2018, dan 2019<br>**2011-2020** mengunduh data untuk tahun 2011 s.d. 2020
@@ -64,9 +66,8 @@ argumen | contoh | diperlukan | default | keterangan
 `--keep-index` | `pyproc --keep-index ...` | optinal | FALSE | pyproc akan membentuk file idx (sqlite3 database) saat proses download dan akan dihapus ketika proses selesai. Tambahkan argumen ini jika tidak ingin menghapus database tersebut.
 `-r --resume` | `pyproc --resume ...` | optinal | FALSE | Tambahkan argument ini untuk melanjutkan proses yang gagal (karena internet putus atau gangguan koneksi lainnya). Namun pastikan bahwa seluruh index sudah berhasil diunduh karena argumen --resume akan melewati proses download index.
 `--log` | `pyproc --log INFO ...` | optional | INFO | Argumen untuk setting informasi yang ditampilkan pyproc pada terminal. Daftar nilai yang didukung: <br>`DEBUG`: menampilkan informasi sedetil mungkin<br>`INFO`: menampilkan informasi penting saja <br>`WARNING`: hanya menampilkan informasi yang bersifat warning <br>`ERROR`: hanya menampilkan error <br>`CRITICAL`: hanya menampilkan permasalahan yang bersifat kritis saja
-DAFTAR_LPSE | `pyproc http://lpse.pu.go.id` | Ya | - | Daftar alamat LPSE yang akan diunduh. <br>Format yang didukung:<br>`https://lpse.pu.go.id`:  download data lpse dari https://lpse.pu.go.id
 
-## Format Daftar LPSE (lanjutan)
+### Format Daftar LPSE (lanjutan)
 PyProc dapat mengunduh data dari 1 atau lebih LPSE. Proses tersebut akan berjalan sesuai dengan nilai `DAFTAR_LPSE` yang diberikan user. Beberapa format yang didukung oleh PyProc adalah sebagai berikut:
 - Download data dengan menyertakan nama file hasil download
   
@@ -107,6 +108,14 @@ PyProc dapat mengunduh data dari 1 atau lebih LPSE. Proses tersebut akan berjala
   lpse.pu.go.id;lpse-pu.csv
   lpse.kemenkeu.go.id;lpse-kemenkeu
   ```
+
+### Download Daftar LPSE
+Untuk mengunduh daftar alamat LPSE berdasarkan situs inaproc (https://inaproc.id/lpse), jalankan perintah berikut:
+```bash
+$ pyproc daftarlpse.csv
+```
+
+Perintah tersebut akan mengunduh daftar alamat lpse dan mengekspornya ke file `daftarlpse.csv`.
 
 ## Penggunaan PyProc Sebagai Package
 
