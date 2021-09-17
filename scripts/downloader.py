@@ -521,31 +521,44 @@ class Exporter:
 
         return file_obj
 
+    def get_pemenang_from_pemenang(self):
+        ...
+
+    def get_pemenang_berkontrak(self):
+        ...
+
+    def get_pemenang_hasil(self):
+        ...
+
     def get_pemenang(self, detil):
         """
         Pengambilan data pemenang dari halaman hasil evaluasi
         :param detil:
         :return:
         """
-        field = ['npwp', 'nama_peserta', 'penawaran', 'penawaran_terkoreksi', 'hasil_negosiasi', 'p', 'pk']
+        field = ['npwp', 'nama_peserta', 'penawaran', 'penawaran_terkoreksi', 'hasil_negosiasi', 'alamat', 'p', 'pk']
+        data = []
+
+        if detil['pemenang_berkontrak']:
+            p = detil['pemenang_berkontrak'][0]
+            data = [p.get(i) for i in ['npwp', 'nama_pemenang', 'harga_penawaran',
+                                       'harga_terkoreksi', 'hasil_negosiasi', 'alamat', 'p', 'pk']]
+        elif detil['pemenang']:
+            p = detil['pemenang'][0]
+            data = [p.get(i) for i in ['npwp', 'nama_pemenang', 'harga_penawaran',
+                                       'harga_terkoreksi', 'hasil_negosiasi', 'alamat', 'p', 'pk']]
         if detil['hasil']:
             pemenang_hasil_evaluasi = list(filter(lambda x: x.get('pk') is True or x.get('p') is True, detil['hasil']))
 
             if pemenang_hasil_evaluasi:
                 p = pemenang_hasil_evaluasi[0]
-                return [p.get(i) for i in field]
+                if not data:
+                    data = [p.get(i) for i in field] + []
+                else:
+                    data[6] = p.get('p')
+                    data[7] = p.get('pk')
 
-        if detil['pemenang_berkontrak']:
-            p = detil['pemenang_berkontrak'][0]
-            return [p[i] for i in ['npwp', 'nama_pemenang', 'harga_penawaran',
-                                   'harga_terkoreksi', 'hasil_negosiasi']] + [] * 2
-
-        if detil['pemenang']:
-            p = detil['pemenang'][0]
-            return [p[i] for i in ['npwp', 'nama_pemenang', 'harga_penawaran',
-                                   'harga_terkoreksi', 'hasil_negosiasi']] + [] * 2
-
-        return [None] * len(field)
+        return data
 
     def to_csv(self):
         """
@@ -561,16 +574,17 @@ class Exporter:
 
         ]
 
-        header_pemenang = ['npwp', 'nama_peserta', 'penawaran', 'penawaran_terkoreksi', 'hasil_negosiasi', 'p', 'pk']
+        header_pemenang = ['npwp', 'nama_peserta', 'penawaran', 'penawaran_terkoreksi', 'hasil_negosiasi', 'alamat',
+                           'p', 'pk']
         other_header = ['jadwal']
 
         with self.get_file_obj('csv').open('w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
-            writer.writerow(header + header_pemenang + other_header)
+            writer.writerow(['url'] + header + header_pemenang + other_header)
 
             for item in self.get_detail():
                 writer.writerow(
-                    [item.get('id_paket')] +
+                    [self.index_downloader.lpse_host.url, item.get('id_paket')] +
                     [item['pengumuman'].get(i) for i in header[1:]] +
                     self.get_pemenang(item) +
                     [item.get('jadwal')],
