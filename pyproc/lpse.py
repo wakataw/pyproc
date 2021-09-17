@@ -40,7 +40,7 @@ class Lpse(object):
         self.is_lpse = False
         self.skip_spse_check = skip_spse_check
         self.version = None
-        self.__int_version = 0
+        self.build_version = 0
         self.last_update = None
         self.timeout = timeout
         self.auth_token = None
@@ -78,7 +78,7 @@ class Lpse(object):
             error_message = "Paket tidak ditemukan"
 
         if error_message is not None:
-            error_message = "{}; {}".format(
+            error_message = "{} - {}".format(
                 resp.url,
                 error_message
             )
@@ -122,12 +122,17 @@ class Lpse(object):
         :param footer: content footer dari halaman LPSE
         :return: Boolean
         """
-        version = re.findall(r'(SPSE v4\.[0-9a-z.]+)', footer, flags=re.DOTALL)
+        version = re.findall(r'SPSE v(\d+\.\d+)u([0-9]+)', footer, flags=re.DOTALL)
 
         if version:
-            self.version = version[0].strip()
-            self.__int_version = int(self.version[-8:])
-            return True
+            self.version = version[0][0]
+            try:
+                self.build_version = int(version[0][1])
+            except ValueError:
+                pass
+
+            if self.version.startswith('4'):
+                return True
 
         return False
 
@@ -150,7 +155,7 @@ class Lpse(object):
 
         # bypass jika versi kurang dari veri bulan 09
 
-        if self.__int_version != 0 and self.__int_version < 20191009:
+        if self.build_version != 0 and self.build_version < 20191009:
             return None
 
         r = self.session.get(self.host + '/lelang')
