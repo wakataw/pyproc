@@ -112,7 +112,7 @@ PyProc dapat mengunduh data dari 1 atau lebih LPSE. Proses tersebut akan berjala
 ### Download Daftar LPSE
 Untuk mengunduh daftar alamat LPSE berdasarkan situs inaproc (https://inaproc.id/lpse), jalankan perintah berikut:
 ```bash
-$ pyproc daftarlpse.csv
+$ pyproc daftarlpse
 ```
 
 Perintah tersebut akan mengunduh daftar alamat lpse dan mengekspornya ke file `daftarlpse.csv`.
