@@ -367,7 +367,7 @@ class IndexDownloader(object):
                 '{}-{}'.format('nontender' if self.ctx.non_tender else 'tender', row[0]),
                 row[0],
                 'nontender' if self.ctx.non_tender else 'tender',
-                row[8],
+                row[6] if self.ctx.non_tender else row[8],
                 0,
                 None  # detail paket kosong
             ]
