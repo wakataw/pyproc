@@ -521,15 +521,6 @@ class Exporter:
 
         return file_obj
 
-    def get_pemenang_from_pemenang(self):
-        ...
-
-    def get_pemenang_berkontrak(self):
-        ...
-
-    def get_pemenang_hasil(self):
-        ...
-
     def get_pemenang(self, detil):
         """
         Pengambilan data pemenang dari halaman hasil evaluasi
@@ -537,16 +528,16 @@ class Exporter:
         :return:
         """
         field = ['npwp', 'nama_peserta', 'penawaran', 'penawaran_terkoreksi', 'hasil_negosiasi', 'alamat', 'p', 'pk']
+        pemenang_field  = ['npwp', 'nama_pemenang', 'harga_penawaran', 'harga_terkoreksi', 'hasil_negosiasi', 'alamat',
+                           'p', 'pk']
         data = []
 
         if detil['pemenang_berkontrak']:
             p = detil['pemenang_berkontrak'][0]
-            data = [p.get(i) for i in ['npwp', 'nama_pemenang', 'harga_penawaran',
-                                       'harga_terkoreksi', 'hasil_negosiasi', 'alamat', 'p', 'pk']]
+            data = [p.get(i) for i in pemenang_field]
         elif detil['pemenang']:
             p = detil['pemenang'][0]
-            data = [p.get(i) for i in ['npwp', 'nama_pemenang', 'harga_penawaran',
-                                       'harga_terkoreksi', 'hasil_negosiasi', 'alamat', 'p', 'pk']]
+            data = [p.get(i) for i in pemenang_field]
         if detil['hasil']:
             pemenang_hasil_evaluasi = list(filter(lambda x: x.get('pk') is True or x.get('p') is True, detil['hasil']))
 
