@@ -338,7 +338,7 @@ class IndexDownloader(object):
                 # update data count
                 data_count += len(data)
                 logging.info(
-                    "{host} - TA {tahun} - Indexing batch {batch} dari {total_batch}, "
+                    "{host} - TA {tahun} - Indexing halaman {batch} dari {total_batch}, "
                     "{data_count}/{data_total} data ({persentase:,.2f}%)".format(
                         host=self.lpse_host.url,
                         batch=batch + 1,
@@ -351,6 +351,10 @@ class IndexDownloader(object):
                 )
 
                 sleep(self.ctx.index_download_delay)
+
+            if not self.lpse.version.startswith('4.4'):
+                logging.info("{} - SKIP tahun lain".format(self.lpse_host.url, self.lpse.version))
+                break
 
     def convert_index_for_db(self, data):
         """
@@ -414,6 +418,38 @@ class DetailDownloader(object):
 
         logging.info("{} - Mulai pengunduhan detail data".format(self.index_downloader.lpse_host.url))
 
+    def __pre_process_index_db(self):
+        total = self.index_downloader.db.execute(
+            """SELECT COUNT(1) FROM INDEX_PAKET WHERE STATUS = 0"""
+        ).fetchone()[0]
+        deleted = 0
+
+        if not self.index_downloader.lpse.version.startswith('4.4') \
+                and self.index_downloader.ctx.tahun_anggaran != [None]:
+            logging.info("{} - {}u{} tidak mendukung filter tahun anggaran, menjalankan filter manual"
+                         .format(self.index_downloader.lpse_host.url, self.index_downloader.lpse.version,
+                                 self.index_downloader.lpse.build_version)
+                         )
+
+            for row in self.index_downloader.get_index():
+                contain_ta = sum([1 for tahun in self.index_downloader.ctx.tahun_anggaran
+                                  if str(tahun) in row.kategori_tahun_anggaran])
+                if contain_ta == 0:
+                    self.index_downloader.db.execute("""DELETE FROM INDEX_PAKET WHERE ROW_ID = ?""", (row.row_id,))
+                    deleted += 1
+
+            logging.info("{} - {} data sesuai kriteria tahun anggaran".format(
+                self.index_downloader.lpse_host.url, total-deleted)
+            )
+
+            logging.info("{} - menghapus {} data index yang tidak relevan".format(
+                self.index_downloader.lpse_host.url,
+                deleted
+            ))
+            self.index_downloader.db.commit()
+
+        return total, deleted
+
     def get_detail(self, lpse_index):
         """
         Get detail paket berdasarkan paket ID
@@ -446,6 +482,8 @@ class DetailDownloader(object):
             self.index_downloader.db.commit()
 
     def start(self):
+        total, deleted = self.__pre_process_index_db()
+        total_to_download = total - deleted
         killer = Killer()
         index_generator = self.index_downloader.get_index()
         total_downloaded = 0
@@ -482,7 +520,14 @@ class DetailDownloader(object):
             total_downloaded += len(lpse_index)
 
             if self.index_downloader.ctx.log_level == 'INFO':
-                print("\rMemproses {} data".format(total_downloaded), end=' ')
+                print(
+                    "\rMemproses {}/{} ({:,.2f}%) data".format(
+                        total_downloaded,
+                        total_to_download,
+                        total_downloaded/total_to_download*100 if total_to_download > 0 else 0.0
+                    ),
+                    end=' '
+                )
 
             if len(lpse_index) != self.index_downloader.ctx.workers:
                 break
@@ -732,7 +777,7 @@ class Downloader(object):
             if total == 0:
                 logging.info("Proses selesai, tidak ada data yang ditemukan.")
             elif fail == 0:
-                logging.info("Proses selesai: {}/{} ({:,.2f}) terunduh".format(success, total, success/total*100))
+                logging.info("Proses selesai: {}/{} ({:,.2f}%) terunduh".format(success, total, success/total*100))
             else:
                 logging.error("Proses gagal: {}/{} ({:,.2f}%).".format(fail, total, fail/total*100))
                 logging.info("Jalankan perintah dengan parameter --resume / -r untuk mengunduh ulang paket yang gagal")
