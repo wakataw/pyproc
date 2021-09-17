@@ -556,7 +556,7 @@ class Exporter:
             'id_paket', 'nama_paket' if self.index_downloader.ctx.non_tender else 'nama_tender',
             'tanggal_pembuatan', 'tahap_tender_saat_ini', 'k/l/pd',
             'satuan_kerja', 'jenis_pengadaan', 'kategori', 'metode_pengadaan', 'sistem_pengadaan', 'tahun_anggaran',
-            'nilai_pagu_paket', 'nilai_hps', 'jenis_kontrak', 'lokasi_pekerjaan', 'kualifikasi_usaha',
+            'nilai_pagu_paket', 'nilai_hps_paket', 'jenis_kontrak', 'lokasi_pekerjaan', 'kualifikasi_usaha',
             'peserta_tender', 'label_paket', 'khusus_pelaku_usaha_oap',
 
         ]
