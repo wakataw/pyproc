@@ -462,11 +462,12 @@ class DetailDownloader(object):
         else:
             package_detail = self.index_downloader.lpse.detil_paket_tender(lpse_index.id_paket)
 
-        package_detail.get_pengumuman()
-        package_detail.get_jadwal()
-        package_detail.get_hasil_evaluasi()
-        package_detail.get_pemenang()
-        package_detail.get_pemenang_berkontrak()
+        info = package_detail.get_all_detil()
+
+        if info['error']:
+            logging.error('{} - Terjadi kesalahan untuk paket {}'.format(
+                self.index_downloader.lpse_host.url, info['error_message']
+            ))
         lpse_index.detail = package_detail
 
         logging.debug("[DETAIL DOWNLOADER] update database detail data")
@@ -573,9 +574,9 @@ class Exporter:
         :return:
         """
         field = ['npwp', 'nama_peserta', 'penawaran', 'penawaran_terkoreksi', 'hasil_negosiasi', 'alamat', 'p', 'pk']
-        pemenang_field  = ['npwp', 'nama_pemenang', 'harga_penawaran', 'harga_terkoreksi', 'hasil_negosiasi', 'alamat',
-                           'p', 'pk']
-        data = []
+        pemenang_field = ['npwp', 'nama_pemenang', 'harga_penawaran', 'harga_terkoreksi', 'hasil_negosiasi', 'alamat',
+                          'p', 'pk']
+        data = [None] * 8
 
         if detil['pemenang_berkontrak']:
             p = detil['pemenang_berkontrak'][0]
@@ -589,7 +590,7 @@ class Exporter:
             if pemenang_hasil_evaluasi:
                 p = pemenang_hasil_evaluasi[0]
                 if not data:
-                    data = [p.get(i) for i in field] + []
+                    data = [p.get(i) for i in field]
                 else:
                     data[6] = p.get('p')
                     data[7] = p.get('pk')
@@ -601,18 +602,37 @@ class Exporter:
         Export detail data ke csv
         :return:
         """
+        is_tender = not self.index_downloader.ctx.non_tender
+        version = self.index_downloader.lpse.version
         header = [
-            'id_paket', 'nama_paket' if self.index_downloader.ctx.non_tender else 'nama_tender',
-            'tanggal_pembuatan', 'tahap_tender_saat_ini', 'k/l/pd',
-            'satuan_kerja', 'jenis_pengadaan', 'kategori', 'metode_pengadaan', 'sistem_pengadaan', 'tahun_anggaran',
-            'nilai_pagu_paket', 'nilai_hps_paket', 'jenis_kontrak', 'lokasi_pekerjaan', 'kualifikasi_usaha',
-            'peserta_tender', 'label_paket', 'khusus_pelaku_usaha_oap',
-
+            'id_paket',
+            'nama_tender',
+            'tanggal_pembuatan',
+            'tahap_tender_saat_ini',
+            'k/l/pd',
+            'satuan_kerja',
+            'jenis_pengadaan' if version.startswith('4.4') else 'kategori',
+            'metode_pengadaan' if version.startswith('4.4') else 'sistem_pengadaan',
+            'tahun_anggaran',
+            'nilai_pagu_paket',
+            'nilai_hps_paket',
+            'jenis_kontrak',
+            'lokasi_pekerjaan',
+            'kualifikasi_usaha',
+            'peserta_tender',
+            'label_paket',
+            'khusus_pelaku_usaha_oap'
         ]
+
+        if not is_tender:
+            header[1] = 'nama_paket'
+            header[3] = 'tahap_paket_saat_ini'
+            header[7] = 'metode_pengadaan'
+            header[-3] = 'peserta_non_tender'
 
         header_pemenang = ['npwp', 'nama_peserta', 'penawaran', 'penawaran_terkoreksi', 'hasil_negosiasi', 'alamat',
                            'p', 'pk']
-        other_header = ['jadwal']
+        other_header = ['jadwal', 'peserta']
 
         with self.get_file_obj('csv').open('w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
@@ -623,7 +643,7 @@ class Exporter:
                     [self.index_downloader.lpse_host.url, item.get('id_paket')] +
                     [item['pengumuman'].get(i) for i in header[1:]] +
                     self.get_pemenang(item) +
-                    [item.get('jadwal')],
+                    [item.get('jadwal'), item.get('peserta')],
                 )
 
     def to_json(self):
