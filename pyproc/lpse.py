@@ -317,8 +317,7 @@ class Lpse(object):
         del self.session
 
 
-class LpseDetil(object):
-
+class BaseLpseDetil(object):
     def __init__(self, lpse, id_paket):
         self._lpse = lpse
         self.id_paket = id_paket
@@ -330,28 +329,63 @@ class LpseDetil(object):
         self.jadwal = None
 
     def get_all_detil(self):
-        self.get_pengumuman()
-        self.get_peserta()
-        self.get_hasil_evaluasi()
-        self.get_pemenang()
-        self.get_pemenang_berkontrak()
-        self.get_jadwal()
+        info = {
+            'error': False,
+            'error_message': []
+        }
+        for name in ['get_pengumuman', 'get_peserta', 'get_hasil_evaluasi', 'get_pemenang', 'get_pemenang_berkontrak',
+                     'get_jadwal']:
+            try:
+                getattr(self, name)()
+            except Exception as e:
+                info['error'] = True
+                info['error_message'].append(
+                    '{} - {} - {}'.format(e, self.id_paket, name)
+                )
+        return info
 
+    def __str__(self):
+        return str(self.todict())
+
+    def todict(self):
+        data = self.__dict__.copy()
+        data.pop('_lpse')
+        return data
+
+
+class LpseDetil(BaseLpseDetil):
+
+    @backoff.on_exception(backoff.fibo,
+                          (LpseServerExceptions, requests.exceptions.RequestException,
+                           requests.exceptions.ConnectionError),
+                          max_tries=3, jitter=None)
     def get_pengumuman(self):
         self.pengumuman = LpseDetilPengumumanParser(self._lpse, self.id_paket).get_detil()
 
         return self.pengumuman
 
+    @backoff.on_exception(backoff.fibo,
+                          (LpseServerExceptions, requests.exceptions.RequestException,
+                           requests.exceptions.ConnectionError),
+                          max_tries=3, jitter=None)
     def get_peserta(self):
         self.peserta = LpseDetilPesertaParser(self._lpse, self.id_paket).get_detil()
 
         return self.peserta
 
+    @backoff.on_exception(backoff.fibo,
+                          (LpseServerExceptions, requests.exceptions.RequestException,
+                           requests.exceptions.ConnectionError),
+                          max_tries=3, jitter=None)
     def get_hasil_evaluasi(self):
         self.hasil = LpseDetilHasilEvaluasiParser(self._lpse, self.id_paket).get_detil()
 
         return self.hasil
 
+    @backoff.on_exception(backoff.fibo,
+                          (LpseServerExceptions, requests.exceptions.RequestException,
+                           requests.exceptions.ConnectionError),
+                          max_tries=3, jitter=None)
     def get_pemenang(self, all=False, key='hasil_negosiasi'):
         self.pemenang = LpseDetilPemenangParser(
             self._lpse,
@@ -362,82 +396,80 @@ class LpseDetil(object):
 
         return self.pemenang
 
+    @backoff.on_exception(backoff.fibo,
+                          (LpseServerExceptions, requests.exceptions.RequestException,
+                           requests.exceptions.ConnectionError),
+                          max_tries=3, jitter=None)
     def get_pemenang_berkontrak(self):
         self.pemenang_berkontrak = LpseDetilPemenangBerkontrakParser(self._lpse, self.id_paket).get_detil()
 
         return self.pemenang_berkontrak
 
+    @backoff.on_exception(backoff.fibo,
+                          (LpseServerExceptions, requests.exceptions.RequestException,
+                           requests.exceptions.ConnectionError),
+                          max_tries=3, jitter=None)
     def get_jadwal(self):
         self.jadwal = LpseDetilJadwalParser(self._lpse, self.id_paket).get_detil()
 
         return self.jadwal
 
-    def __str__(self):
-        return str(self.todict())
 
-    def todict(self):
-        data = self.__dict__.copy()
-        data.pop('_lpse')
-        return data
+class LpseDetilNonTender(BaseLpseDetil):
 
-
-class LpseDetilNonTender(object):
-
-    def __init__(self, lpse, id_paket):
-        self._lpse = lpse
-        self.id_paket = id_paket
-        self.pengumuman = None
-        self.peserta = None
-        self.hasil = None
-        self.pemenang = None
-        self.pemenang_berkontrak = None
-        self.jadwal = None
-
-    def get_all_detil(self):
-        self.get_pengumuman()
-        self.get_peserta()
-        self.get_hasil_evaluasi()
-        self.get_pemenang()
-        self.get_pemenang_berkontrak()
-        self.get_jadwal()
-
+    @backoff.on_exception(backoff.fibo,
+                          (LpseServerExceptions, requests.exceptions.RequestException,
+                           requests.exceptions.ConnectionError),
+                          max_tries=3, jitter=None)
     def get_pengumuman(self):
         self.pengumuman = LpseDetilPengumumanNonTenderParser(self._lpse, self.id_paket).get_detil()
 
         return self.pengumuman
 
+    @backoff.on_exception(backoff.fibo,
+                          (LpseServerExceptions, requests.exceptions.RequestException,
+                           requests.exceptions.ConnectionError),
+                          max_tries=3, jitter=None)
     def get_peserta(self):
         self.peserta = LpseDetilPesertaNonTenderParser(self._lpse, self.id_paket).get_detil()
 
         return self.peserta
 
+    @backoff.on_exception(backoff.fibo,
+                          (LpseServerExceptions, requests.exceptions.RequestException,
+                           requests.exceptions.ConnectionError),
+                          max_tries=3, jitter=None)
     def get_hasil_evaluasi(self):
         self.hasil = LpseDetilHasilEvaluasiNonTenderParser(self._lpse, self.id_paket).get_detil()
 
         return self.hasil
 
+    @backoff.on_exception(backoff.fibo,
+                          (LpseServerExceptions, requests.exceptions.RequestException,
+                           requests.exceptions.ConnectionError),
+                          max_tries=3, jitter=None)
     def get_pemenang(self):
         self.pemenang = LpseDetilPemenangNonTenderParser(self._lpse, self.id_paket).get_detil()
 
         return self.pemenang
 
+    @backoff.on_exception(backoff.fibo,
+                          (LpseServerExceptions, requests.exceptions.RequestException,
+                           requests.exceptions.ConnectionError),
+                          max_tries=3, jitter=None)
     def get_pemenang_berkontrak(self):
         self.pemenang_berkontrak = LpseDetilPemenangBerkontrakNonTenderParser(self._lpse, self.id_paket).get_detil()
 
         return self.pemenang_berkontrak
 
+    @backoff.on_exception(backoff.fibo,
+                          (LpseServerExceptions, requests.exceptions.RequestException,
+                           requests.exceptions.ConnectionError),
+                          max_tries=3, jitter=None)
     def get_jadwal(self):
         self.jadwal = LpseDetilJadwalNonTenderParser(self._lpse, self.id_paket).get_detil()
 
         return self.jadwal
-
-    def __str__(self):
-        return str(self.todict())
-
-    def todict(self):
-        data = self.__dict__.copy()
-        data.pop('_lpse')
-        return data
 
 
 class BaseLpseDetilParser(object):
