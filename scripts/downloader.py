@@ -639,9 +639,14 @@ class Exporter:
             writer.writerow(['url'] + header + header_pemenang + other_header)
 
             for item in self.get_detail():
+                if item.get('pengumuman'):
+                    base_data = [item.get('pengumuman', {}).get(i) for i in header[1:]]
+                else:
+                    base_data = [None]*len(header[1:])
+
                 writer.writerow(
                     [self.index_downloader.lpse_host.url, item.get('id_paket')] +
-                    [item['pengumuman'].get(i) for i in header[1:]] +
+                    base_data +
                     self.get_pemenang(item) +
                     [item.get('jadwal'), item.get('peserta')],
                 )
