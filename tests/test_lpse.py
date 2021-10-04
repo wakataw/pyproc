@@ -172,9 +172,11 @@ class TestLpse(unittest.TestCase):
         self.assertIsInstance(detil.todict(), dict)
 
     def test_detil_id_random(self):
-        detil = self.lpse.detil_paket_tender(111)
-
-        self.assertRaises(LpseServerExceptions, detil.get_all_detil)
+        detil = self.lpse.detil_paket_tender(111).todict()
+        for i in detil:
+            if i == 'id_paket':
+                continue
+            self.assertIsNone(detil[i])
 
     def tearDown(self):
         del self.lpse
@@ -254,9 +256,11 @@ class TestPaketNonTender(unittest.TestCase):
         self.assertIsInstance(detil.todict(), dict)
 
     def test_detil_id_random(self):
-        detil = self.lpse.detil_paket_tender(111)
-
-        self.assertRaises(LpseServerExceptions, detil.get_all_detil)
+        detil = self.lpse.detil_paket_tender(111).todict()
+        for i in detil:
+            if i == 'id_paket':
+                continue
+            self.assertIsNone(detil[i])
 
     def tearDown(self):
         del self.lpse
