@@ -29,7 +29,7 @@ Instalasi versi unstable:
 $ pip install git+https://github.com/wakataw/pyproc.git
 ```
 
-atau, Download executeable file (.exe) untuk windows [di sini](https://https://github.com/wakataw/pyproc/releases) (experimental).
+atau, Download executeable file (.exe) untuk windows [di sini](https://github.com/wakataw/pyproc/releases) (experimental).
 
 ## Testing
 
