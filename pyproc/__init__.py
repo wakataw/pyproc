@@ -4,5 +4,7 @@ __version__ = '0.1.9'
 __author__ = 'Agung Pratama'
 __all__ = [
     'Lpse',
-    'JenisPengadaan'
+    'JenisPengadaan',
+    'utils',
+    'exceptions'
 ]
