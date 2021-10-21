@@ -6,10 +6,9 @@ import logging
 import signal
 import sqlite3
 import threading
+import requests
+import pyproc
 from time import sleep
-
-import pyproc.utils
-from pyproc import Lpse, JenisPengadaan
 from pyproc.exceptions import DownloaderContextException
 from scripts import text
 from datetime import datetime
@@ -31,6 +30,15 @@ def set_up_log(level):
         raise ValueError('Invalid log level: {}'.format(level))
 
     logging.basicConfig(level=numeric_level, format='[%(asctime)s %(levelname)s] %(message)s')
+
+
+def check_new_version():
+    resp = requests.get('https://pypi.org/pypi/pyproc/json').json()
+    current_version = pyproc.__version__
+    pypi_version = resp['info']['version']
+    status = current_version != pypi_version
+
+    return status, current_version, pypi_version
 
 
 class Killer:
@@ -103,7 +111,7 @@ class DownloaderContext(object):
     @property
     def kategori(self):
         try:
-            return JenisPengadaan[self._kategori]
+            return pyproc.JenisPengadaan[self._kategori]
         except KeyError:
             return None
 
@@ -210,7 +218,7 @@ class IndexDownloader(object):
     def __init__(self, ctx, lpse_host):
         self.ctx = ctx
         self.lpse_host = lpse_host
-        self.lpse = Lpse(lpse_host.url)
+        self.lpse = pyproc.Lpse(lpse_host.url)
         self.db = self.get_index_db(self.lpse_host.filename)
 
         logging.info("{} - Mulai pengunduhan data {} tahun {}".format(
@@ -828,13 +836,23 @@ def main():
     downloader = Downloader()
     downloader.get_ctx(sys.argv[1:])
 
-    if len(sys.argv) > 1 and sys.argv[1] == 'daftarlpse':
-        pyproc.utils.get_all_host(logging)
-        exit(0)
-    else:
-        downloader.start()
-
-    del downloader
+    try:
+        status, current, new = check_new_version()
+        if status:
+            logging.info(f"Anda menggunakan PyProc versi {current}, "
+                         f"tersedia versi baru {new}. "
+                         f"Mohon untuk memperbarui aplikasi.")
+            exit(1)
+        else:
+            if len(sys.argv) > 1 and sys.argv[1] == 'daftarlpse':
+                pyproc.utils.get_all_host(logging)
+                exit(0)
+            else:
+                downloader.start()
+    except Exception as e:
+        logging.error(f"Terjadi galat {e}")
+    finally:
+        del downloader
 
 
 if __name__ == '__main__':
