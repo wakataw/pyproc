@@ -218,7 +218,7 @@ class IndexDownloader(object):
     def __init__(self, ctx, lpse_host):
         self.ctx = ctx
         self.lpse_host = lpse_host
-        self.lpse = pyproc.Lpse(lpse_host.url)
+        self.lpse = pyproc.Lpse(lpse_host.url, timeout=ctx.timeout)
         self.db = self.get_index_db(self.lpse_host.filename)
 
         logging.info("{} - Mulai pengunduhan data {} tahun {}".format(
