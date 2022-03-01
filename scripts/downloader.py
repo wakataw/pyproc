@@ -581,10 +581,9 @@ class Exporter:
         :param detil:
         :return:
         """
-        field = ['npwp', 'nama_peserta', 'penawaran', 'penawaran_terkoreksi', 'hasil_negosiasi', 'alamat', 'p', 'pk']
-        pemenang_field = ['npwp', 'nama_pemenang', 'harga_penawaran', 'harga_terkoreksi', 'hasil_negosiasi', 'alamat',
-                          'p', 'pk']
-        data = [None] * 8
+        field = ['npwp', 'nama_pemenang', 'alamat', 'penawaran_hasil','penawaran_pemenang', 'harga_negosiasi', 'harga_terkoreksi', 'hasil_negosiasi', 'p', 'pk']
+        pemenang_field = ['npwp', 'nama_pemenang', 'alamat', 'penawaran', 'harga_penawaran', 'harga_negosiasi', 'harga_terkoreksi', 'hasil_negosiasi', 'p', 'pk']
+        data = [None] * 10
 
         if detil['pemenang_berkontrak']:
             p = detil['pemenang_berkontrak'][0]
@@ -600,8 +599,9 @@ class Exporter:
                 if not data:
                     data = [p.get(i) for i in field]
                 else:
-                    data[6] = p.get('p')
-                    data[7] = p.get('pk')
+                    data[8] = p.get('p')
+                    data[9] = p.get('pk')
+                    data[3] = p.get('penawaran')
 
         return data
 
@@ -638,26 +638,23 @@ class Exporter:
             header[7] = 'metode_pengadaan'
             header[-3] = 'peserta_non_tender'
 
-        header_pemenang = ['npwp', 'nama_peserta', 'penawaran', 'penawaran_terkoreksi', 'hasil_negosiasi', 'alamat',
-                           'p', 'pk']
+        header_pemenang = ['npwp', 'nama_pemenang', 'alamat', 'penawaran_hasil','penawaran_pemenang', 'harga_negosiasi', 'harga_terkoreksi', 'hasil_negosiasi', 'p', 'pk']
         other_header = ['jadwal', 'peserta']
 
         with self.get_file_obj('csv').open('w', newline='', encoding='utf-8') as f:
-            writer = csv.writer(f)
+            writer = csv.writer(f, delimiter = ';')
             writer.writerow(['url'] + header + header_pemenang + other_header)
 
             for item in self.get_detail():
-                if item.get('pengumuman'):
-                    base_data = [item.get('pengumuman', {}).get(i) for i in header[1:]]
-                else:
-                    base_data = [None]*len(header[1:])
-
-                writer.writerow(
+                if item['pengumuman'] == None:
+                   pass
+                else: 
+                    writer.writerow(
                     [self.index_downloader.lpse_host.url, item.get('id_paket')] +
-                    base_data +
+                    [item['pengumuman'].get(i) for i in header[1:]] +
                     self.get_pemenang(item) +
                     [item.get('jadwal'), item.get('peserta')],
-                )
+                    )
 
     def to_json(self):
         """
