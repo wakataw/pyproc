@@ -1,4 +1,5 @@
 import csv
+import json
 import re
 import requests
 from bs4 import BeautifulSoup
@@ -17,17 +18,18 @@ def parse_token(page):
 
 
 def get_all_host(logging, name='daftarlpse.csv'):
-    resp = requests.get('https://inaproc.id/lpse')
-    soup = BeautifulSoup(resp.content, 'html5lib')
-    script_tag = str(soup.find_all('script')[-1])
-    title = re.findall(r"title: '(.*)'", script_tag)
-    url = map(lambda x: urlparse(x).netloc, re.findall(r"'(https.*)</a></p>", script_tag))
+    resp = requests.get('https://satudata.inaproc.id/service/daftarLPSE')
+    data = json.loads(resp.content)
 
-    logging.info("{} alamat LPSE ditemukan".format(len(title)))
+    logging.info("{} alamat LPSE ditemukan".format(len(data)))
 
     with open(name, 'w', newline='', encoding='utf-8') as f:
         writer = csv.writer(f, delimiter=';')
-        for u, t in zip(url, title):
-            writer.writerow([u, t])
+        for item in data:
+            try:
+                url = item['repo_url4']
+            except KeyError:
+                url = item['repo_url']
+            writer.writerow([url, f"{item['repo_id']}-{item['repo_nama']}"])
 
     logging.info("Export daftar lpse ke {}".format(name))
