@@ -6,7 +6,7 @@ import logging
 import backoff
 from . import utils
 from bs4 import BeautifulSoup as Bs, NavigableString
-from .exceptions import LpseVersionException, LpseHostExceptions, LpseServerExceptions, LpseAuthTokenNotFound
+from .exceptions import LpseVersionException, LpseHostExceptions, LpseServerExceptions
 from enum import Enum
 from abc import abstractmethod
 from urllib.parse import urlparse
@@ -227,6 +227,7 @@ class Lpse(object):
 
         if nama_penyedia:
             params.update({'rekanan': nama_penyedia})
+            params.update({'rkn_nama': nama_penyedia})
 
         if instansi_id:
             params.update({'instansiId': instansi_id})
