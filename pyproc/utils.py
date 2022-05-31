@@ -17,9 +17,15 @@ def parse_token(page):
     return
 
 
-def get_all_host(logging, name='daftarlpse.csv'):
+def get_all_host():
     resp = requests.get('https://satudata.inaproc.id/service/daftarLPSE')
     data = json.loads(resp.content)
+
+    return data
+
+
+def download_host(logging, name='daftarlpse.csv'):
+    data = get_all_host()
 
     logging.info("{} alamat LPSE ditemukan".format(len(data)))
 
@@ -33,3 +39,8 @@ def get_all_host(logging, name='daftarlpse.csv'):
             writer.writerow([url, f"{item['repo_id']}-{item['repo_nama']}"])
 
     logging.info("Export daftar lpse ke {}".format(name))
+
+
+def parse_version(version):
+    version = tuple(map(int, re.findall(r'(?P<major>\d+).(?P<minor>\d+)u(?P<patch>\d{8})', version)[0]))
+    return version
