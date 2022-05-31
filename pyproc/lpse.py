@@ -36,6 +36,11 @@ class Lpse(object):
     def __init__(self, url, timeout=10, info=True, skip_spse_check=False):
         self.session = requests.session()
         self.session.verify = False
+        self.session.headers = {
+            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) '
+                          'AppleWebKit/537.36 (KHTML, like Gecko) '
+                          'Chrome/102.0.5005.61 Safari/537.36'
+        }
         self.url = self.__check_url(url)
         self.is_lpse = False
         self.skip_spse_check = skip_spse_check
