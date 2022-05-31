@@ -42,8 +42,6 @@ def check_new_version():
 
 
 class Killer:
-    kill_now = False
-
     def __init__(self):
         signal.signal(signal.SIGINT, self.exit_gracefully)
         signal.signal(signal.SIGTERM, self.exit_gracefully)
@@ -51,7 +49,7 @@ class Killer:
     def exit_gracefully(self, *args):
         logging.debug("Get {} signal".format(args))
         logging.error("Proses dibatalkan user")
-        self.kill_now = True
+        exit(1)
 
 
 class LpseHost(object):
@@ -323,18 +321,12 @@ class IndexDownloader(object):
         if self.ctx.resume and self.db_status_for_resume:
             return
 
-        killer = Killer()
-
         for tahun in self.ctx.tahun_anggaran:
             total = self.get_total_package(tahun=tahun)
             batch_total = -(-total // self.ctx.chunk_size)
             data_count = 0
 
             for batch in range(batch_total):
-                if killer.kill_now:
-                    del self.db
-                    exit(1)
-
                 data = self.lpse.get_paket(jenis_paket=self.get_jenis_paket(), start=batch * self.ctx.chunk_size,
                                            length=self.ctx.chunk_size, kategori=self.ctx.kategori,
                                            search_keyword=self.ctx.keyword, nama_penyedia=self.ctx.nama_penyedia,
@@ -493,11 +485,10 @@ class DetailDownloader(object):
     def start(self):
         total, deleted = self.__pre_process_index_db()
         total_to_download = total - deleted
-        killer = Killer()
         index_generator = self.index_downloader.get_index()
         total_downloaded = 0
 
-        while not killer.kill_now:
+        while True:
             lpse_index = []
 
             for i in range(self.index_downloader.ctx.workers):
@@ -540,10 +531,6 @@ class DetailDownloader(object):
 
             if len(lpse_index) != self.index_downloader.ctx.workers:
                 break
-
-        if killer.kill_now:
-            del killer
-            exit(1)
 
         print()
         logging.info("{} - {} data selesai diproses".format(self.index_downloader.lpse_host.url, total_downloaded))
@@ -834,6 +821,8 @@ class Downloader(object):
 
 def main():
     import sys
+
+    Killer()
 
     print(text.INFO)
 
