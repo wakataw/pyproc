@@ -101,7 +101,7 @@ class Lpse(object):
         # check jika aplikasi spse atau bukan
         self.is_lpse = self.__check_if_lpse(soup.text)
 
-        if raise_exception:
+        if raise_exception and not self.is_lpse:
             raise LpseHostExceptions(f"{self.url} sepertinya bukan aplikasi SPSE")
 
         # get version
