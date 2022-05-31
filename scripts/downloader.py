@@ -784,13 +784,17 @@ class Downloader(object):
 
             try:
                 index_downloader = IndexDownloader(self.ctx, lpse_host)
+                index_downloader.start()
             except Exception as e:
-                logging.error("{} - {} {}".format(lpse_host.url, e.__class__, str(e)))
+                logging.error("{} - Index Downloader Error {} {}".format(lpse_host.url, e.__class__, str(e)))
                 continue
-            index_downloader.start()
 
-            detail_downloader = DetailDownloader(index_downloader)
-            detail_downloader.start()
+            try:
+                detail_downloader = DetailDownloader(index_downloader)
+                detail_downloader.start()
+            except Exception as e:
+                logging.error("{} - Detail Downloader Error {} {}".format(lpse_host.url, e.__class__, str(e)))
+                continue
 
             exporter = Exporter(index_downloader)
 
@@ -842,13 +846,12 @@ def main():
             logging.info(f"Anda menggunakan PyProc versi {current}, "
                          f"tersedia versi baru {new}. "
                          f"Mohon untuk memperbarui aplikasi.")
-            exit(1)
+
+        if len(sys.argv) > 1 and sys.argv[1] == 'daftarlpse':
+            pyproc.utils.download_host(logging)
+            exit(0)
         else:
-            if len(sys.argv) > 1 and sys.argv[1] == 'daftarlpse':
-                pyproc.utils.download_host(logging)
-                exit(0)
-            else:
-                downloader.start()
+            downloader.start()
     except Exception as e:
         logging.error(f"Terjadi galat {e}")
     finally:
