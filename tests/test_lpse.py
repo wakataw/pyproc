@@ -9,8 +9,10 @@ from pyproc.exceptions import LpseHostExceptions, LpseServerExceptions
 
 
 class TestLpse(unittest.TestCase):
+    id_tender_selesai = None
+
     def setUp(self):
-        self.lpse = Lpse('lpse.jakarta.go.id', timeout=60, skip_spse_check=True)
+        self.lpse = Lpse('https://lpse.jakarta.go.id/eproc4', timeout=60)
         self.id_tender_selesai = self.get_id_for_testing()
 
     def get_id_for_testing(self, batch=0):
@@ -46,7 +48,7 @@ class TestLpse(unittest.TestCase):
         """
         current_year = datetime.now().year
         for tahun in range(current_year-3, current_year+1):
-            lpse = Lpse('https://lpse.kepahiangkab.go.id')
+            lpse = Lpse('http://lpse.kepahiangkab.go.id')
             data = lpse.get_paket_tender(
                 length=25,
                 tahun=tahun,
@@ -56,7 +58,7 @@ class TestLpse(unittest.TestCase):
                 self.assertTrue(str(tahun) in i[8])
 
     def test_get_paket_tender_by_kategori(self):
-        lpse = Lpse('https://lpse.kepahiangkab.go.id')
+        lpse = Lpse('http://lpse.kepahiangkab.go.id', timeout=60)
         data = lpse.get_paket_tender(
             length=25,
             tahun=2021,
@@ -67,7 +69,7 @@ class TestLpse(unittest.TestCase):
             self.assertTrue('pengadaan barang' in i[8].lower())
 
     def test_get_paket_tender_by_instansi(self):
-        lpse = Lpse('https://lpse.kepahiangkab.go.id')
+        lpse = Lpse('http://lpse.kepahiangkab.go.id')
         data = lpse.get_paket_tender(
             length=25,
             data_only=True,
@@ -178,6 +180,12 @@ class TestLpse(unittest.TestCase):
                 continue
             self.assertIsNone(detil[i])
 
+    def test_lpse_force_eproc4(self):
+        for path in ['', '/', '/eproc4', '/eproc4/']:
+            lpse = Lpse('https://lpse.salatiga.go.id'+path)
+            paket = lpse.get_paket_tender(length=5, data_only=True)
+            self.assertTrue(lpse.version > (0, 0, 0) and len(paket) == 5)
+
     def tearDown(self):
         del self.lpse
 
@@ -268,15 +276,6 @@ class TestPaketNonTender(unittest.TestCase):
 
 class TestLpseHostError(unittest.TestCase):
 
-    def test_host_without_scheme(self):
-        host = 'lpse.padang.go.id'
-        lpse = Lpse(host, timeout=30)
-
-        self.assertEqual(lpse.host.startswith('http'), True)
-        self.assertEqual(True, host in lpse.host)
-
-        del lpse
-
     def test_host_error(self):
         host = 'http://www.pajak.go.id'
 
@@ -330,7 +329,7 @@ class TestLpseKolomPemenangTidakLengkap(unittest.TestCase):
             pemenang,
             [{'nama_pemenang': 'CV. NAJAH',
               'alamat': 'JL. IMAM BONJOL TANJUNG SELOR - Bulungan (Kab.) - Kalimantan Utara',
-              'npwp': '02.673.860.9-727.000', 'harga_penawaran': '', 'hasil_negosiasi': ''}]
+              'npwp': '02.673.860.9-727.000', 'harga_penawaran': '', 'hasil_negosiasi': '', 'harga_terkoreksi': ''}]
         )
 
     def tearDown(self):
@@ -348,8 +347,20 @@ class TestPaketTenderRUP(unittest.TestCase):
 class TestGetAllLpseHost(unittest.TestCase):
     def test_get_all_host(self):
         import logging
-        pyproc.utils.get_all_host(logging)
+        pyproc.utils.download_host(logging)
         self.assertTrue((Path.cwd() / 'daftarlpse.csv').is_file())
+
+
+class UtilsTest(unittest.TestCase):
+
+    def test_compare_version(self):
+        self.assertTrue(pyproc.utils.parse_version('v4.4u20220509') < pyproc.utils.parse_version('v4.5u20220520'))
+
+    def test_parse_version(self):
+        self.assertEqual(
+            pyproc.utils.parse_version('v4.5u20220520'),
+            (4, 5, 20220520)
+        )
 
 
 if __name__ == '__main__':

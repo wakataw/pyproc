@@ -360,7 +360,7 @@ class IndexDownloader(object):
 
                 sleep(self.ctx.index_download_delay)
 
-            if not self.lpse.version.startswith('4.4'):
+            if not self.lpse.version >= (4, 4, 0):
                 logging.info("{} - SKIP tahun lain".format(self.lpse_host.url, self.lpse.version))
                 break
 
@@ -432,7 +432,7 @@ class DetailDownloader(object):
         ).fetchone()[0]
         deleted = 0
 
-        if not self.index_downloader.lpse.version.startswith('4.4') \
+        if not self.index_downloader.lpse.version >= (4, 4, 0) \
                 and self.index_downloader.ctx.tahun_anggaran != [None]:
             logging.info("{} - {}u{} tidak mendukung filter tahun anggaran, menjalankan filter manual"
                          .format(self.index_downloader.lpse_host.url, self.index_downloader.lpse.version,
@@ -619,8 +619,8 @@ class Exporter:
             'tahap_tender_saat_ini',
             'k/l/pd',
             'satuan_kerja',
-            'jenis_pengadaan' if version.startswith('4.4') else 'kategori',
-            'metode_pengadaan' if version.startswith('4.4') else 'sistem_pengadaan',
+            'jenis_pengadaan' if version >= (4, 4, 0) else 'kategori',
+            'metode_pengadaan' if version >= (4, 4, 0) else 'sistem_pengadaan',
             'tahun_anggaran',
             'nilai_pagu_paket',
             'nilai_hps_paket',
@@ -845,7 +845,7 @@ def main():
             exit(1)
         else:
             if len(sys.argv) > 1 and sys.argv[1] == 'daftarlpse':
-                pyproc.utils.get_all_host(logging)
+                pyproc.utils.download_host(logging)
                 exit(0)
             else:
                 downloader.start()
