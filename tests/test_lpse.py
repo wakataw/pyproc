@@ -33,7 +33,6 @@ class TestLpse(unittest.TestCase):
     def test_get_encoded_session_auth_token(self):
         lpse = Lpse('https://lpse.lampungprov.go.id')
         token = lpse.get_auth_token()
-        print("auth token: {}".format(token))
         self.assertTrue(len(token) > 10)
 
     def test_get_paket_tender_kosong(self):
@@ -329,7 +328,11 @@ class TestLpseKolomPemenangTidakLengkap(unittest.TestCase):
             pemenang,
             [{'nama_pemenang': 'CV. NAJAH',
               'alamat': 'JL. IMAM BONJOL TANJUNG SELOR - Bulungan (Kab.) - Kalimantan Utara',
-              'npwp': '02.673.860.9-727.000', 'harga_penawaran': '', 'hasil_negosiasi': '', 'harga_terkoreksi': ''}]
+              'npwp': '02.673.860.9-727.000',
+              'harga_penawaran': 0,
+              'harga_terkoreksi': 0,
+              'hasil_negosiasi': 0,
+              'harga_negosiasi': 0}]
         )
 
     def tearDown(self):

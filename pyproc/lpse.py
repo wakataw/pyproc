@@ -499,7 +499,7 @@ class BaseLpseDetilParser(object):
         try:
             return float(result)
         except ValueError:
-            return -1
+            return 0
 
 
 class LpseDetilPengumumanParser(BaseLpseDetilParser):
@@ -700,12 +700,24 @@ class LpseDetilPemenangParser(BaseLpseDetilParser):
                 data = [' '.join(td.text.strip().split()) for td in tr.find_all('td')]
 
                 if data:
-                    pemenang = dict()
+                    # set default dict untuk data pemenang karena nama header beda-beda
+                    # ref: https://github.com/wakataw/pyproc/pull/53
+                    pemenang = {
+                        'nama_pemenang': None,
+                        'alamat': None,
+                        'npwp': None,
+                        'harga_penawaran': 0,
+                        'harga_terkoreksi': 0,
+                        'hasil_negosiasi': 0,
+                        'harga_negosiasi': 0
+                    }
+
                     for i, v in zip(header, data):
                         if 'reverse_auction' in i:
                             i = 'hasil_negosiasi'
 
-                        pemenang[i] = self.parse_currency(v) if v.lower().startswith('rp') else v
+                        pemenang[i] = self.parse_currency(v) \
+                            if (v.lower().startswith('rp') or i.startswith('harga') or i.startswith('hasil')) else v
 
                     all_pemenang.append(pemenang)
 
