@@ -6,7 +6,7 @@ import logging
 import backoff
 from . import utils
 from bs4 import BeautifulSoup as Bs, NavigableString
-from .exceptions import LpseVersionException, LpseServerExceptions
+from .exceptions import LpseVersionException, LpseServerExceptions, LpseHostExceptions
 from enum import Enum
 from abc import abstractmethod
 from urllib.parse import urlparse
@@ -49,20 +49,23 @@ class Lpse(object):
             self.update_info()
 
     @staticmethod
-    def __check_url(url):
+    def __check_url(url, force_eproc4=True):
         """
-        Check jika url memiliki skema atau tidak
+        Check jika url memiliki skema atau tidak,
         """
         parsed_url = urlparse(url)
 
         scheme = parsed_url.scheme
         netloc = parsed_url.netloc
+        path = parsed_url.path
 
         if parsed_url.scheme == '':
-            scheme = 'http'
-            netloc = parsed_url.path
+            raise LpseHostExceptions(f"Format URL {url} tidak sesuai!")
 
-        return '{}://{}{}'.format(scheme, netloc.strip('/'), parsed_url.path)
+        if path.strip('/') == '' and force_eproc4:
+            path = '/eproc4'
+
+        return '{}://{}{}'.format(scheme, netloc, path)
 
     @staticmethod
     def check_error(resp):
