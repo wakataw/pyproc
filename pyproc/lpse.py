@@ -90,7 +90,7 @@ class Lpse(object):
             )
             raise LpseServerExceptions(error_message)
 
-    def update_info(self):
+    def update_info(self, raise_exception=True):
         """
         Update Informasi mengenai versi SPSE dan waktu update data terakhir
         :return:
@@ -100,6 +100,9 @@ class Lpse(object):
 
         # check jika aplikasi spse atau bukan
         self.is_lpse = self.__check_if_lpse(soup.text)
+
+        if raise_exception:
+            raise LpseHostExceptions(f"{self.url} sepertinya bukan aplikasi SPSE")
 
         # get version
         self.version = self.__get_version(
@@ -470,7 +473,7 @@ class BaseLpseDetilParser(object):
                            requests.exceptions.ConnectionError),
                           max_tries=3, jitter=None)
     def get_detil(self):
-        url = self.lpse.host+self.detil_path.format(self.id_paket)
+        url = self.lpse.url+self.detil_path.format(self.id_paket)
         r = self.lpse.session.get(url, timeout=self.lpse.timeout)
 
         self.lpse.check_error(r)
