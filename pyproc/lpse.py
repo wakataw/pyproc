@@ -114,6 +114,10 @@ class Lpse(object):
             soup.text
         )
 
+        # update url jika tidak sama
+        if not resp.url.startswith(self.url):
+            self.url = resp.url
+
     def __check_if_lpse(self, content):
         """
         Check lpse berdasarkan halaman home page dari situs tersebut.
