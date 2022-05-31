@@ -41,7 +41,7 @@ def check_new_version():
     return status, current_version, pypi_version
 
 
-class Killer:
+class IWillFindYouAndIWillKillYou:
     def __init__(self):
         signal.signal(signal.SIGINT, self.exit_gracefully)
         signal.signal(signal.SIGTERM, self.exit_gracefully)
@@ -822,7 +822,7 @@ class Downloader(object):
 def main():
     import sys
 
-    Killer()
+    IWillFindYouAndIWillKillYou()
 
     print(text.INFO)
 
