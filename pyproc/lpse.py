@@ -6,7 +6,7 @@ import logging
 import backoff
 from . import utils
 from bs4 import BeautifulSoup as Bs, NavigableString
-from .exceptions import LpseVersionException, LpseHostExceptions, LpseServerExceptions, LpseAuthTokenNotFound
+from .exceptions import LpseVersionException, LpseServerExceptions, LpseHostExceptions
 from enum import Enum
 from abc import abstractmethod
 from urllib.parse import urlparse
@@ -33,33 +33,44 @@ class JenisPengadaan(Enum):
 
 class Lpse(object):
 
-    def __init__(self, host, timeout=10, info=True, skip_spse_check=False):
+    def __init__(self, url, timeout=10, info=True, skip_spse_check=False):
         self.session = requests.session()
         self.session.verify = False
-        self.host = host
+        self.session.headers = {
+            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) '
+                          'AppleWebKit/537.36 (KHTML, like Gecko) '
+                          'Chrome/102.0.5005.61 Safari/537.36'
+        }
+        self.url = self.__check_url(url)
         self.is_lpse = False
         self.skip_spse_check = skip_spse_check
-        self.version = None
+        self.version = (0, 0, 0)
         self.build_version = 0
         self.last_update = None
         self.timeout = timeout
         self.auth_token = None
 
         if info:
-            self.host = self._check_host(self.host)
             self.update_info()
 
-    def _check_host(self, host):
-        parsed_url = urlparse(host)
+    @staticmethod
+    def __check_url(url, force_eproc4=True):
+        """
+        Check jika url memiliki skema atau tidak,
+        """
+        parsed_url = urlparse(url)
 
         scheme = parsed_url.scheme
         netloc = parsed_url.netloc
+        path = parsed_url.path
 
         if parsed_url.scheme == '':
-            scheme = 'http'
-            netloc = parsed_url.path
+            raise LpseHostExceptions(f"Format URL {url} tidak sesuai!")
 
-        return '{}://{}'.format(scheme, netloc.strip('/'))
+        if path.strip('/') == '' and force_eproc4:
+            path = '/eproc4'
+
+        return '{}://{}{}'.format(scheme, netloc, path)
 
     @staticmethod
     def check_error(resp):
@@ -70,7 +81,7 @@ class Lpse(object):
                 re.findall(r'Maaf, terjadi error pada aplikasi SPSE.', content) or \
                 re.findall(r'Terjadi Kesalahan', content):
             error_message = "Terjadi error pada aplikasi SPSE."
-            error_code = re.findall(r'Kode Error: ([0-9a-zA-Z]+)', content)
+            error_code = re.findall(r'Kode Error: ([\da-zA-Z]+)', content)
 
             if error_code:
                 error_message += ' Kode Error: ' + error_code[0]
@@ -84,68 +95,54 @@ class Lpse(object):
             )
             raise LpseServerExceptions(error_message)
 
-    def update_info(self):
+    def update_info(self, raise_exception=True):
         """
         Update Informasi mengenai versi SPSE dan waktu update data terakhir
-        :param url: url LPSE
         :return:
         """
-        r = self.session.get(self.host, verify=False, timeout=self.timeout)
-        s = Bs(r.content, 'html5lib')
+        resp = self.session.get(self.url, verify=False, timeout=self.timeout)
+        soup = Bs(resp.content, 'html5lib')
 
-        if not self.skip_spse_check:
-            if not self._is_spse(r.text):
-                raise LpseHostExceptions("{} sepertinya bukan aplikasi SPSE".format(self.host))
+        # check jika aplikasi spse atau bukan
+        self.is_lpse = self.__check_if_lpse(soup.text)
 
-            footer = s.find('div', {'id': 'footer'}).text.strip()
+        if raise_exception and not self.is_lpse:
+            raise LpseHostExceptions(f"{self.url} sepertinya bukan aplikasi SPSE")
 
-            if not self._is_v4(footer):
-                raise LpseVersionException("Versi SPSE harus >= 4")
+        # get version
+        self.version = self.__get_version(
+            soup.text
+        )
 
-            self._get_last_update(footer)
+        # update url jika tidak sama
+        if not resp.url.startswith(self.url):
+            self.url = resp.url
 
-        self.host = self._check_host(r.url) + '/eproc4'
-
-    def _is_spse(self, content):
+    def __check_if_lpse(self, content):
+        """
+        Check lpse berdasarkan halaman home page dari situs tersebut.
+        """
         self.is_lpse = False
-        text = 'harap aktifkan fitur javascript pada browser anda'.lower()
+
+        text = 'Untuk tampilan Aplikasi SPSE yang lebih baik'.lower()
 
         if text in content.lower():
             self.is_lpse = True
-            return self.is_lpse
 
         return self.is_lpse
 
-    def _is_v4(self, footer):
+    def __get_version(self, footer):
         """
         Melakukan pengecekan versi LPSE
         :param footer: content footer dari halaman LPSE
         :return: Boolean
         """
-        version = re.findall(r'SPSE v(\d+\.\d+)u([0-9]+)', footer, flags=re.DOTALL)
+        version = re.findall(r'SPSE v(\d+\.\d+u[0-9]+)', footer, flags=re.DOTALL)
 
         if version:
-            self.version = version[0][0]
-            try:
-                self.build_version = int(version[0][1])
-            except ValueError:
-                pass
+            return utils.parse_version(version[0])
 
-            if self.version.startswith('4'):
-                return True
-
-        return False
-
-    def _get_last_update(self, footer):
-        """
-        Melakukan pengambilan waktu update terakhir
-        :param footer: content footer dari halaman LPSE
-        :return:
-        """
-        last_update = re.findall(r'Update terakhir (\d+-\d+-\d+ \d+:\d+),', footer)
-
-        if last_update:
-            self.last_update = last_update[0]
+        raise LpseVersionException("Version not found!")
 
     def get_auth_token(self, from_cookies=True):
         """
@@ -154,11 +151,10 @@ class Lpse(object):
         """
 
         # bypass jika versi kurang dari veri bulan 09
-
-        if self.build_version != 0 and self.build_version < 20191009:
+        if self.version < (4, 3, 20191009):
             return None
 
-        r = self.session.get(self.host + '/lelang')
+        r = self.session.get(self.url + '/lelang')
 
         if from_cookies:
             auth_token = re.findall(r'___AT=([A-Za-z0-9]+)&', self.session.cookies.get('SPSE_SESSION'))
@@ -227,18 +223,19 @@ class Lpse(object):
 
         if nama_penyedia:
             params.update({'rekanan': nama_penyedia})
+            params.update({'rkn_nama': nama_penyedia})
 
         if instansi_id:
             params.update({'instansiId': instansi_id})
 
         data = self.session.get(
-            self.host + '/dt/' + jenis_paket,
+            self.url + '/dt/' + jenis_paket,
             params=params,
             verify=False,
             timeout=self.timeout,
             headers={
                 'X-Requested-With': 'XMLHttpRequest',
-                'Referer': self.host + '/lelang',
+                'Referer': self.url + '/lelang',
                 'Sec-Fetch-Mode': 'cors',
                 'Sec-Fetch-Site': 'same-origin',
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
@@ -485,7 +482,7 @@ class BaseLpseDetilParser(object):
                            requests.exceptions.ConnectionError),
                           max_tries=3, jitter=None)
     def get_detil(self):
-        url = self.lpse.host+self.detil_path.format(self.id_paket)
+        url = self.lpse.url+self.detil_path.format(self.id_paket)
         r = self.lpse.session.get(url, timeout=self.lpse.timeout)
 
         self.lpse.check_error(r)
@@ -496,12 +493,13 @@ class BaseLpseDetilParser(object):
     def parse_detil(self, content):
         pass
 
-    def parse_currency(self, nilai):
+    @staticmethod
+    def parse_currency(nilai):
         result = ''.join(re.findall(r'([\d+,])', nilai)).replace(',', '.')
         try:
             return float(result)
         except ValueError:
-            return -1
+            return 0
 
 
 class LpseDetilPengumumanParser(BaseLpseDetilParser):
@@ -702,12 +700,24 @@ class LpseDetilPemenangParser(BaseLpseDetilParser):
                 data = [' '.join(td.text.strip().split()) for td in tr.find_all('td')]
 
                 if data:
-                    pemenang = dict()
+                    # set default dict untuk data pemenang karena nama header beda-beda
+                    # ref: https://github.com/wakataw/pyproc/pull/53
+                    pemenang = {
+                        'nama_pemenang': None,
+                        'alamat': None,
+                        'npwp': None,
+                        'harga_penawaran': 0,
+                        'harga_terkoreksi': 0,
+                        'hasil_negosiasi': 0,
+                        'harga_negosiasi': 0
+                    }
+
                     for i, v in zip(header, data):
                         if 'reverse_auction' in i:
                             i = 'hasil_negosiasi'
 
-                        pemenang[i] = self.parse_currency(v) if v.lower().startswith('rp') else v
+                        pemenang[i] = self.parse_currency(v) \
+                            if (v.lower().startswith('rp') or i.startswith('harga') or i.startswith('hasil')) else v
 
                     all_pemenang.append(pemenang)
 

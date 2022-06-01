@@ -41,9 +41,7 @@ def check_new_version():
     return status, current_version, pypi_version
 
 
-class Killer:
-    kill_now = False
-
+class IWillFindYouAndIWillKillYou:
     def __init__(self):
         signal.signal(signal.SIGINT, self.exit_gracefully)
         signal.signal(signal.SIGTERM, self.exit_gracefully)
@@ -51,7 +49,7 @@ class Killer:
     def exit_gracefully(self, *args):
         logging.debug("Get {} signal".format(args))
         logging.error("Proses dibatalkan user")
-        self.kill_now = True
+        exit(1)
 
 
 class LpseHost(object):
@@ -323,18 +321,12 @@ class IndexDownloader(object):
         if self.ctx.resume and self.db_status_for_resume:
             return
 
-        killer = Killer()
-
         for tahun in self.ctx.tahun_anggaran:
             total = self.get_total_package(tahun=tahun)
             batch_total = -(-total // self.ctx.chunk_size)
             data_count = 0
 
             for batch in range(batch_total):
-                if killer.kill_now:
-                    del self.db
-                    exit(1)
-
                 data = self.lpse.get_paket(jenis_paket=self.get_jenis_paket(), start=batch * self.ctx.chunk_size,
                                            length=self.ctx.chunk_size, kategori=self.ctx.kategori,
                                            search_keyword=self.ctx.keyword, nama_penyedia=self.ctx.nama_penyedia,
@@ -360,7 +352,7 @@ class IndexDownloader(object):
 
                 sleep(self.ctx.index_download_delay)
 
-            if not self.lpse.version.startswith('4.4'):
+            if not self.lpse.version >= (4, 4, 0):
                 logging.info("{} - SKIP tahun lain".format(self.lpse_host.url, self.lpse.version))
                 break
 
@@ -432,7 +424,7 @@ class DetailDownloader(object):
         ).fetchone()[0]
         deleted = 0
 
-        if not self.index_downloader.lpse.version.startswith('4.4') \
+        if not self.index_downloader.lpse.version >= (4, 4, 0) \
                 and self.index_downloader.ctx.tahun_anggaran != [None]:
             logging.info("{} - {}u{} tidak mendukung filter tahun anggaran, menjalankan filter manual"
                          .format(self.index_downloader.lpse_host.url, self.index_downloader.lpse.version,
@@ -493,11 +485,10 @@ class DetailDownloader(object):
     def start(self):
         total, deleted = self.__pre_process_index_db()
         total_to_download = total - deleted
-        killer = Killer()
         index_generator = self.index_downloader.get_index()
         total_downloaded = 0
 
-        while not killer.kill_now:
+        while True:
             lpse_index = []
 
             for i in range(self.index_downloader.ctx.workers):
@@ -541,10 +532,6 @@ class DetailDownloader(object):
             if len(lpse_index) != self.index_downloader.ctx.workers:
                 break
 
-        if killer.kill_now:
-            del killer
-            exit(1)
-
         print()
         logging.info("{} - {} data selesai diproses".format(self.index_downloader.lpse_host.url, total_downloaded))
 
@@ -581,27 +568,36 @@ class Exporter:
         :param detil:
         :return:
         """
-        field = ['npwp', 'nama_peserta', 'penawaran', 'penawaran_terkoreksi', 'hasil_negosiasi', 'alamat', 'p', 'pk']
-        pemenang_field = ['npwp', 'nama_pemenang', 'harga_penawaran', 'harga_terkoreksi', 'hasil_negosiasi', 'alamat',
-                          'p', 'pk']
-        data = [None] * 8
+        union_field = [
+            'npwp',
+            'penawaran',
+            'harga_penawaran',
+            'hasil_negosiasi',
+            'harga_negosiasi',
+            'harga_terkoreksi',
+            'alamat',
+            'p',
+            'pk',
+        ]
+
+        data = []
 
         if detil['pemenang_berkontrak']:
             p = detil['pemenang_berkontrak'][0]
-            data = [p.get(i) for i in pemenang_field]
+            data = [p.get(i) for i in ['nama_pemenang'] + union_field]
         elif detil['pemenang']:
             p = detil['pemenang'][0]
-            data = [p.get(i) for i in pemenang_field]
+            data = [p.get(i) for i in ['nama_pemenang'] + union_field]
         if detil['hasil']:
             pemenang_hasil_evaluasi = list(filter(lambda x: x.get('pk') is True or x.get('p') is True, detil['hasil']))
 
             if pemenang_hasil_evaluasi:
                 p = pemenang_hasil_evaluasi[0]
                 if not data:
-                    data = [p.get(i) for i in field]
+                    data = [p.get(i) for i in ['nama_peserta'] + union_field]
                 else:
-                    data[6] = p.get('p')
-                    data[7] = p.get('pk')
+                    data[-2] = p.get('p')
+                    data[-1] = p.get('pk')
 
         return data
 
@@ -619,8 +615,8 @@ class Exporter:
             'tahap_tender_saat_ini',
             'k/l/pd',
             'satuan_kerja',
-            'jenis_pengadaan' if version.startswith('4.4') else 'kategori',
-            'metode_pengadaan' if version.startswith('4.4') else 'sistem_pengadaan',
+            'jenis_pengadaan' if version >= (4, 4, 0) else 'kategori',
+            'metode_pengadaan' if version >= (4, 4, 0) else 'sistem_pengadaan',
             'tahun_anggaran',
             'nilai_pagu_paket',
             'nilai_hps_paket',
@@ -638,8 +634,18 @@ class Exporter:
             header[7] = 'metode_pengadaan'
             header[-3] = 'peserta_non_tender'
 
-        header_pemenang = ['npwp', 'nama_peserta', 'penawaran', 'penawaran_terkoreksi', 'hasil_negosiasi', 'alamat',
-                           'p', 'pk']
+        header_pemenang = [
+            'nama_pemenang',
+            'npwp',
+            'penawaran',
+            'harga_penawaran',
+            'hasil_negosiasi',
+            'harga_negosiasi',
+            'harga_terkoreksi',
+            'alamat',
+            'p',
+            'pk',
+        ]
         other_header = ['jadwal', 'peserta']
 
         with self.get_file_obj('csv').open('w', newline='', encoding='utf-8') as f:
@@ -784,13 +790,17 @@ class Downloader(object):
 
             try:
                 index_downloader = IndexDownloader(self.ctx, lpse_host)
+                index_downloader.start()
             except Exception as e:
-                logging.error("{} - {} {}".format(lpse_host.url, e.__class__, str(e)))
+                logging.error("{} - Index Downloader Error {} {}".format(lpse_host.url, e.__class__, str(e)))
                 continue
-            index_downloader.start()
 
-            detail_downloader = DetailDownloader(index_downloader)
-            detail_downloader.start()
+            try:
+                detail_downloader = DetailDownloader(index_downloader)
+                detail_downloader.start()
+            except Exception as e:
+                logging.error("{} - Detail Downloader Error {} {}".format(lpse_host.url, e.__class__, str(e)))
+                continue
 
             exporter = Exporter(index_downloader)
 
@@ -831,6 +841,8 @@ class Downloader(object):
 def main():
     import sys
 
+    IWillFindYouAndIWillKillYou()
+
     print(text.INFO)
 
     downloader = Downloader()
@@ -842,13 +854,12 @@ def main():
             logging.info(f"Anda menggunakan PyProc versi {current}, "
                          f"tersedia versi baru {new}. "
                          f"Mohon untuk memperbarui aplikasi.")
-            exit(1)
+
+        if len(sys.argv) > 1 and sys.argv[1] == 'daftarlpse':
+            pyproc.utils.download_host(logging)
+            exit(0)
         else:
-            if len(sys.argv) > 1 and sys.argv[1] == 'daftarlpse':
-                pyproc.utils.get_all_host(logging)
-                exit(0)
-            else:
-                downloader.start()
+            downloader.start()
     except Exception as e:
         logging.error(f"Terjadi galat {e}")
     finally:
