@@ -568,27 +568,36 @@ class Exporter:
         :param detil:
         :return:
         """
-        field = ['npwp', 'nama_peserta', 'penawaran', 'penawaran_terkoreksi', 'hasil_negosiasi', 'alamat', 'p', 'pk']
-        pemenang_field = ['npwp', 'nama_pemenang', 'harga_penawaran', 'harga_terkoreksi', 'hasil_negosiasi', 'alamat',
-                          'p', 'pk']
-        data = [None] * 8
+        union_field = [
+            'npwp',
+            'penawaran',
+            'harga_penawaran',
+            'hasil_negosiasi',
+            'harga_negosiasi',
+            'harga_terkoreksi',
+            'alamat',
+            'p',
+            'pk',
+        ]
+
+        data = []
 
         if detil['pemenang_berkontrak']:
             p = detil['pemenang_berkontrak'][0]
-            data = [p.get(i) for i in pemenang_field]
+            data = [p.get(i) for i in ['nama_pemenang'] + union_field]
         elif detil['pemenang']:
             p = detil['pemenang'][0]
-            data = [p.get(i) for i in pemenang_field]
+            data = [p.get(i) for i in ['nama_pemenang'] + union_field]
         if detil['hasil']:
             pemenang_hasil_evaluasi = list(filter(lambda x: x.get('pk') is True or x.get('p') is True, detil['hasil']))
 
             if pemenang_hasil_evaluasi:
                 p = pemenang_hasil_evaluasi[0]
                 if not data:
-                    data = [p.get(i) for i in field]
+                    data = [p.get(i) for i in ['nama_peserta'] + union_field]
                 else:
-                    data[6] = p.get('p')
-                    data[7] = p.get('pk')
+                    data[-2] = p.get('p')
+                    data[-1] = p.get('pk')
 
         return data
 
@@ -625,8 +634,18 @@ class Exporter:
             header[7] = 'metode_pengadaan'
             header[-3] = 'peserta_non_tender'
 
-        header_pemenang = ['npwp', 'nama_peserta', 'penawaran', 'penawaran_terkoreksi', 'hasil_negosiasi', 'alamat',
-                           'p', 'pk']
+        header_pemenang = [
+            'nama_pemenang',
+            'npwp',
+            'penawaran',
+            'harga_penawaran',
+            'hasil_negosiasi',
+            'harga_negosiasi',
+            'harga_terkoreksi',
+            'alamat',
+            'p',
+            'pk',
+        ]
         other_header = ['jadwal', 'peserta']
 
         with self.get_file_obj('csv').open('w', newline='', encoding='utf-8') as f:
