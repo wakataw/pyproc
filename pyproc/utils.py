@@ -18,7 +18,7 @@ def parse_token(page):
 
 
 def get_all_host():
-    resp = requests.get('https://satudata.inaproc.id/service/daftarLPSE')
+    resp = requests.get('https://satudata.inaproc.id/service/daftarLPSE', timeout=10)
     data = json.loads(resp.content)
 
     return data
