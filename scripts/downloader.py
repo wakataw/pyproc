@@ -8,6 +8,7 @@ import sqlite3
 import threading
 import requests
 import pyproc
+import json
 from time import sleep
 from pyproc.exceptions import DownloaderContextException
 from scripts import text
@@ -104,6 +105,7 @@ class DownloaderContext(object):
         self.log_level = args.log
         self.output_format = args.output_format
         self.resume = args.resume
+        self.separator = args.separator
         self.__lpse_host = args.lpse_host
 
     @property
@@ -562,46 +564,7 @@ class Exporter:
 
         return file_obj
 
-    def get_pemenang(self, detil):
-        """
-        Pengambilan data pemenang dari halaman hasil evaluasi
-        :param detil:
-        :return:
-        """
-        union_field = [
-            'npwp',
-            'penawaran',
-            'harga_penawaran',
-            'hasil_negosiasi',
-            'harga_negosiasi',
-            'harga_terkoreksi',
-            'alamat',
-            'p',
-            'pk',
-        ]
-
-        data = []
-
-        if detil['pemenang_berkontrak']:
-            p = detil['pemenang_berkontrak'][0]
-            data = [p.get(i) for i in ['nama_pemenang'] + union_field]
-        elif detil['pemenang']:
-            p = detil['pemenang'][0]
-            data = [p.get(i) for i in ['nama_pemenang'] + union_field]
-        if detil['hasil']:
-            pemenang_hasil_evaluasi = list(filter(lambda x: x.get('pk') is True or x.get('p') is True, detil['hasil']))
-
-            if pemenang_hasil_evaluasi:
-                p = pemenang_hasil_evaluasi[0]
-                if not data:
-                    data = [p.get(i) for i in ['nama_peserta'] + union_field]
-                else:
-                    data[-2] = p.get('p')
-                    data[-1] = p.get('pk')
-
-        return data
-
-    def to_csv(self):
+    def to_csv(self, delimiter):
         """
         Export detail data ke csv
         :return:
@@ -621,48 +584,43 @@ class Exporter:
             'nilai_pagu_paket',
             'nilai_hps_paket',
             'jenis_kontrak',
-            'lokasi_pekerjaan',
             'kualifikasi_usaha',
             'peserta_tender',
+            'khusus_pelaku_usaha_oap',
+            'lokasi_pekerjaan',
             'label_paket',
-            'khusus_pelaku_usaha_oap'
         ]
 
         if not is_tender:
             header[1] = 'nama_paket'
             header[3] = 'tahap_paket_saat_ini'
             header[7] = 'metode_pengadaan'
-            header[-3] = 'peserta_non_tender'
+            header[-4] = 'peserta_non_tender'
 
-        header_pemenang = [
-            'nama_pemenang',
-            'npwp',
-            'penawaran',
-            'harga_penawaran',
-            'hasil_negosiasi',
-            'harga_negosiasi',
-            'harga_terkoreksi',
-            'alamat',
-            'p',
-            'pk',
-        ]
-        other_header = ['jadwal', 'peserta']
+        json_data_header = ['hasil_evaluasi', 'pemenang', 'pemenang_berkontrak', 'jadwal', 'peserta']
 
         with self.get_file_obj('csv').open('w', newline='', encoding='utf-8') as f:
-            writer = csv.writer(f)
-            writer.writerow(['url'] + header + header_pemenang + other_header)
+            writer = csv.writer(f, delimiter=delimiter)
+            writer.writerow(['url'] + header + json_data_header)
 
             for item in self.get_detail():
                 if item.get('pengumuman'):
-                    base_data = [item.get('pengumuman', {}).get(i) for i in header[1:]]
+                    base_data = [item.get('pengumuman').get(i) for i in header[1:]]
+                    base_data[-1] = json.dumps(base_data[-1])
+                    base_data[-2] = json.dumps(base_data[-2])
                 else:
                     base_data = [None]*len(header[1:])
 
                 writer.writerow(
                     [self.index_downloader.lpse_host.url, item.get('id_paket')] +
                     base_data +
-                    self.get_pemenang(item) +
-                    [item.get('jadwal'), item.get('peserta')],
+                    [
+                        json.dumps(item.get('hasil')),
+                        json.dumps(item.get('pemenang')),
+                        json.dumps(item.get('pemenang_berkontrak')),
+                        json.dumps(item.get('peserta')),
+                        json.dumps(item.get('jadwal')),
+                    ],
                 )
 
     def to_json(self):
@@ -769,6 +727,7 @@ class Downloader(object):
         parser.add_argument('-o', '--output-format', choices=['json', 'csv'], default='csv', help=text.HELP_OUTPUT)
         parser.add_argument('--keep-index', action='store_true', help=text.HELP_KEEP)
         parser.add_argument('-r', '--resume', action='store_true', help=text.HELP_RESUME)
+        parser.add_argument('-s', '--separator', type=str, default=";", help=text.HELP_CSV_SEPARATOR)
         parser.add_argument('--log', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], default='INFO',
                             help=text.HELP_LOG_LEVEL)
 
@@ -807,7 +766,7 @@ class Downloader(object):
             if self.ctx.output_format == 'json':
                 exporter.to_json()
             elif self.ctx.output_format == 'csv':
-                exporter.to_csv()
+                exporter.to_csv(delimiter=self.ctx.separator)
 
             qa = QualityAssurance(index_downloader)
             total, success, fail = qa.check()
