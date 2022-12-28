@@ -1,11 +1,9 @@
-import logging
 import unittest
 from datetime import datetime
-from pathlib import Path
 
 import pyproc.utils
 from pyproc import Lpse, JenisPengadaan
-from pyproc.exceptions import LpseHostExceptions, LpseServerExceptions
+from pyproc.exceptions import LpseHostExceptions
 
 
 class TestLpse(unittest.TestCase):
@@ -347,11 +345,12 @@ class TestPaketTenderRUP(unittest.TestCase):
         print(detail.pengumuman['rencana_umum_pengadaan'])
 
 
-class TestGetAllLpseHost(unittest.TestCase):
-    def test_get_all_host(self):
-        import logging
-        pyproc.utils.download_host(logging)
-        self.assertTrue((Path.cwd() / 'daftarlpse.csv').is_file())
+# api tidak stabil
+# class TestGetAllLpseHost(unittest.TestCase):
+#     def test_get_all_host(self):
+#         import logging
+#         pyproc.utils.download_host(logging)
+#         self.assertTrue((Path.cwd() / 'daftarlpse.csv').is_file())
 
 
 class UtilsTest(unittest.TestCase):
