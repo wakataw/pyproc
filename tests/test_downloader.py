@@ -264,7 +264,7 @@ class DownloaderTest(unittest.TestCase):
         self.assertTrue(index_path.is_file())
         self.assertTrue(csv_path.is_file())
 
-    def _tearDown(self):
+    def tearDown(self):
         csv = Path.cwd().glob('*.csv')
         idx = Path.cwd().glob('*.idx')
         txt = Path.cwd().glob('*.txt')
