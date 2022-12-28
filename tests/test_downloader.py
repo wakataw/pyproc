@@ -9,7 +9,7 @@ class DownloaderTest(unittest.TestCase):
         downloader = Downloader()
         ctx = downloader.get_ctx("--keyword WKWK --tahun-anggaran 2020 --chunk-size 1000 --workers 999 --timeout 99 "
                                  "--non-tender --index-download-delay 5 --keep-index "
-                                 "--kategori PEKERJAAN_KONSTRUKSI --nama-penyedia HAHA --resume "
+                                 "--kategori PEKERJAAN_KONSTRUKSI --nama-penyedia HAHA --resume --sep | "
                                  "https://lpse.sumbarprov.go.id".split(' '))
         expected_condition = {
             '_DownloaderContext__lpse_host': 'https://lpse.sumbarprov.go.id',
@@ -25,7 +25,8 @@ class DownloaderTest(unittest.TestCase):
             'workers': 999,
             'log_level': 'INFO',
             'output_format': 'csv',
-            'resume': True
+            'resume': True,
+            'separator': '|'
         }
 
         for key, v in ctx.__dict__.items():
