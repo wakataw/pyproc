@@ -224,6 +224,17 @@ class DownloaderTest(unittest.TestCase):
             total = index_downloader.db.execute("SELECT COUNT(1) FROM INDEX_PAKET WHERE DETAIL IS NULL").fetchone()[0]
             self.assertEqual(total, 0)
 
+    def test_downloader_separator(self):
+        downloader = Downloader()
+        downloader.get_ctx('https://lpse.bp2mi.go.id;sep --tahun 2022 --sep |'.split())
+        downloader.start()
+
+        with (Path.cwd() / 'sep.csv').open('r') as f:
+            for row in csv.reader(f, delimiter="|"):
+                print(len(row))
+                self.assertTrue(len(row) > 0)
+                break
+
     def test_clear_working_dir(self):
         downloader = Downloader()
         downloader.get_ctx("http://lpse.kepahiangkab.go.id;index-deleted".split())
@@ -252,7 +263,7 @@ class DownloaderTest(unittest.TestCase):
         self.assertTrue(index_path.is_file())
         self.assertTrue(csv_path.is_file())
 
-    def tearDown(self):
+    def _tearDown(self):
         csv = Path.cwd().glob('*.csv')
         idx = Path.cwd().glob('*.idx')
         txt = Path.cwd().glob('*.txt')
