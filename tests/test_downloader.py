@@ -9,7 +9,7 @@ class DownloaderTest(unittest.TestCase):
         downloader = Downloader()
         ctx = downloader.get_ctx("--keyword WKWK --tahun-anggaran 2020 --chunk-size 1000 --workers 999 --timeout 99 "
                                  "--non-tender --index-download-delay 5 --keep-index "
-                                 "--kategori PEKERJAAN_KONSTRUKSI --nama-penyedia HAHA --resume "
+                                 "--kategori PEKERJAAN_KONSTRUKSI --nama-penyedia HAHA --resume --sep | "
                                  "https://lpse.sumbarprov.go.id".split(' '))
         expected_condition = {
             '_DownloaderContext__lpse_host': 'https://lpse.sumbarprov.go.id',
@@ -25,7 +25,8 @@ class DownloaderTest(unittest.TestCase):
             'workers': 999,
             'log_level': 'INFO',
             'output_format': 'csv',
-            'resume': True
+            'resume': True,
+            'separator': '|'
         }
 
         for key, v in ctx.__dict__.items():
@@ -223,6 +224,17 @@ class DownloaderTest(unittest.TestCase):
             index_downloader = IndexDownloader(downloader.ctx, lpse_host)
             total = index_downloader.db.execute("SELECT COUNT(1) FROM INDEX_PAKET WHERE DETAIL IS NULL").fetchone()[0]
             self.assertEqual(total, 0)
+
+    def test_downloader_separator(self):
+        downloader = Downloader()
+        downloader.get_ctx('https://lpse.bp2mi.go.id;sep --tahun 2022 --sep |'.split())
+        downloader.start()
+
+        with (Path.cwd() / 'sep.csv').open('r') as f:
+            for row in csv.reader(f, delimiter="|"):
+                print(len(row))
+                self.assertTrue(len(row) > 0)
+                break
 
     def test_clear_working_dir(self):
         downloader = Downloader()

@@ -228,21 +228,34 @@ class Lpse(object):
         if instansi_id:
             params.update({'instansiId': instansi_id})
 
-        data = self.session.get(
-            self.url + '/dt/' + jenis_paket,
-            params=params,
-            verify=False,
-            timeout=self.timeout,
-            headers={
-                'X-Requested-With': 'XMLHttpRequest',
-                'Referer': self.url + '/lelang',
-                'Sec-Fetch-Mode': 'cors',
-                'Sec-Fetch-Site': 'same-origin',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-                              'AppleWebKit/537.36 (KHTML, like Gecko) '
-                              'Chrome/77.0.3865.90 Safari/537.36'
-            }
-        )
+        # prepare request GET dan POST untuk spse 4.5.20221227
+        headers = {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Referer': self.url + '/lelang',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'same-origin',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                          'AppleWebKit/537.36 (KHTML, like Gecko) '
+                          'Chrome/77.0.3865.90 Safari/537.36'
+        }
+        url = self.url + '/dt/' + jenis_paket
+
+        if self.version < (4, 5, 20221100):
+            data = self.session.get(
+                url,
+                params=params,
+                verify=False,
+                timeout=self.timeout,
+                headers=headers
+            )
+        else:
+            data = self.session.post(
+                url,
+                data=params,
+                verify=False,
+                timeout=self.timeout,
+                headers=headers
+            )
 
         logging.debug(data.content)
         self.check_error(data)
@@ -721,7 +734,9 @@ class LpseDetilPemenangParser(BaseLpseDetilParser):
 
                     all_pemenang.append(pemenang)
 
-            if all_pemenang and self.all:
+            if not all_pemenang:
+                return []
+            elif self.all:
                 all_pemenang = self._check_col_harga_negosiasi(all_pemenang)
                 return all_pemenang
             else:

@@ -1,6 +1,6 @@
 # PyProc
 
-![Build Status](https://github.com/wakataw/pyproc/actions/workflows/pyproc-pypi.yml/badge.svg) [![Version](https://img.shields.io/badge/version-v0.1.11-blue)](https://pypi.org/project/pyproc/) [![Python >=3.6](https://img.shields.io/badge/python->=3.6-yellow.svg)](https://www.python.org/downloads/) [![Open Source Love](https://badges.frapsoft.com/os/v1/open-source.svg?v=102)](https://github.com/wakataw/pyproc)
+![Build Status](https://github.com/wakataw/pyproc/actions/workflows/pyproc-pypi.yml/badge.svg) [![Version](https://img.shields.io/badge/version-v0.1.12-blue)](https://pypi.org/project/pyproc/) [![Python >=3.6](https://img.shields.io/badge/python->=3.6-yellow.svg)](https://www.python.org/downloads/) [![Open Source Love](https://badges.frapsoft.com/os/v1/open-source.svg?v=102)](https://github.com/wakataw/pyproc)
 
 PyProc (Python Procurement) merupakan wrapper untuk API SPSE Versi 4 yang ditulis dalam bahasa Python. Sistem Pengadaan Secara Elektronik (SPSE) SPSE merupakan aplikasi e-Procurement yang dikembangkan oleh LKPP untuk digunakan oleh LPSE di instansi pemerintah seluruh Indonesia.
 
@@ -67,6 +67,7 @@ argumen | contoh | diperlukan | default | keterangan
 `-o --output` | `pyproc --ouput csv ...` | optional | csv | Jenis data keluaran/hasil dari download. Format yang didukung csv dan json. Karena keterbatasan format, tidak semua data ditampilkan pada format csv. Jika memerlukan data detil yang komprehensif, gunakan format json karena mencangkup semua data detail.
 `--keep-index` | `pyproc --keep-index ...` | optinal | FALSE | pyproc akan membentuk file idx (sqlite3 database) saat proses download dan akan dihapus ketika proses selesai. Tambahkan argumen ini jika tidak ingin menghapus database tersebut.
 `-r --resume` | `pyproc --resume ...` | optinal | FALSE | Tambahkan argument ini untuk melanjutkan proses yang gagal (karena internet putus atau gangguan koneksi lainnya). Namun pastikan bahwa seluruh index sudah berhasil diunduh karena argumen --resume akan melewati proses download index.
+`-s --sep` | `pyproc --sep ";" https://lpse.com` | optional | `;` titik koma | Set custom separator untuk output format csv
 `--log` | `pyproc --log INFO ...` | optional | INFO | Argumen untuk setting informasi yang ditampilkan pyproc pada terminal. Daftar nilai yang didukung: <br>`DEBUG`: menampilkan informasi sedetil mungkin<br>`INFO`: menampilkan informasi penting saja <br>`WARNING`: hanya menampilkan informasi yang bersifat warning <br>`ERROR`: hanya menampilkan error <br>`CRITICAL`: hanya menampilkan permasalahan yang bersifat kritis saja
 
 ### Format Daftar LPSE (lanjutan)
