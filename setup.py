@@ -38,10 +38,10 @@ setup(
         'Natural Language :: English',
         'Natural Language :: Indonesian',
         'Operating System :: OS Independent',
-        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.7',
         'License :: OSI Approved :: MIT License'
     ],
-    python_requires='>=3.5',
+    python_requires='>=3.7',
     install_requires=[
         'requests',
         'BeautifulSoup4',
