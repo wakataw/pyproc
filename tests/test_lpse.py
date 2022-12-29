@@ -45,7 +45,7 @@ class TestLpse(unittest.TestCase):
         """
         current_year = datetime.now().year
         for tahun in range(current_year-3, current_year+1):
-            lpse = Lpse('http://lpse.kepahiangkab.go.id')
+            lpse = Lpse('https://lpse.kemenkeu.go.id')
             data = lpse.get_paket_tender(
                 length=25,
                 tahun=tahun,
@@ -55,9 +55,9 @@ class TestLpse(unittest.TestCase):
                 self.assertTrue(str(tahun) in i[8])
 
     def test_get_paket_tender_by_kategori(self):
-        lpse = Lpse('http://lpse.kepahiangkab.go.id', timeout=60)
+        lpse = Lpse('https://lpse.kemenkeu.go.id', timeout=60)
         data = lpse.get_paket_tender(
-            length=25,
+            length=5,
             tahun=2021,
             data_only=True,
             kategori=JenisPengadaan.PENGADAAN_BARANG
@@ -66,9 +66,9 @@ class TestLpse(unittest.TestCase):
             self.assertTrue('pengadaan barang' in i[8].lower())
 
     def test_get_paket_tender_by_instansi(self):
-        lpse = Lpse('http://lpse.kepahiangkab.go.id')
+        lpse = Lpse('https://lpse.kemenkeu.go.id')
         data = lpse.get_paket_tender(
-            length=25,
+            length=5,
             data_only=True,
             instansi_id='L47' # KEPOLISIAN
         )
