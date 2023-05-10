@@ -496,7 +496,13 @@ class BaseLpseDetilParser(object):
                           max_tries=3, jitter=None)
     def get_detil(self):
         url = self.lpse.url+self.detil_path.format(self.id_paket)
-        r = self.lpse.session.get(url, timeout=self.lpse.timeout)
+        r = self.lpse.session.get(
+            url,
+            timeout=self.lpse.timeout,
+            headers={
+                "referer": self.lpse.url
+            }
+        )
 
         self.lpse.check_error(r)
 

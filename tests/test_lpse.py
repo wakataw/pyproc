@@ -1,9 +1,12 @@
 import unittest
-from datetime import datetime
-
 import pyproc.utils
 from pyproc import Lpse, JenisPengadaan
 from pyproc.exceptions import LpseHostExceptions
+from datetime import datetime
+from urllib3.exceptions import InsecureRequestWarning
+from urllib3 import disable_warnings
+
+disable_warnings(InsecureRequestWarning)
 
 
 class TestLpse(unittest.TestCase):
@@ -182,6 +185,12 @@ class TestLpse(unittest.TestCase):
             lpse = Lpse('https://lpse.salatiga.go.id'+path)
             paket = lpse.get_paket_tender(length=5, data_only=True)
             self.assertTrue(lpse.version > (0, 0, 0) and len(paket) == 5)
+
+    def test_lpse_detil_referer(self):
+        lpse = Lpse("https://lpse.jogjaprov.go.id/eproc4")
+        detil = lpse.detil_paket_tender(18138013)
+        detil.get_all_detil()
+        self.assertIsNotNone(detil.pengumuman)
 
     def tearDown(self):
         del self.lpse
