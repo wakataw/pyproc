@@ -192,6 +192,11 @@ class TestLpse(unittest.TestCase):
         detil.get_all_detil()
         self.assertIsNotNone(detil.pengumuman)
 
+    def test_lpse45_dowmload_index_error(self):
+        lpse = Lpse("https://lpse.kutaitimurkab.go.id/eproc4")
+        index = lpse.get_paket_tender(0, 10)
+        print(index)
+
     def tearDown(self):
         del self.lpse
 

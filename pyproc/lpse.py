@@ -240,7 +240,7 @@ class Lpse(object):
         }
         url = self.url + '/dt/' + jenis_paket
 
-        if self.version < (4, 5, 20221100):
+        if self.version < (4, 5, 20210000):
             data = self.session.get(
                 url,
                 params=params,
