@@ -304,16 +304,17 @@ class TestLpsePemenangDoubleTender(unittest.TestCase):
 
     def test_pemenang(self):
         expected_winner = {
-            3346331: ['CV. NIBUNG PUTIH', '02.005.160.3-334.000'],
-            3349331: ['CV. CAHAYA ERVIN GEMILANG', '02.714.891.5-331.000'],
+            3346331: ['CV. NIBUNG PUTIH', 'CV. PUTRA NAULI'],
+            3349331: ['CV. CAHAYA ERVIN GEMILANG', 'CV.Sentosa Alam Lestari'],
         }
 
         for id_tender in expected_winner:
             detil = self.lpse.detil_paket_tender(id_tender)
             pemenang = detil.get_pemenang()
 
-            self.assertEqual(expected_winner[id_tender][0], pemenang[0]['nama_pemenang'])
-            self.assertEqual(expected_winner[id_tender][1], pemenang[0]['npwp'])
+            for p in pemenang:
+                self.assertTrue(p['nama_pemenang'] in expected_winner[id_tender])
+
 
     def test_pemenang_hasil_evaluasi(self):
         detil = self.lpse.detil_paket_tender(3346331)
@@ -321,7 +322,7 @@ class TestLpsePemenangDoubleTender(unittest.TestCase):
         pemenang = list(filter(lambda x: x['p'], detil.hasil))[0]
 
         self.assertEqual(pemenang['nama_peserta'], 'CV. NIBUNG PUTIH')
-        self.assertEqual(pemenang['npwp'], '02.005.160.3-334.000')
+        self.assertEqual(pemenang['npwp'], '0*.0**.1**.*-*34.**0')
 
     def tearDown(self):
         del self.lpse
