@@ -151,7 +151,7 @@ class DownloaderTest(unittest.TestCase):
         from pathlib import Path
         import sqlite3
         downloader = Downloader()
-        downloader.get_ctx(f"--log=DEBUG {self.LPSE_HOST_1};test-download-index --tahun-anggaran 2021 --keep-index".split())
+        downloader.get_ctx(f"--log=DEBUG {self.LPSE_HOST_2};test-download-index --tahun-anggaran 2025 --keep-index".split())
         downloader.start()
 
         db_file = Path.cwd() / 'test-download-index.idx'
@@ -174,10 +174,13 @@ class DownloaderTest(unittest.TestCase):
 
     def test_detail_downloader(self):
         downloader = Downloader()
-        downloader.get_ctx(f"{self.LPSE_HOST_1}".split())
+        downloader.get_ctx(f"{self.LPSE_HOST_2}".split())
+
+        downloader.ctx.tahun = 2024
 
         for lpse_host in downloader.ctx.lpse_host_list:
             index_downloader = IndexDownloader(downloader.ctx, lpse_host)
+
             index_downloader.start()
 
             detail_downloader = DetailDownloader(index_downloader)
@@ -278,7 +281,10 @@ class DownloaderTest(unittest.TestCase):
             i.unlink()
 
         for i in idx:
-            i.unlink()
+            try:
+                i.unlink()
+            except:
+                continue
 
         for i in txt:
             i.unlink()

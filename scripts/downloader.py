@@ -333,6 +333,10 @@ class IndexDownloader(object):
                                            length=self.ctx.chunk_size, kategori=self.ctx.kategori,
                                            search_keyword=self.ctx.keyword, nama_penyedia=self.ctx.nama_penyedia,
                                            data_only=True, tahun=tahun)
+
+                if not data:
+                    break
+
                 self.db.executemany("INSERT OR IGNORE INTO INDEX_PAKET VALUES(?, ?, ?, ?, ?, ?)",
                                     self.convert_index_for_db(data))
                 self.db.commit()
