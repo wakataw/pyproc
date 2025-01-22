@@ -344,14 +344,9 @@ class IndexDownloader(object):
                 # update data count
                 data_count += len(data)
                 logging.info(
-                    "{host} - TA {tahun} - Indexing halaman {batch} dari {total_batch}, "
-                    "{data_count}/{data_total} data ({persentase:,.2f}%)".format(
+                    "{host} - TA {tahun} - Indexing halaman ke-{batch}.".format(
                         host=self.lpse_host.url,
                         batch=batch + 1,
-                        total_batch=batch_total,
-                        data_count=data_count,
-                        data_total=total,
-                        persentase=data_count / total * 100,
                         tahun=tahun if tahun is not None else 'ALL'
                     )
                 )
