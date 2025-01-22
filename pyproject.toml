@@ -1,0 +1,31 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pyproc"
+version = "0.1.14"
+authors = [
+    { name="Agung Pratama", email="agungpratama1001@gmail.com"}
+]
+description = "Python SPSEv4 wrapper"
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    'Development Status :: 4 - Beta',
+    'Intended Audience :: Developers',
+    'Topic :: Internet :: WWW/HTTP :: Dynamic Content :: CGI Tools/Libraries',
+    'Topic :: Software Development :: Libraries :: Python Modules',
+    'Topic :: Utilities',
+    'Natural Language :: English',
+    'Natural Language :: Indonesian',
+    'Operating System :: OS Independent',
+    'Programming Language :: Python :: 3.7',
+    'License :: OSI Approved :: MIT License'
+]
+license = "MIT"
+license-files = ["LICENSE"]
+
+[project.urls]
+Homepage = "https://github.com/wakataw/pyproc"
+Issues = "https://github.com/wakataw/pyproc/issues"
