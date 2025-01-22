@@ -341,7 +341,7 @@ class TestLpseKolomPemenangTidakLengkap(unittest.TestCase):
             pemenang,
             [{'nama_pemenang': 'CV. NAJAH',
               'alamat': 'JL. IMAM BONJOL TANJUNG SELOR - Bulungan (Kab.) - Kalimantan Utara',
-              'npwp': '02.673.860.9-727.000',
+              'npwp': '0*.6**.8**.*-*27.**0',
               'harga_penawaran': 0,
               'harga_terkoreksi': 0,
               'hasil_negosiasi': 0,
