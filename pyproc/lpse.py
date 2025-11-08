@@ -33,7 +33,7 @@ class JenisPengadaan(Enum):
 
 class Lpse(object):
 
-    def __init__(self, url, timeout=10, info=True, skip_spse_check=False):
+    def __init__(self, instansi, timeout=10):
         self.session = requests.session()
         self.session.verify = False
         self.session.headers = {
@@ -41,36 +41,10 @@ class Lpse(object):
                           'AppleWebKit/537.36 (KHTML, like Gecko) '
                           'Chrome/102.0.5005.61 Safari/537.36'
         }
-        self.url = self.__check_url(url)
-        self.is_lpse = False
-        self.skip_spse_check = skip_spse_check
-        self.version = (0, 0, 0)
-        self.build_version = 0
-        self.last_update = None
         self.timeout = timeout
         self.auth_token = None
+        self.url = f"https://spse.inaproc.id/{instansi}"
 
-        if info:
-            self.update_info()
-
-    @staticmethod
-    def __check_url(url, force_eproc4=True):
-        """
-        Check jika url memiliki skema atau tidak,
-        """
-        parsed_url = urlparse(url)
-
-        scheme = parsed_url.scheme
-        netloc = parsed_url.netloc
-        path = parsed_url.path
-
-        if parsed_url.scheme == '':
-            raise LpseHostExceptions(f"Format URL {url} tidak sesuai!")
-
-        if path.strip('/') == '' and force_eproc4:
-            path = '/eproc4'
-
-        return '{}://{}{}'.format(scheme, netloc, path)
 
     @staticmethod
     def check_error(resp):
@@ -95,64 +69,11 @@ class Lpse(object):
             )
             raise LpseServerExceptions(error_message)
 
-    def update_info(self, raise_exception=True):
-        """
-        Update Informasi mengenai versi SPSE dan waktu update data terakhir
-        :return:
-        """
-        resp = self.session.get(self.url, verify=False, timeout=self.timeout)
-        soup = Bs(resp.content, 'html5lib')
-
-        # check jika aplikasi spse atau bukan
-        self.is_lpse = self.__check_if_lpse(soup.text)
-
-        if raise_exception and not self.is_lpse:
-            raise LpseHostExceptions(f"{self.url} sepertinya bukan aplikasi SPSE")
-
-        # get version
-        self.version = self.__get_version(
-            soup.text
-        )
-
-        # update url jika tidak sama
-        if not resp.url.startswith(self.url):
-            self.url = resp.url
-
-    def __check_if_lpse(self, content):
-        """
-        Check lpse berdasarkan halaman home page dari situs tersebut.
-        """
-        self.is_lpse = False
-
-        text = 'Untuk tampilan Aplikasi SPSE yang lebih baik'.lower()
-
-        if text in content.lower():
-            self.is_lpse = True
-
-        return self.is_lpse
-
-    def __get_version(self, footer):
-        """
-        Melakukan pengecekan versi LPSE
-        :param footer: content footer dari halaman LPSE
-        :return: Boolean
-        """
-        version = re.findall(r'SPSE v(\d+\.\d+u[0-9]+)', footer, flags=re.DOTALL)
-
-        if version:
-            return utils.parse_version(version[0])
-
-        raise LpseVersionException("Version not found!")
-
     def get_auth_token(self, from_cookies=True):
         """
         Melakukan pengambilan auth token
         :return: token (str)
         """
-
-        # bypass jika versi kurang dari veri bulan 09
-        if self.version < (4, 3, 20191009):
-            return None
 
         r = self.session.get(self.url + '/lelang')
 
@@ -240,22 +161,13 @@ class Lpse(object):
         }
         url = self.url + '/dt/' + jenis_paket
 
-        if self.version < (4, 5, 20210000):
-            data = self.session.get(
-                url,
-                params=params,
-                verify=False,
-                timeout=self.timeout,
-                headers=headers
-            )
-        else:
-            data = self.session.post(
-                url,
-                data=params,
-                verify=False,
-                timeout=self.timeout,
-                headers=headers
-            )
+        data = self.session.post(
+            url,
+            data=params,
+            verify=False,
+            timeout=self.timeout,
+            headers=headers
+        )
 
         logging.debug(data.content)
         self.check_error(data)
