@@ -1,6 +1,5 @@
 import argparse
 import csv
-import json
 import re
 import logging
 import signal
@@ -10,8 +9,8 @@ import requests
 import pyproc
 import json
 from time import sleep
-from pyproc.exceptions import DownloaderContextException
-from scripts import text
+from .exceptions import DownloaderContextException
+from . import text
 from datetime import datetime
 from pathlib import Path
 from urllib3.exceptions import InsecureRequestWarning
@@ -97,7 +96,7 @@ class DownloaderContext(object):
         self._kategori = args.kategori
         self.nama_penyedia = args.nama_penyedia
         self.chunk_size = args.chunk_size
-        self.workers = args.workers
+        self.workers = 1 # hard coded worker to 1
         self.timeout = args.timeout
         self.non_tender = args.non_tender
         self.index_download_delay = args.index_download_delay
@@ -137,8 +136,8 @@ class DownloaderContext(object):
                 range_tahun = list(map(lambda x: int(x), i.split('-')))
 
                 for tahun in range(min(range_tahun), max(range_tahun) + 1):
-                    if not 200 < tahun <= datetime.now().year:
-                        raise DownloaderContextException(text.ERROR_CTX_RANGE_TAHUN.format(datetime.now().year))
+                    if not 2000 < tahun <= datetime.now().year + 5:
+                        raise DownloaderContextException(text.ERROR_CTX_RANGE_TAHUN.format(datetime.now().year + 5))
                     list_tahun_anggaran.append(tahun)
             except ValueError:
                 raise DownloaderContextException(text.ERROR_CTX_TAHUN_ANGGARAN)
@@ -353,10 +352,6 @@ class IndexDownloader(object):
 
                 sleep(self.ctx.index_download_delay)
 
-            if not self.lpse.version >= (4, 4, 0):
-                logging.info("{} - SKIP tahun lain".format(self.lpse_host.url, self.lpse.version))
-                break
-
     def convert_index_for_db(self, data):
         """
         Fungsi untuk menyesuaikan format index dari aplikasi spse ke database
@@ -424,30 +419,6 @@ class DetailDownloader(object):
             """SELECT COUNT(1) FROM INDEX_PAKET WHERE STATUS = 0"""
         ).fetchone()[0]
         deleted = 0
-
-        if not self.index_downloader.lpse.version >= (4, 4, 0) \
-                and self.index_downloader.ctx.tahun_anggaran != [None]:
-            logging.info("{} - {}u{} tidak mendukung filter tahun anggaran, menjalankan filter manual"
-                         .format(self.index_downloader.lpse_host.url, self.index_downloader.lpse.version,
-                                 self.index_downloader.lpse.build_version)
-                         )
-
-            for row in self.index_downloader.get_index():
-                contain_ta = sum([1 for tahun in self.index_downloader.ctx.tahun_anggaran
-                                  if str(tahun) in row.kategori_tahun_anggaran])
-                if contain_ta == 0:
-                    self.index_downloader.db.execute("""DELETE FROM INDEX_PAKET WHERE ROW_ID = ?""", (row.row_id,))
-                    deleted += 1
-
-            logging.info("{} - {} data sesuai kriteria tahun anggaran".format(
-                self.index_downloader.lpse_host.url, total-deleted)
-            )
-
-            logging.info("{} - menghapus {} data index yang tidak relevan".format(
-                self.index_downloader.lpse_host.url,
-                deleted
-            ))
-            self.index_downloader.db.commit()
 
         return total, deleted
 
@@ -569,7 +540,6 @@ class Exporter:
         :return:
         """
         is_tender = not self.index_downloader.ctx.non_tender
-        version = self.index_downloader.lpse.version
         header = [
             'id_paket',
             'nama_tender',
@@ -577,8 +547,8 @@ class Exporter:
             'tahap_tender_saat_ini',
             'k/l/pd',
             'satuan_kerja',
-            'jenis_pengadaan' if version >= (4, 4, 0) else 'kategori',
-            'metode_pengadaan' if version >= (4, 4, 0) else 'sistem_pengadaan',
+            'jenis_pengadaan',
+            'metode_pengadaan',
             'tahun_anggaran',
             'nilai_pagu_paket',
             'nilai_hps_paket',

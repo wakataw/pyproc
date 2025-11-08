@@ -1,18 +1,18 @@
 import time
 import unittest
-from scripts.downloader import *
+from pyproc.cli import *
 
 
 class DownloaderTest(unittest.TestCase):
-    LPSE_HOST_1 = 'https://lpse.rejanglebongkab.go.id'
-    LPSE_HOST_2 = 'https://lpse.sumbarprov.go.id'
-    LPSE_HOST_2_FILENAME = 'https_lpse_sumbarprov_go_id'
-    LPSE_HOST_3 = 'https://lpse.bengkuluprov.go.id'
-    LPSE_HOST_3_FILENAME = 'https_lpse_bengkuluprov_go_id'
+    LPSE_HOST_1 = 'kemenkeu'
+    LPSE_HOST_2 = 'sumbarprov'
+    LPSE_HOST_2_FILENAME = 'sumbarprov'
+    LPSE_HOST_3 = 'bengkuluprov'
+    LPSE_HOST_3_FILENAME = 'bengkuluprov'
 
     def test_context_parser(self):
         downloader = Downloader()
-        ctx = downloader.get_ctx("--keyword WKWK --tahun-anggaran 2020 --chunk-size 1000 --workers 999 --timeout 99 "
+        ctx = downloader.get_ctx("--keyword WKWK --tahun-anggaran 2020 --workers 999 --chunk-size 1000 --timeout 99 "
                                  "--non-tender --index-download-delay 5 --keep-index "
                                  "--kategori PEKERJAAN_KONSTRUKSI --nama-penyedia HAHA --resume --sep | "
                                  f"{self.LPSE_HOST_2}".split(' '))
@@ -27,11 +27,11 @@ class DownloaderTest(unittest.TestCase):
             'non_tender': True,
             'tahun_anggaran': [2020],
             'timeout': 99,
-            'workers': 999,
             'log_level': 'INFO',
             'output_format': 'csv',
             'resume': True,
-            'separator': '|'
+            'separator': '|',
+            'workers': 1
         }
 
         for key, v in ctx.__dict__.items():
@@ -113,8 +113,8 @@ class DownloaderTest(unittest.TestCase):
         downloader = Downloader()
         file_path = Path(__file__).parent / 'supporting_files' / 'list-host.txt'
         ctx = downloader.get_ctx(["--log=DEBUG", file_path.as_posix()])
-        urls = ['http://lpse.sumbarprov.go.id', 'http://lpse.bengkuluprov.go.id']
-        filename = ['http_lpse_sumbarprov_go_id', 'http_lpse_bengkuluprov_go_id']
+        urls = ['sumbarprov', 'bengkuluprov']
+        filename = ['sumbarprov', 'bengkuluprov']
 
         for i in ctx.lpse_host_list:
             print(i)
@@ -126,7 +126,7 @@ class DownloaderTest(unittest.TestCase):
         downloader = Downloader()
         file_path = Path(__file__).parent / 'supporting_files' / 'list-host-with-filename.txt'
         ctx = downloader.get_ctx(["--log=DEBUG", file_path.as_posix()])
-        urls = ['http://lpse.sumbarprov.go.id', 'http://lpse.bengkuluprov.go.id']
+        urls = ['sumbarprov', 'bengkuluprov']
         filename = ['sumbar.csv', 'bengkulu.csv']
 
         for i in ctx.lpse_host_list:
@@ -151,7 +151,7 @@ class DownloaderTest(unittest.TestCase):
         from pathlib import Path
         import sqlite3
         downloader = Downloader()
-        downloader.get_ctx(f"--log=DEBUG {self.LPSE_HOST_2};test-download-index --tahun-anggaran 2025 --keep-index".split())
+        downloader.get_ctx(f"{self.LPSE_HOST_1};test-download-index --tahun-anggaran 2027 --keep-index".split())
         downloader.start()
 
         db_file = Path.cwd() / 'test-download-index.idx'
@@ -163,7 +163,7 @@ class DownloaderTest(unittest.TestCase):
 
     def test_index_db_row_factory(self):
         downloader = Downloader()
-        downloader.get_ctx(f"--log=DEBUG {self.LPSE_HOST_1}".split())
+        downloader.get_ctx(f"--log=DEBUG {self.LPSE_HOST_1} --tahun-anggaran 2027".split())
 
         for lpse_host in downloader.ctx.lpse_host_list:
             index_downloader = IndexDownloader(downloader.ctx, lpse_host)
@@ -176,7 +176,7 @@ class DownloaderTest(unittest.TestCase):
         downloader = Downloader()
         downloader.get_ctx(f"{self.LPSE_HOST_2}".split())
 
-        downloader.ctx.tahun = 2024
+        downloader.ctx.tahun = 2027
 
         for lpse_host in downloader.ctx.lpse_host_list:
             index_downloader = IndexDownloader(downloader.ctx, lpse_host)
@@ -192,7 +192,7 @@ class DownloaderTest(unittest.TestCase):
 
     def __init_db(self):
         downloader = Downloader()
-        downloader.get_ctx(f"{self.LPSE_HOST_1}".split())
+        downloader.get_ctx(f"--tahun-anggaran 2027 {self.LPSE_HOST_1}".split())
 
         logging.info("Start index download without detail")
 
@@ -206,7 +206,7 @@ class DownloaderTest(unittest.TestCase):
     def test_resume_download(self):
         self.__init_db()
         downloader = Downloader()
-        downloader.get_ctx(f"{self.LPSE_HOST_1} -r".split())
+        downloader.get_ctx(f"{self.LPSE_HOST_1} -r --tahun-anggaran 2027".split())
 
         logging.info("Start index download with detail")
 
@@ -224,7 +224,7 @@ class DownloaderTest(unittest.TestCase):
         """
         downloader = Downloader()
         timestamp = int(time.time())
-        downloader.get_ctx(f"{self.LPSE_HOST_1};{timestamp} -r".split())
+        downloader.get_ctx(f"{self.LPSE_HOST_1};{timestamp} -r --tahun-anggaran 2027".split())
 
         downloader.start()
 
@@ -235,7 +235,7 @@ class DownloaderTest(unittest.TestCase):
 
     def test_downloader_separator(self):
         downloader = Downloader()
-        downloader.get_ctx('https://lpse.bp2mi.go.id;sep --tahun 2022 --sep |'.split())
+        downloader.get_ctx('kp2mi;sep --tahun 2026 --sep |'.split())
         downloader.start()
 
         with (Path.cwd() / 'sep.csv').open('r') as f:
@@ -246,7 +246,7 @@ class DownloaderTest(unittest.TestCase):
 
     def test_clear_working_dir(self):
         downloader = Downloader()
-        downloader.get_ctx(f"{self.LPSE_HOST_1};index-deleted".split())
+        downloader.get_ctx(f"{self.LPSE_HOST_1};index-deleted --tahun-anggaran 2027".split())
 
         logging.info("Start index download with detail")
 
@@ -260,7 +260,7 @@ class DownloaderTest(unittest.TestCase):
 
     def test_args_keep_index(self):
         downloader = Downloader()
-        downloader.get_ctx(f"{self.LPSE_HOST_1};index-deleted --keep-index".split())
+        downloader.get_ctx(f"{self.LPSE_HOST_1};index-deleted --log DEBUG --tahun-anggaran 2027 --keep-index".split())
 
         logging.info("Start index download with detail")
 

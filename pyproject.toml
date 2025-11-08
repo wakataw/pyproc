@@ -4,9 +4,9 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pyproc"
-version = "0.1.15"
+version = "0.2a"
 authors = [
-    { name="Agung Pratama", email="agungpratama1001@gmail.com"}
+    { name="Agung Pratama", email="workwithagung@gmail.com"}
 ]
 description = "Python SPSEv4 wrapper"
 readme = "README.md"
@@ -29,3 +29,6 @@ license-files = ["LICENSE"]
 [project.urls]
 Homepage = "https://github.com/wakataw/pyproc"
 Issues = "https://github.com/wakataw/pyproc/issues"
+
+[project.scripts]
+pyproc = "pyproc.cli:main"
