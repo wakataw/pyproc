@@ -13,7 +13,7 @@ class TestLpse(unittest.TestCase):
     id_tender_selesai = None
 
     def setUp(self):
-        self.lpse = Lpse('https://lpse.jakarta.go.id/eproc4', timeout=60)
+        self.lpse = Lpse("kemenkeu", timeout=60)
         self.id_tender_selesai = self.get_id_for_testing()
 
     def get_id_for_testing(self, batch=0):
@@ -32,7 +32,7 @@ class TestLpse(unittest.TestCase):
         self.assertEqual(token, token_from_session)
 
     def test_get_encoded_session_auth_token(self):
-        lpse = Lpse('https://lpse.lampungprov.go.id')
+        lpse = Lpse("lampungprov")
         token = lpse.get_auth_token()
         self.assertTrue(len(token) > 10)
 
@@ -48,7 +48,7 @@ class TestLpse(unittest.TestCase):
         """
         current_year = datetime.now().year
         for tahun in range(current_year-3, current_year+1):
-            lpse = Lpse('https://lpse.kemenkeu.go.id')
+            lpse = Lpse("kemenkeu")
             data = lpse.get_paket_tender(
                 length=25,
                 tahun=tahun,
@@ -58,7 +58,7 @@ class TestLpse(unittest.TestCase):
                 self.assertTrue(str(tahun) in i[8])
 
     def test_get_paket_tender_by_kategori(self):
-        lpse = Lpse('https://lpse.kemenkeu.go.id', timeout=60)
+        lpse = Lpse("kemenkeu", timeout=60)
         data = lpse.get_paket_tender(
             length=5,
             tahun=2021,
@@ -69,7 +69,7 @@ class TestLpse(unittest.TestCase):
             self.assertTrue('pengadaan barang' in i[8].lower())
 
     def test_get_paket_tender_by_instansi(self):
-        lpse = Lpse('https://lpse.kemenkeu.go.id')
+        lpse = Lpse("kemenkeu")
         data = lpse.get_paket_tender(
             length=5,
             data_only=True,
@@ -115,14 +115,14 @@ class TestLpse(unittest.TestCase):
         self.assertIsInstance(detil.peserta, list)
 
     def test_get_hasil_evaluasi_tender(self):
-        detil = self.lpse.detil_paket_tender(self.id_tender_selesai)
+        detil = self.lpse.detil_paket_tender(10080116000)
 
         detil.get_hasil_evaluasi()
 
         self.assertIsInstance(detil.hasil, list)
 
     def test_get_pemenang_tender(self):
-        detil = self.lpse.detil_paket_tender(48793127)
+        detil = self.lpse.detil_paket_tender(10080116000)
         detil.get_pemenang()
         for i, v in detil.pemenang[0].items():
             self.assertIsNotNone(v)
@@ -180,20 +180,14 @@ class TestLpse(unittest.TestCase):
                 continue
             self.assertIsNone(detil[i])
 
-    def test_lpse_force_eproc4(self):
-        for path in ['', '/', '/eproc4', '/eproc4/']:
-            lpse = Lpse('https://lpse.salatiga.go.id'+path)
-            paket = lpse.get_paket_tender(length=5, data_only=True)
-            self.assertTrue(lpse.version > (0, 0, 0) and len(paket) == 5)
-
     def test_lpse_detil_referer(self):
-        lpse = Lpse("https://lpse.jogjaprov.go.id/eproc4")
-        detil = lpse.detil_paket_tender(18138013)
+        lpse = Lpse("kemenkeu")
+        detil = lpse.detil_paket_tender(10080116000)
         detil.get_all_detil()
         self.assertIsNotNone(detil.pengumuman)
 
     def test_lpse45_dowmload_index_error(self):
-        lpse = Lpse("https://lpse.kutaitimurkab.go.id/eproc4")
+        lpse = Lpse("kemenkeu")
         index = lpse.get_paket_tender(0, 10)
         print(index)
 
@@ -204,7 +198,7 @@ class TestLpse(unittest.TestCase):
 class TestPaketNonTender(unittest.TestCase):
 
     def setUp(self):
-        self.lpse = Lpse('http://lpse.jakarta.go.id', timeout=30)
+        self.lpse = Lpse('jakarta', timeout=30)
         self.lpse.skip_spse_check = True
         self.lpse.auth_token = self.lpse.get_auth_token()
         self.id_non_tender_for_testing = self.get_id_for_testing()
@@ -237,7 +231,7 @@ class TestPaketNonTender(unittest.TestCase):
                 self.assertIsNotNone(v)
 
     def test_get_detil_hasil_non_tender(self):
-        detil = self.lpse.detil_paket_non_tender(self.id_non_tender_for_testing)
+        detil = self.lpse.detil_paket_non_tender(10039999000)
         detil.get_hasil_evaluasi()
 
         for hasil in detil.hasil:
@@ -285,21 +279,10 @@ class TestPaketNonTender(unittest.TestCase):
         del self.lpse
 
 
-class TestLpseHostError(unittest.TestCase):
-
-    def test_host_error(self):
-        host = 'http://www.pajak.go.id'
-
-        with self.assertRaises(LpseHostExceptions) as context:
-            Lpse(host)
-
-        self.assertIn('sepertinya bukan aplikasi SPSE'.format(host), str(context.exception))
-
-
 class TestLpsePemenangDoubleTender(unittest.TestCase):
 
     def setUp(self):
-        host = 'http://lpse.tanjabtimkab.go.id'
+        host = 'tanjabtimkab'
         self.lpse = Lpse(host)
 
     def test_pemenang(self):
@@ -319,7 +302,7 @@ class TestLpsePemenangDoubleTender(unittest.TestCase):
     def test_pemenang_hasil_evaluasi(self):
         detil = self.lpse.detil_paket_tender(3346331)
         detil.get_hasil_evaluasi()
-        pemenang = list(filter(lambda x: x['p'], detil.hasil))[0]
+        pemenang = list(filter(lambda x: x['pemenang'], detil.hasil))[0]
 
         self.assertEqual(pemenang['nama_peserta'], 'CV. NIBUNG PUTIH')
         self.assertEqual(pemenang['npwp'], '0*.0**.1**.*-*34.**0')
@@ -331,8 +314,8 @@ class TestLpsePemenangDoubleTender(unittest.TestCase):
 class TestLpseKolomPemenangTidakLengkap(unittest.TestCase):
 
     def setUp(self):
-        host = 'https://lpse.kaltaraprov.go.id'
-        self.lpse = Lpse(host, skip_spse_check=True)
+        host = 'kaltaraprov'
+        self.lpse = Lpse(host)
 
     def test_get_pemenang(self):
         detil = self.lpse.detil_paket_tender(1569716)
@@ -354,7 +337,7 @@ class TestLpseKolomPemenangTidakLengkap(unittest.TestCase):
 
 class TestPaketTenderRUP(unittest.TestCase):
     def test_get_rup_multiple_rows(self):
-        lpse = Lpse('https://lpse.kalselprov.go.id')
+        lpse = Lpse('kalselprov')
         detail = lpse.detil_paket_tender('9316181')
         detail.get_pengumuman()
         print(detail.pengumuman['rencana_umum_pengadaan'])
