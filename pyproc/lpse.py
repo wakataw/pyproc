@@ -537,6 +537,23 @@ class LpseDetilPesertaParser(BaseLpseDetilParser):
 class LpseDetilHasilEvaluasiParser(BaseLpseDetilParser):
 
     detil_path = '/evaluasi/{}/hasil'
+    header_ref = {
+        "a": "evaluasi_administrasi",
+        "t": "evaluasi_teknis",
+        "st": "skor_teknis",
+        "p_1": "penawaran",
+        "pt": "penawaran_terkoreksi",
+        "hn": "hasil_negosiasi",
+        "sh": "skor_harga",
+        "sa": "skor_akhir",
+        "b": "pembuktian_kualifikasi",
+        "k": "evaluasi_kualifikasi",
+        "sk": "skor_kualifikasi",
+        "sb": "skor_pembuktian",
+        "h": "evaluasi_harga_biaya",
+        "p_2": "pemenang",
+        "pk": "pemenang_berkontrak"
+    }
 
     def parse_detil(self, content):
         soup = Bs(content, 'html5lib')
@@ -554,6 +571,17 @@ class LpseDetilHasilEvaluasiParser(BaseLpseDetilParser):
 
             if is_header:
                 header = ['_'.join(i.text.strip().split()).lower() for i in filter(lambda x: type(x) == bs4.element.Tag, tr.children)]
+
+                # fix duplicate header key for p
+                if header.count('p') > 1:
+                    first_p_idx = header.index('p')
+                    second_p_idx = header.index('p', first_p_idx + 1)
+                    header[first_p_idx] = 'p_1'
+                    header[second_p_idx] = 'p_2'
+
+                # map header key to reference
+                header = list(map(lambda x: self.header_ref.get(x, x), header))
+
                 is_header = False
             else:
                 children = [self.parse_icon(i) for i in filter(lambda x: type(x) == bs4.element.Tag, tr.children)]
@@ -565,22 +593,15 @@ class LpseDetilHasilEvaluasiParser(BaseLpseDetilParser):
 
     def parse_children(self, children):
         for key, value in children.items():
-            if key.startswith('skor'):
+            if key.startswith('s'):
                 try:
                     children[key] = float(value)
                 except ValueError:
                     children[key] = 0.0
             elif key in ['penawaran', 'penawaran_terkoreksi', 'hasil_negosiasi']:
                 children[key] = self.parse_currency(value)
-            elif key in ['v', 'p', 'pk'] and children[key] != True:
+            elif key in ['evaluasi_harga_biaya', 'pemenang', 'pemenang_berkontrak'] and children[key] != True:
                 children[key] = False
-
-        try:
-            nama_npwp = self.parse_nama_npwp(children['nama_peserta'])
-            children['nama_peserta'] = nama_npwp[0].strip()
-            children['npwp'] = nama_npwp[1].strip()
-        except KeyError:
-            pass
 
         return children
 
