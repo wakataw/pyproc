@@ -1,6 +1,6 @@
 # PyProc
 
-![Build Status](https://github.com/wakataw/pyproc/actions/workflows/pyproc-pypi.yml/badge.svg) [![Version](https://img.shields.io/badge/version-v0.2-red)](https://pypi.org/project/pyproc/) [![Python >=3.9](https://img.shields.io/badge/python->=3.9-yellow.svg)](https://www.python.org/downloads/) [![Open Source Love](https://badges.frapsoft.com/os/v1/open-source.svg?v=102)](https://github.com/wakataw/pyproc)
+![Build Status](https://github.com/wakataw/pyproc/actions/workflows/pyproc-pypi.yml/badge.svg) [![Version](https://img.shields.io/badge/version-v0.2a-red)](https://pypi.org/project/pyproc/) [![Python >=3.9](https://img.shields.io/badge/python->=3.9-yellow.svg)](https://www.python.org/downloads/) [![Open Source Love](https://badges.frapsoft.com/os/v1/open-source.svg?v=102)](https://github.com/wakataw/pyproc)
 
 PyProc (Python Procurement) merupakan wrapper untuk API SPSE yang ditulis dalam bahasa Python. Sistem Pengadaan Secara Elektronik (SPSE) SPSE merupakan aplikasi e-Procurement yang dikembangkan oleh LKPP untuk digunakan oleh LPSE di instansi pemerintah seluruh Indonesia.
 

@@ -8,7 +8,7 @@ version = "0.2a"
 authors = [
     { name="Agung Pratama", email="workwithagung@gmail.com"}
 ]
-description = "Python SPSEv4 wrapper"
+description = "Python Inaproc SPSE SDK"
 readme = "README.md"
 requires-python = ">=3.9"
 classifiers = [
@@ -25,6 +25,12 @@ classifiers = [
 ]
 license = "MIT"
 license-files = ["LICENSE"]
+dependencies = [
+    "requests",
+    "beautifulsoup4",
+    "html5lib",
+    "backoff"
+]
 
 [project.urls]
 Homepage = "https://github.com/wakataw/pyproc"
