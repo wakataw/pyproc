@@ -1,5 +1,0 @@
-backoff
-beautifulsoup4
-html5lib
-requests
-
