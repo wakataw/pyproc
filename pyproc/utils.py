@@ -1,11 +1,14 @@
 import csv
 import json
+import os
 import re
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 
 TOKEN_FORMAT = re.compile(r"d\.authenticityToken[\s+]=[\s+]['\"]([0-9a-zA-Z]+)['\"];", re.DOTALL)
+
+GIST_HOST_URL = 'https://gist.githubusercontent.com/wakataw/54d206da0e6238253d364b04bb149cdd/raw'
 
 
 def parse_token(page):
@@ -57,6 +60,29 @@ def download_host(logging, name='daftarlpse.csv'):
             writer.writerow([k, v])
 
     logging.info("Export daftar lpse ke {}".format(name))
+
+
+def download_host_json(logging, name='host.json', directory='.'):
+    """
+    Download host.json dari GitHub Gist
+    :param logging: logging module
+    :param name: nama file output
+    :param directory: direktori output
+    :return: data host dalam format list
+    """
+    resp = requests.get(GIST_HOST_URL, timeout=30)
+    resp.raise_for_status()
+
+    data = resp.json()
+
+    filepath = os.path.join(directory, name)
+
+    with open(filepath, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+    logging.info("Export host.json ke {}".format(filepath))
+
+    return data
 
 
 def parse_version(version):

@@ -363,5 +363,58 @@ class UtilsTest(unittest.TestCase):
         )
 
 
+class DownloadHostJsonTest(unittest.TestCase):
+
+    def test_download_host_json_default(self):
+        import tempfile
+        import os
+        import logging
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            data = pyproc.utils.download_host_json(logging, directory=tmpdir)
+            filepath = os.path.join(tmpdir, 'host.json')
+
+            self.assertTrue(os.path.isfile(filepath))
+            self.assertIsInstance(data, list)
+            self.assertTrue(len(data) > 0)
+
+            # verify structure of first item
+            self.assertIn('name', data[0])
+            self.assertIn('oldUrl', data[0])
+            self.assertIn('newUrlPath', data[0])
+
+    def test_download_host_json_custom_filename(self):
+        import tempfile
+        import os
+        import json
+        import logging
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pyproc.utils.download_host_json(logging, name='custom.json', directory=tmpdir)
+            filepath = os.path.join(tmpdir, 'custom.json')
+
+            self.assertTrue(os.path.isfile(filepath))
+
+            with open(filepath, 'r') as f:
+                data = json.load(f)
+
+            self.assertIsInstance(data, list)
+
+    def test_download_host_json_returns_data(self):
+        import tempfile
+        import logging
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            data = pyproc.utils.download_host_json(logging, directory=tmpdir)
+
+            self.assertIsInstance(data, list)
+
+            for item in data[:5]:
+                self.assertIsInstance(item, dict)
+                self.assertIn('name', item)
+                self.assertIn('oldUrl', item)
+                self.assertIn('newUrlPath', item)
+
+
 if __name__ == '__main__':
     unittest.main()

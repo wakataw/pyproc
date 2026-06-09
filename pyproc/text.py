@@ -31,6 +31,7 @@ HELP_PENYEDIA = "filter pencarian index paket berdasarkan nama penyedia"
 HELP_OUTPUT = "format output hasil download"
 HELP_RESUME = "melanjutkan proses sebelumnya"
 HELP_CSV_SEPARATOR = "set custom csv separator, default koma"
+HELP_DAFTARHOST = "unduh daftar host LPSE dalam format JSON dari GitHub Gist"
 
 #####################
 # Error Information #

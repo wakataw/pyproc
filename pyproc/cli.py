@@ -773,6 +773,19 @@ def main():
 
     print(text.INFO)
 
+    # Subcommand: daftarlpse
+    if len(sys.argv) > 1 and sys.argv[1] == 'daftarlpse':
+        set_up_log('INFO')
+        pyproc.utils.download_host(logging)
+        exit(0)
+
+    # Subcommand: daftarhost
+    if len(sys.argv) > 1 and sys.argv[1] == 'daftarhost':
+        set_up_log('INFO')
+        directory = sys.argv[2] if len(sys.argv) > 2 else '.'
+        pyproc.utils.download_host_json(logging, directory=directory)
+        exit(0)
+
     downloader = Downloader()
     downloader.get_ctx(sys.argv[1:])
 
@@ -783,11 +796,7 @@ def main():
                          f"tersedia versi baru {new}. "
                          f"Mohon untuk memperbarui aplikasi.")
 
-        if len(sys.argv) > 1 and sys.argv[1] == 'daftarlpse':
-            pyproc.utils.download_host(logging)
-            exit(0)
-        else:
-            downloader.start()
+        downloader.start()
     except Exception as e:
         logging.error(f"Terjadi galat {e}")
     finally:
