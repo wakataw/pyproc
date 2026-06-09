@@ -46,16 +46,15 @@ jobs:
     environment:
       name: pypi
 
-      steps:
-        - name: Retrieve release distributions
-          uses: actions/download-artifact@v4
-          with:
-            name: release-dists
-            path: dist/
+    steps:
+    - name: Retrieve release distributions
+      uses: actions/download-artifact@v4
+      with:
+        name: release-dists
+        path: dist/
 
-        - name: Publish rleease distributions to PyPI
-          uses: pypa/gh-action-pypi-publish@release/v1
-          with:
-            package-dir: dist/
-  
-  
+    - name: Publish release distributions to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        package-dir: dist/
+
