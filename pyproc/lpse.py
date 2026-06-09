@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import time
 import bs4
 import requests
@@ -9,7 +11,10 @@ from bs4 import BeautifulSoup as Bs, NavigableString
 from .exceptions import LpseVersionException, LpseServerExceptions, LpseHostExceptions
 from enum import Enum
 from abc import abstractmethod
+from typing import Optional, Any
 from urllib.parse import urlparse
+from urllib3.exceptions import InsecureRequestWarning
+from urllib3 import disable_warnings
 
 
 class By(Enum):
@@ -33,21 +38,30 @@ class JenisPengadaan(Enum):
 
 class Lpse(object):
 
-    def __init__(self, instansi, timeout=10):
+    def __init__(self, instansi: str, timeout: int = 10, verify: bool = False):
         self.session = requests.session()
-        self.session.verify = False
+        self.session.verify = verify
+        if not verify:
+            disable_warnings(InsecureRequestWarning)
         self.session.headers = {
             'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) '
                           'AppleWebKit/537.36 (KHTML, like Gecko) '
                           'Chrome/102.0.5005.61 Safari/537.36'
         }
         self.timeout = timeout
-        self.auth_token = None
+        self.auth_token: Optional[str] = None
         self.url = f"https://spse.inaproc.id/{instansi}"
+
+    def __enter__(self) -> Lpse:
+        return self
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> bool:
+        self.session.close()
+        return False
 
 
     @staticmethod
-    def check_error(resp):
+    def check_error(resp: requests.Response) -> None:
         error_message = None
         content = resp.text
 
@@ -69,7 +83,7 @@ class Lpse(object):
             )
             raise LpseServerExceptions(error_message)
 
-    def get_auth_token(self, from_cookies=True):
+    def get_auth_token(self, from_cookies: bool = True) -> Optional[str]:
         """
         Melakukan pengambilan auth token
         :return: token (str)
@@ -89,9 +103,11 @@ class Lpse(object):
                           (LpseServerExceptions, requests.exceptions.RequestException,
                            requests.exceptions.ConnectionError),
                           jitter=None, max_tries=3)
-    def get_paket(self, jenis_paket, start=0, length=0, data_only=False,
-                  kategori=None, search_keyword=None, nama_penyedia=None,
-                  order=By.KODE, tahun=None, ascending=False, instansi_id=None):
+    def get_paket(self, jenis_paket: str, start: int = 0, length: int = 0,
+                  data_only: bool = False, kategori: Optional[JenisPengadaan] = None,
+                  search_keyword: Optional[str] = None, nama_penyedia: Optional[str] = None,
+                  order: By = By.KODE, tahun: Optional[int] = None, ascending: bool = False,
+                  instansi_id: Optional[str] = None) -> dict | list:
         """
         Melakukan pencarian paket pengadaan
         :param jenis_paket: Paket Pengadaan Lelang (lelang) atau Penunjukkan Langsung (pl)
@@ -218,7 +234,7 @@ class Lpse(object):
         return self.get_paket('pl', start, length, data_only, kategori, search_keyword, None, order, tahun,
                               ascending, instansi_id)
 
-    def detil_paket_tender(self, id_paket):
+    def detil_paket_tender(self, id_paket: int | str) -> LpseDetil:
         """
         Mengambil detil pengadaan
         :param id_paket:
@@ -240,18 +256,18 @@ class Lpse(object):
 
 
 class BaseLpseDetil(object):
-    def __init__(self, lpse, id_paket):
+    def __init__(self, lpse: Lpse, id_paket: int | str):
         self._lpse = lpse
         self.id_paket = id_paket
-        self.pengumuman = None
-        self.peserta = None
-        self.hasil = None
-        self.pemenang = None
-        self.pemenang_berkontrak = None
-        self.jadwal = None
+        self.pengumuman: Optional[dict] = None
+        self.peserta: Optional[list] = None
+        self.hasil: Optional[list] = None
+        self.pemenang: Optional[list] = None
+        self.pemenang_berkontrak: Optional[list] = None
+        self.jadwal: Optional[list] = None
 
-    def get_all_detil(self):
-        info = {
+    def get_all_detil(self) -> dict:
+        info: dict = {
             'error': False,
             'error_message': []
         }
@@ -266,10 +282,10 @@ class BaseLpseDetil(object):
                 )
         return info
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.todict())
 
-    def todict(self):
+    def todict(self) -> dict:
         data = self.__dict__.copy()
         data.pop('_lpse')
         return data

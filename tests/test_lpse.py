@@ -371,7 +371,7 @@ class DownloadHostJsonTest(unittest.TestCase):
         import logging
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            data = pyproc.utils.download_host_json(logging, directory=tmpdir)
+            data = pyproc.utils.download_host_json(directory=tmpdir)
             filepath = os.path.join(tmpdir, 'host.json')
 
             self.assertTrue(os.path.isfile(filepath))
@@ -390,7 +390,7 @@ class DownloadHostJsonTest(unittest.TestCase):
         import logging
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            pyproc.utils.download_host_json(logging, name='custom.json', directory=tmpdir)
+            pyproc.utils.download_host_json(name='custom.json', directory=tmpdir)
             filepath = os.path.join(tmpdir, 'custom.json')
 
             self.assertTrue(os.path.isfile(filepath))
@@ -405,7 +405,7 @@ class DownloadHostJsonTest(unittest.TestCase):
         import logging
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            data = pyproc.utils.download_host_json(logging, directory=tmpdir)
+            data = pyproc.utils.download_host_json(directory=tmpdir)
 
             self.assertIsInstance(data, list)
 
