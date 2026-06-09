@@ -3,20 +3,17 @@ import csv
 import re
 import logging
 import signal
-import sqlite3
+import sys
 import threading
 import requests
 import pyproc
 import json
 from time import sleep
 from .exceptions import DownloaderContextException
+from .cache import CacheStore
 from . import text
 from datetime import datetime
 from pathlib import Path
-from urllib3.exceptions import InsecureRequestWarning
-from urllib3 import disable_warnings
-
-disable_warnings(InsecureRequestWarning)
 
 
 def set_up_log(level):
@@ -200,16 +197,16 @@ class LpseIndex:
     def parse_detail(detail):
         try:
             return json.loads(detail)
-        except TypeError:
-            return {}
+        except (TypeError, json.JSONDecodeError, ValueError):
+            return None
 
     def __str__(self):
         return str(self.__dict__)
 
 
 class IndexDownloader(object):
-    __tahun_anggaran_pattern = re.compile('(\d+)')
-    db = None
+    __tahun_anggaran_pattern = re.compile(r'(\d+)')
+    store = None
     db_status_for_resume = False
     db_file = None
     lpse = None
@@ -218,75 +215,36 @@ class IndexDownloader(object):
         self.ctx = ctx
         self.lpse_host = lpse_host
         self.lpse = pyproc.Lpse(lpse_host.url, timeout=ctx.timeout)
-        self.db = self.get_index_db(self.lpse_host.filename)
+        self.store = self._init_cache(self.lpse_host.filename)
+        # Keep self.db as alias for backward compatibility
+        self.db = self.store.db
 
         logging.info("{} - Mulai pengunduhan data {} tahun {}".format(
             lpse_host.url, "Pengadaan Langsung" if self.ctx.non_tender else "Tender",
             ', '.join(map(str, self.ctx.tahun_anggaran)) if self.ctx.tahun_anggaran[0] is not None else 'ALL'
         ))
 
-    def __check_index_db(self, db):
-        status = False
-        try:
-            total = db.execute("SELECT COUNT(1) FROM INDEX_PAKET").fetchone()[0]
-            logging.info("{} - total previous index {}".format(self.lpse_host.url, total))
-            if total > 0:
-                status = True
-        except Exception as e:
-            logging.error("{} - check index db gagal, error: {}".format(self.lpse_host.url, e))
-            status = False
-
-        logging.info("{} - status previous index db {}".format(self.lpse_host.url, status))
-        self.db_status_for_resume = status
-        return status
-
-    def get_index_db(self, filename):
+    def _init_cache(self, filename):
         """
-        Generate index database and table
-        table columns:
-            - data_id, concat(jenis, idpaket).
-            - nama_instansi
-            - jenis_paket
-            - kategori_tahun_anggaran
-            - status (0 belum download, 1 oke)
-        :param filename: Database Filename
-        :return: SQLite database object
+        Initialize the cache store for this downloader.
+
+        :param filename: Path object for the host filename
+        :return: CacheStore instance (already entered as context manager)
         """
         db_filename = filename.name + ".idx"
         self.db_file = Path.cwd() / db_filename
-        db = sqlite3.connect(str(self.db_file), check_same_thread=False)
 
-        if self.ctx.resume and self.__check_index_db(db):
+        store = CacheStore(self.db_file)
+        store.__enter__()
+
+        if self.ctx.resume and store.has_rows():
             logging.info("{} - skip db init, melanjutkan proses".format(self.lpse_host.url))
-            return db
+            self.db_status_for_resume = True
+            return store
 
         logging.debug("Generate index database: {}".format(self.db_file.name))
-        logging.debug("Create index table")
-
-        try:
-            db.execute("DROP TABLE IF EXISTS INDEX_PAKET")
-            db.execute("""CREATE TABLE INDEX_PAKET
-            (
-            ROW_ID varchar(100) unique primary key,
-            ID_PAKET VARCHAR(50),
-            JENIS_PAKET VARCHAR(32),
-            KATEGORI_TAHUN_ANGGARAN varchar (100),
-            STATUS int default 0,
-            DETAIL text
-            );""")
-            db.execute("CREATE INDEX INDEX_PAKET_KATEGORI_TAHUN_ANGGARAN_IDX ON INDEX_PAKET(KATEGORI_TAHUN_ANGGARAN);")
-            db.execute("CREATE INDEX INDEX_PAKET_ID_PAKET_IDX ON INDEX_PAKET(ID_PAKET);")
-            db.execute("CREATE INDEX INDEX_PAKET_JENIS_PAKET ON INDEX_PAKET(JENIS_PAKET);")
-            db.execute("CREATE INDEX INDEX_PAKET_STATUS_IDX ON INDEX_PAKET(STATUS);")
-        except sqlite3.OperationalError as e:
-            if 'INDEX_PAKET already exists' in str(e):
-                pass
-            else:
-                raise e
-
-        db.commit()
-
-        return db
+        store.reset()
+        return store
 
     def get_jenis_paket(self):
         """
@@ -336,9 +294,7 @@ class IndexDownloader(object):
                 if not data:
                     break
 
-                self.db.executemany("INSERT OR IGNORE INTO INDEX_PAKET VALUES(?, ?, ?, ?, ?, ?)",
-                                    self.convert_index_for_db(data))
-                self.db.commit()
+                self.store.insert_rows(self.convert_index_for_db(data))
 
                 # update data count
                 data_count += len(data)
@@ -378,13 +334,8 @@ class IndexDownloader(object):
 
     def get_index(self):
         logging.debug("[SQL] get index from database")
-        result = self.db.execute("SELECT * FROM INDEX_PAKET WHERE STATUS = 0")
-
-        for row in result.fetchall():
-            row = self.index_factory(result, row)
-
-            logging.debug("row data {}".format(row))
-            yield row
+        for row_dict in self.store.get_pending():
+            yield LpseIndex(row_dict)
 
     def resume(self):
         """
@@ -398,9 +349,8 @@ class IndexDownloader(object):
         Make sure everything is closed when object is garbage collected
         :return:
         """
-        if self.db:
-            self.db.close()
-            del self.db
+        if self.store:
+            self.store.close()
 
         if self.lpse is not None:
             del self.lpse
@@ -415,9 +365,8 @@ class DetailDownloader(object):
         logging.info("{} - Mulai pengunduhan detail data".format(self.index_downloader.lpse_host.url))
 
     def __pre_process_index_db(self):
-        total = self.index_downloader.db.execute(
-            """SELECT COUNT(1) FROM INDEX_PAKET WHERE STATUS = 0"""
-        ).fetchone()[0]
+        counts = self.index_downloader.store.count_by_status()
+        total = counts.get(0, 0)
         deleted = 0
 
         return total, deleted
@@ -448,11 +397,10 @@ class DetailDownloader(object):
     def update_detail(self, lpse_index):
         with self.lock:
             logging.debug("[DETAIL DOWNLOADER] update detail data {}".format(lpse_index))
-            self.index_downloader.db.execute(
-                "UPDATE INDEX_PAKET SET DETAIL = ?, STATUS = 1 WHERE ROW_ID = ?",
-                (json.dumps(lpse_index.detail.todict()), lpse_index.row_id)
+            self.index_downloader.store.update_detail(
+                lpse_index.row_id,
+                json.dumps(lpse_index.detail.todict())
             )
-            self.index_downloader.db.commit()
 
     def start(self):
         total, deleted = self.__pre_process_index_db()
@@ -518,10 +466,14 @@ class Exporter:
         :return: generator result row
         """
         logging.info("{} - Export Data".format(self.index_downloader.lpse_host.url))
-        result = self.index_downloader.db.execute("SELECT * from INDEX_PAKET WHERE STATUS = 1")
-        for data in result.fetchall():
-            data = self.index_downloader.index_factory(result, data)
-            yield data.detail
+        for row_dict in self.index_downloader.store.get_completed():
+            detail = row_dict.get('detail')
+            if isinstance(detail, str):
+                try:
+                    detail = json.loads(detail)
+                except (json.JSONDecodeError, TypeError):
+                    continue
+            yield detail
 
     def get_file_obj(self, ext):
         """
@@ -612,8 +564,7 @@ class QualityAssurance:
         self.index_downloader = index_downloader
 
     def check(self):
-        all_data = self.index_downloader.db.execute("SELECT STATUS, COUNT(1) FROM INDEX_PAKET GROUP BY STATUS")
-        result = dict(all_data.fetchall())
+        result = self.index_downloader.store.count_by_status()
         success = result.get(1, 0)
         fail = result.get(0, 0)
         total = sum(result.values())
@@ -689,7 +640,7 @@ class Downloader(object):
                             help=text.HELP_KATEGORI, default=None)
         parser.add_argument('--nama-penyedia', type=str, default=None, help=text.HELP_PENYEDIA)
         parser.add_argument('-c', '--chunk-size', type=int, default=100, help=text.HELP_CHUNK_SIZE)
-        parser.add_argument('-w', '--workers', type=int, default=8, help=text.HELP_WORKERS)
+        parser.add_argument('-w', '--workers', type=int, default=8, help=argparse.SUPPRESS)
         parser.add_argument('-x', '--timeout', type=int, default=30, help=text.HELP_TIMEOUT)
         parser.add_argument('-n', '--non-tender', action='store_true', help=text.HELP_NONTENDER)
         parser.add_argument('-d', '--index-download-delay', type=int, default=1, help=text.HELP_INDEX_DOWNLOAD_DELAY)
@@ -755,7 +706,7 @@ class Downloader(object):
 
             if not index_downloader.ctx.keep_index and fail == 0:
                 logging.info("{} - membersihkan direktori".format(lpse_host.url))
-                index_downloader.db.close()
+                index_downloader.store.close()
                 try:
                     index_downloader.db_file.unlink()
                 except FileNotFoundError:
@@ -767,27 +718,35 @@ class Downloader(object):
 
 
 def main():
-    import sys
-
     IWillFindYouAndIWillKillYou()
 
     print(text.INFO)
 
-    # Subcommand: daftarlpse
-    if len(sys.argv) > 1 and sys.argv[1] == 'daftarlpse':
-        set_up_log('INFO')
-        pyproc.utils.download_host(logging)
-        exit(0)
+    # Detect subcommands by checking if first arg is a known subcommand
+    # For backward compatibility, treat non-subcommand args as download args
+    known_subcommands = {'daftarlpse', 'daftarhost', 'download'}
 
-    # Subcommand: daftarhost
-    if len(sys.argv) > 1 and sys.argv[1] == 'daftarhost':
-        set_up_log('INFO')
-        directory = sys.argv[2] if len(sys.argv) > 2 else '.'
-        pyproc.utils.download_host_json(logging, directory=directory)
-        exit(0)
+    if len(sys.argv) > 1 and sys.argv[1] in known_subcommands:
+        subcommand = sys.argv[1]
+        remaining_args = sys.argv[2:]
+    else:
+        subcommand = 'download'
+        remaining_args = sys.argv[1:]
 
+    if subcommand == 'daftarlpse':
+        set_up_log('INFO')
+        pyproc.utils.download_host()
+        sys.exit(0)
+
+    if subcommand == 'daftarhost':
+        set_up_log('INFO')
+        directory = remaining_args[0] if remaining_args else '.'
+        pyproc.utils.download_host_json(directory=directory)
+        sys.exit(0)
+
+    # Default: download
     downloader = Downloader()
-    downloader.get_ctx(sys.argv[1:])
+    downloader.get_ctx(remaining_args)
 
     try:
         status, current, new = check_new_version()
