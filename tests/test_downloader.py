@@ -13,7 +13,7 @@ class DownloaderTest(unittest.TestCase):
     def test_context_parser(self):
         downloader = Downloader()
         ctx = downloader.get_ctx("--keyword WKWK --tahun-anggaran 2020 --workers 999 --chunk-size 1000 --timeout 99 "
-                                 "--non-tender --index-download-delay 5 --keep-index "
+                                 "--jenis-paket non_tender --index-download-delay 5 --keep-index "
                                  "--kategori PEKERJAAN_KONSTRUKSI --nama-penyedia HAHA --resume --sep | "
                                  f"{self.LPSE_HOST_2}".split(' '))
         expected_condition = {
@@ -24,7 +24,10 @@ class DownloaderTest(unittest.TestCase):
             '_kategori': "PEKERJAAN_KONSTRUKSI",
             'keyword': 'WKWK',
             'nama_penyedia': "HAHA",
+            'jenis_paket': 'non_tender',
             'non_tender': True,
+            'instansi_id': None,
+            'tipe_swakelola_id': None,
             'tahun_anggaran': [2020],
             'timeout': 99,
             'log_level': 'INFO',

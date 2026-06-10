@@ -342,15 +342,6 @@ class TestPaketTenderRUP(unittest.TestCase):
         detail.get_pengumuman()
         print(detail.pengumuman['rencana_umum_pengadaan'])
 
-
-# api tidak stabil
-# class TestGetAllLpseHost(unittest.TestCase):
-#     def test_get_all_host(self):
-#         import logging
-#         pyproc.utils.download_host(logging)
-#         self.assertTrue((Path.cwd() / 'daftarlpse.csv').is_file())
-
-
 class UtilsTest(unittest.TestCase):
 
     def test_compare_version(self):
@@ -380,8 +371,8 @@ class DownloadHostJsonTest(unittest.TestCase):
 
             # verify structure of first item
             self.assertIn('name', data[0])
-            self.assertIn('oldUrl', data[0])
             self.assertIn('newUrlPath', data[0])
+            self.assertNotIn('oldUrl', data[0])
 
     def test_download_host_json_custom_filename(self):
         import tempfile
@@ -412,8 +403,8 @@ class DownloadHostJsonTest(unittest.TestCase):
             for item in data[:5]:
                 self.assertIsInstance(item, dict)
                 self.assertIn('name', item)
-                self.assertIn('oldUrl', item)
                 self.assertIn('newUrlPath', item)
+                self.assertNotIn('oldUrl', item)
 
 
 if __name__ == '__main__':

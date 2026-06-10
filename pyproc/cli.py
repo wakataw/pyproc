@@ -16,6 +16,45 @@ from datetime import datetime
 from pathlib import Path
 
 
+PACKAGE_TYPES = {
+    'tender': {
+        'label': 'Tender',
+        'search_method': 'get_paket_tender',
+        'detail_method': 'detil_paket_tender',
+        'cache_prefix': 'tender',
+        'year_column': 8,
+    },
+    'non_tender': {
+        'label': 'Non Tender',
+        'search_method': 'get_paket_non_tender',
+        'detail_method': 'detil_paket_non_tender',
+        'cache_prefix': 'non_tender',
+        'year_column': 6,
+    },
+    'pencatatan_non_tender': {
+        'label': 'Pencatatan Non Tender',
+        'search_method': 'get_paket_pencatatan_non_tender',
+        'detail_method': 'detil_paket_pencatatan_non_tender',
+        'cache_prefix': 'pencatatan_non_tender',
+        'year_column': 6,
+    },
+    'swakelola': {
+        'label': 'Swakelola',
+        'search_method': 'get_paket_swakelola',
+        'detail_method': 'detil_paket_swakelola',
+        'cache_prefix': 'swakelola',
+        'year_column': 5,
+    },
+    'darurat': {
+        'label': 'Pengadaan Darurat',
+        'search_method': 'get_paket_pengadaan_darurat',
+        'detail_method': 'detil_paket_pengadaan_darurat',
+        'cache_prefix': 'darurat',
+        'year_column': 4,
+    },
+}
+
+
 def set_up_log(level):
     """
     Set log level berdasarkan argumen yang diberikan user
@@ -91,11 +130,20 @@ class DownloaderContext(object):
         self.keyword = args.keyword
         self.tahun_anggaran = self.parse_tahun_anggaran(args.tahun_anggaran)
         self._kategori = args.kategori
-        self.nama_penyedia = args.nama_penyedia
+        rekanan = getattr(args, 'rekanan', None)
+        nama_penyedia = getattr(args, 'nama_penyedia', None)
+        self.nama_penyedia = (rekanan if isinstance(rekanan, str) else None) or \
+            (nama_penyedia if isinstance(nama_penyedia, str) else None)
         self.chunk_size = args.chunk_size
         self.workers = 1 # hard coded worker to 1
         self.timeout = args.timeout
-        self.non_tender = args.non_tender
+        jenis_paket = getattr(args, 'jenis_paket', 'tender')
+        self.jenis_paket = jenis_paket if isinstance(jenis_paket, str) else 'tender'
+        self.non_tender = self.jenis_paket == 'non_tender'
+        instansi_id = getattr(args, 'instansi_id', None)
+        tipe_swakelola_id = getattr(args, 'tipe_swakelola_id', None)
+        self.instansi_id = instansi_id if isinstance(instansi_id, str) else None
+        self.tipe_swakelola_id = tipe_swakelola_id if isinstance(tipe_swakelola_id, int) else None
         self.index_download_delay = args.index_download_delay
         self.keep_index = args.keep_index
         self.log_level = args.log
@@ -103,6 +151,18 @@ class DownloaderContext(object):
         self.resume = args.resume
         self.separator = args.separator
         self.__lpse_host = args.lpse_host
+        if self.jenis_paket == 'swakelola' and self._kategori:
+            raise DownloaderContextException('--kategori tidak berlaku untuk jenis paket swakelola')
+        if self.tipe_swakelola_id is not None and self.jenis_paket != 'swakelola':
+            raise DownloaderContextException('--tipe-swakelola-id hanya berlaku untuk jenis paket swakelola')
+
+    @property
+    def package_config(self):
+        return PACKAGE_TYPES[self.jenis_paket]
+
+    @property
+    def rekanan(self):
+        return self.nama_penyedia
 
     @property
     def kategori(self):
@@ -246,31 +306,32 @@ class IndexDownloader(object):
         store.reset()
         return store
 
-    def get_jenis_paket(self):
-        """
-        Wrapper variable jenis paket
-        :return:
-        """
-        if self.ctx.non_tender:
-            jenis_paket = 'pl'
-        else:
-            jenis_paket = 'lelang'
-
-        return jenis_paket
-
     def get_total_package(self, tahun):
         """
         Fungsi untuk mendapatkan total data dengan melakukan requests dengan length 0 data
         :return: Integer jumlah data
         """
-        jenis_paket = self.get_jenis_paket()
-
-        data = self.lpse.get_paket(jenis_paket=jenis_paket, kategori=self.ctx.kategori,
-                                   nama_penyedia=self.ctx.nama_penyedia, search_keyword=self.ctx.keyword,
-                                   tahun=tahun)
+        data = self.search_packages(start=0, length=0, data_only=False, tahun=tahun)
 
         logging.debug("Jumlah record {}".format(str(data)))
         return data['recordsFiltered']
+
+    def search_packages(self, start, length, data_only, tahun):
+        kwargs = {
+            'start': start,
+            'length': length,
+            'data_only': data_only,
+            'search_keyword': self.ctx.keyword,
+            'rekanan': self.ctx.rekanan,
+            'tahun': tahun,
+            'instansi_id': self.ctx.instansi_id,
+        }
+        if self.ctx.jenis_paket != 'swakelola':
+            kwargs['kategori'] = self.ctx.kategori
+        else:
+            kwargs['tipe_swakelola'] = self.ctx.tipe_swakelola_id
+        method = getattr(self.lpse, self.ctx.package_config['search_method'])
+        return method(**kwargs)
 
     def start(self):
         """
@@ -286,10 +347,12 @@ class IndexDownloader(object):
             data_count = 0
 
             for batch in range(batch_total):
-                data = self.lpse.get_paket(jenis_paket=self.get_jenis_paket(), start=batch * self.ctx.chunk_size,
-                                           length=self.ctx.chunk_size, kategori=self.ctx.kategori,
-                                           search_keyword=self.ctx.keyword, nama_penyedia=self.ctx.nama_penyedia,
-                                           data_only=True, tahun=tahun)
+                data = self.search_packages(
+                    start=batch * self.ctx.chunk_size,
+                    length=self.ctx.chunk_size,
+                    data_only=True,
+                    tahun=tahun,
+                )
 
                 if not data:
                     break
@@ -315,11 +378,13 @@ class IndexDownloader(object):
         :return:
         """
         for row in data:
+            prefix = self.ctx.package_config['cache_prefix']
+            year_column = self.ctx.package_config['year_column']
             yield [
-                '{}-{}'.format('nontender' if self.ctx.non_tender else 'tender', row[0]),
+                '{}-{}'.format(prefix, row[0]),
                 row[0],
-                'nontender' if self.ctx.non_tender else 'tender',
-                row[6] if self.ctx.non_tender else row[8],
+                prefix,
+                row[year_column] if len(row) > year_column else None,
                 0,
                 None  # detail paket kosong
             ]
@@ -378,10 +443,11 @@ class DetailDownloader(object):
         :return:
         """
         logging.debug("[DETAIL DOWNLOADER] download detail for {}".format(lpse_index))
-        if self.index_downloader.ctx.non_tender:
-            package_detail = self.index_downloader.lpse.detil_paket_non_tender(lpse_index.id_paket)
-        else:
-            package_detail = self.index_downloader.lpse.detil_paket_tender(lpse_index.id_paket)
+        method = getattr(
+            self.index_downloader.lpse,
+            self.index_downloader.ctx.package_config['detail_method']
+        )
+        package_detail = method(lpse_index.id_paket)
 
         info = package_detail.get_all_detil()
 
@@ -491,7 +557,7 @@ class Exporter:
         Export detail data ke csv
         :return:
         """
-        is_tender = not self.index_downloader.ctx.non_tender
+        jenis_paket = self.index_downloader.ctx.jenis_paket
         header = [
             'id_paket',
             'nama_tender',
@@ -512,13 +578,19 @@ class Exporter:
             'label_paket',
         ]
 
-        if not is_tender:
+        if jenis_paket == 'non_tender':
             header[1] = 'nama_paket'
             header[3] = 'tahap_paket_saat_ini'
             header[7] = 'metode_pengadaan'
             header[-4] = 'peserta_non_tender'
+        elif jenis_paket in ('pencatatan_non_tender', 'darurat', 'swakelola'):
+            header = [
+                'id_paket', 'nama_paket', 'tanggal_pembuatan', 'k/l/pd',
+                'satuan_kerja', 'jenis_pengadaan', 'metode_pengadaan',
+                'tipe_pelaksana_swakelola', 'tahun_anggaran', 'nilai_pagu_paket',
+            ]
 
-        json_data_header = ['hasil_evaluasi', 'pemenang', 'pemenang_berkontrak', 'jadwal', 'peserta']
+        json_data_header = ['hasil_evaluasi', 'pemenang', 'pemenang_berkontrak', 'jadwal', 'peserta', 'pelaksana']
 
         with self.get_file_obj('csv').open('w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f, delimiter=delimiter)
@@ -539,8 +611,9 @@ class Exporter:
                         json.dumps(item.get('hasil')),
                         json.dumps(item.get('pemenang')),
                         json.dumps(item.get('pemenang_berkontrak')),
-                        json.dumps(item.get('peserta')),
                         json.dumps(item.get('jadwal')),
+                        json.dumps(item.get('peserta')),
+                        json.dumps(item.get('pelaksana')),
                     ],
                 )
 
@@ -584,13 +657,12 @@ class Downloader(object):
             "--keyword",
             input("Kata kunci pencarian [default kosong]: ")
         ]
-        is_tender = input("Jenis pengadan [tender/pl]: ").lower().strip()
+        jenis_paket = input("Jenis pengadan [tender/non_tender/pencatatan_non_tender/swakelola/darurat]: ").lower().strip()
 
-        if is_tender in ['tender', 'pl']:
-            if is_tender == 'pl':
-                args.append('--non-tender')
+        if jenis_paket in PACKAGE_TYPES:
+            args.extend(['--jenis-paket', jenis_paket])
         else:
-            print("Pilihan {} tidak valid".format(is_tender))
+            print("Pilihan {} tidak valid".format(jenis_paket))
             exit(1)
 
         return args
@@ -603,11 +675,11 @@ class Downloader(object):
         -t, --tahun-anggaran        : filter download detail berdasarkan tahun anggaran,
                                       format X-Y atau X;Y;Z
         --kategori                  : filter pencarian index paket berdasarkan kategori
-        --nama-penyedia             : filter pencarian index paket berdasarkan nama penyedia
+        --rekanan                   : filter pencarian index paket berdasarkan nama penyedia/rekanan
         -c, --chunk-size            : jumlah index per-halaman yang diunduh dalam satu iterasi
         -w, --workers               : jumlah workers yang berjalan secara paralel untuk mengunduh detail paket
         -x, --timeout               : waktu timeout respon dari server dalam detik
-        -n, --non-tender            : flag untuk melakukan pengunduhan data paket pengadaan langsung
+        --jenis-paket               : jenis paket yang akan diunduh
         -d, --index-download-delay  : waktu delay untuk setiap iterasi halaman index dalam detik
         -k, --keep-workdir          : tidak menghapus working direktori dari downloader
         -f, --force                 : menjalankan program tanpa memperhatikan cache yang sudah ada sebelumnya
@@ -638,11 +710,16 @@ class Downloader(object):
                                 None
                             ],
                             help=text.HELP_KATEGORI, default=None)
-        parser.add_argument('--nama-penyedia', type=str, default=None, help=text.HELP_PENYEDIA)
+        parser.add_argument('--rekanan', type=str, default=None, help=text.HELP_PENYEDIA)
+        parser.add_argument('--nama-penyedia', type=str, default=None, help=argparse.SUPPRESS)
+        parser.add_argument('--instansi-id', type=str, default=None, help=text.HELP_INSTANSI_ID)
+        parser.add_argument('--tipe-swakelola-id', type=int, choices=[1, 2, 3, 4], default=None,
+                            help=text.HELP_TIPE_SWAKELA)
         parser.add_argument('-c', '--chunk-size', type=int, default=100, help=text.HELP_CHUNK_SIZE)
         parser.add_argument('-w', '--workers', type=int, default=8, help=argparse.SUPPRESS)
         parser.add_argument('-x', '--timeout', type=int, default=30, help=text.HELP_TIMEOUT)
-        parser.add_argument('-n', '--non-tender', action='store_true', help=text.HELP_NONTENDER)
+        parser.add_argument('--jenis-paket', choices=list(PACKAGE_TYPES.keys()), default='tender',
+                            help=text.HELP_JENIS_PAKET)
         parser.add_argument('-d', '--index-download-delay', type=int, default=1, help=text.HELP_INDEX_DOWNLOAD_DELAY)
         parser.add_argument('-o', '--output-format', choices=['json', 'csv'], default='csv', help=text.HELP_OUTPUT)
         parser.add_argument('--keep-index', action='store_true', help=text.HELP_KEEP)
@@ -724,7 +801,7 @@ def main():
 
     # Detect subcommands by checking if first arg is a known subcommand
     # For backward compatibility, treat non-subcommand args as download args
-    known_subcommands = {'daftarlpse', 'daftarhost', 'download'}
+    known_subcommands = {'daftarlpse', 'daftarhost', 'masterklpd', 'download'}
 
     if len(sys.argv) > 1 and sys.argv[1] in known_subcommands:
         subcommand = sys.argv[1]
@@ -742,6 +819,31 @@ def main():
         set_up_log('INFO')
         directory = remaining_args[0] if remaining_args else '.'
         pyproc.utils.download_host_json(directory=directory)
+        sys.exit(0)
+
+    if subcommand == 'masterklpd':
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--query', type=str, default="")
+        parser.add_argument('--jenis', type=str, default=None)
+        parser.add_argument('--kd-klpd', type=str, default=None)
+        parser.add_argument('--limit', type=int, default=0)
+        parser.add_argument('--timeout', type=int, default=30)
+        args = parser.parse_args(remaining_args)
+        rows = pyproc.Lpse.get_master_klpd(timeout=args.timeout)
+        if args.kd_klpd:
+            rows = [row for row in rows if str(row.get('kd_klpd', '')).lower() == args.kd_klpd.lower()]
+        if args.jenis:
+            rows = [row for row in rows if str(row.get('jenis_klpd', '')).lower() == args.jenis.lower()]
+        if args.query:
+            query = args.query.lower()
+            rows = [
+                row for row in rows
+                if query in str(row.get('nama_klpd', '')).lower()
+                or query in str(row.get('kd_klpd', '')).lower()
+            ]
+        if args.limit > 0:
+            rows = rows[:args.limit]
+        print(json.dumps(rows, ensure_ascii=False, indent=2))
         sys.exit(0)
 
     # Default: download
