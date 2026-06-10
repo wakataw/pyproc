@@ -4,8 +4,6 @@ import logging
 import os
 import re
 import requests
-from bs4 import BeautifulSoup
-from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 
@@ -23,34 +21,41 @@ def parse_token(page: str):
     return
 
 
-def get_all_host():
-    resp = requests.get('https://satudata.inaproc.id/service/daftarLPSE', timeout=10)
+def get_host_metadata():
+    """Return LPSE host metadata from the maintained Gist source."""
+    resp = requests.get(GIST_HOST_URL, timeout=30)
     resp.raise_for_status()
     data = resp.json()
-
-    return data
+    return [
+        {
+            "name": item.get("name"),
+            "newUrlPath": item.get("newUrlPath"),
+        }
+        for item in data
+        if isinstance(item, dict)
+    ]
 
 
 def download_host(name: str = 'daftarlpse.csv'):
-    """Download host list from inaproc API and export to CSV."""
-    data = get_all_host()
+    """Download host list from Gist metadata and export canonical SPSE URLs to CSV."""
+    data = get_host_metadata()
     hosts = dict()
     invalid_host = 0
 
     for item in data:
-        try:
-            url = item['repo_url4']
-        except KeyError:
-            url = item['repo_url']
-
-        parsed_url = urlparse(url)
-
-        if not parsed_url.scheme.startswith('http'):
+        new_url_path = item.get('newUrlPath')
+        name_value = item.get('name')
+        if not new_url_path or not name_value:
             invalid_host += 1
             continue
 
-        hosts[url] = str(item['repo_id']) + '-' + \
-            ' '.join([i for i in re.sub(r'[^a-zA-Z\d\s]', ' ', item['repo_nama']).split() if i.strip() != ''])
+        host = re.sub(r'[^a-zA-Z\d\-_]', '', str(new_url_path).strip().lower())
+        if not host:
+            invalid_host += 1
+            continue
+
+        url = f'https://spse.inaproc.id/{host}'
+        hosts[url] = ' '.join(str(name_value).split())
 
     logger.info(
         "{} alamat LPSE ditemukan. {} alamat valid, {} alamat tidak valid, {} alamat terduplikasi.".format(
@@ -74,10 +79,7 @@ def download_host_json(name: str = 'host.json', directory: str = '.'):
     :param directory: direktori output
     :return: data host dalam format list
     """
-    resp = requests.get(GIST_HOST_URL, timeout=30)
-    resp.raise_for_status()
-
-    data = resp.json()
+    data = get_host_metadata()
 
     filepath = os.path.join(directory, name)
 

@@ -4,17 +4,19 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pyproc"
-version = "0.2"
+version = "0.3"
 authors = [
     { name="Agung Pratama", email="workwithagung@gmail.com"}
 ]
-description = "Python Inaproc SPSE SDK"
+description = "MCP tools for real-time Indonesian public procurement data from SPSE/Inaproc"
+keywords = ["mcp", "procurement", "indonesia", "spse", "inaproc", "lpse", "llm", "ai-agent"]
 readme = "README.md"
 requires-python = ">=3.9"
 classifiers = [
     'Development Status :: 4 - Beta',
     'Intended Audience :: Developers',
     'Topic :: Internet :: WWW/HTTP :: Dynamic Content :: CGI Tools/Libraries',
+    'Topic :: Scientific/Engineering :: Artificial Intelligence',
     'Topic :: Software Development :: Libraries :: Python Modules',
     'Topic :: Utilities',
     'Natural Language :: English',
@@ -37,6 +39,7 @@ dependencies = [
 
 [project.optional-dependencies]
 test = ["pytest"]
+mcp = ["mcp"]
 
 [project.urls]
 Homepage = "https://github.com/wakataw/pyproc"
@@ -44,3 +47,4 @@ Issues = "https://github.com/wakataw/pyproc/issues"
 
 [project.scripts]
 pyproc = "pyproc.cli:main"
+pyproc-mcp = "pyproc.mcp.server:main"
