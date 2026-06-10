@@ -21,7 +21,7 @@ HELP_TAHUN_ANGGARAN = "filter download detail berdasarkan tahun anggaran. Format
 HELP_CHUNK_SIZE = "jumlah daftar index per-halaman yang diunduh dalam satu iterasi"
 HELP_WORKERS = "jumlah workers untuk mengunduh detil paket secara paralel"
 HELP_TIMEOUT = "besaran waktu timeout untuk menunggu respon dari server"
-HELP_NONTENDER = "flag untuk mengunduh data paket pengadaan langsung"
+HELP_JENIS_PAKET = "jenis paket yang akan diunduh"
 HELP_INDEX_DOWNLOAD_DELAY = "waktu delay untuk setiap iterasi halaman index dalam detik"
 HELP_KEEP = "tidak menghapus working direktori dari downloader"
 HELP_LPSE_HOST = "host LPSE atau file teks berisi daftar host LPSE. Format dapat dilihat di dokumentasi"
@@ -32,6 +32,8 @@ HELP_OUTPUT = "format output hasil download"
 HELP_RESUME = "melanjutkan proses sebelumnya"
 HELP_CSV_SEPARATOR = "set custom csv separator, default koma"
 HELP_DAFTARHOST = "unduh daftar host LPSE dalam format JSON dari GitHub Gist"
+HELP_INSTANSI_ID = "filter pencarian berdasarkan kode K/L/PD dari master KLPD"
+HELP_TIPE_SWAKELA = "filter tipe swakelola: 1 K/L/PD PJA, 2 K/L/PD lain, 3 ormas, 4 pokmas"
 
 #####################
 # Error Information #

@@ -1,0 +1,37 @@
+{
+    "draw": "1",
+    "recordsTotal": 2147483647,
+    "recordsFiltered": 2147483647,
+    "data": [
+        [
+            "106802",
+            "Penanganan Tanggap darurat Jalan Napak Tilas Pejuang 45 Dusun Hutan Tua Desa Baru Ranji Kec. Merbau Mataram",
+            "Kab. Lampung Selatan",
+            "500 Jt",
+            "2026",
+            "5",
+            "Pekerjaan Konstruksi",
+            "Paket Sedang Berjalan"
+        ],
+        [
+            "105802",
+            "Penanganan Tanggap Darurat Jembatan SP. Kelala - Sumur Kecamatan Ketapang",
+            "Kab. Lampung Selatan",
+            "900 Jt",
+            "2026",
+            "5",
+            "Pekerjaan Konstruksi",
+            "Paket Sedang Berjalan"
+        ],
+        [
+            "104802",
+            "Penanganan Tanggap Darurat Box Culvert Jalan Kenanga Desa Natar Kecamatan Natar",
+            "Kab. Lampung Selatan",
+            "200 Jt",
+            "2026",
+            "5",
+            "Pekerjaan Konstruksi",
+            "Paket Sedang Berjalan"
+        ]
+    ]
+}

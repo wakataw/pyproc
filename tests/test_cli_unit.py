@@ -57,7 +57,7 @@ class TestDownloaderContext(unittest.TestCase):
             'chunk_size': 100,
             'workers': 8,
             'timeout': 30,
-            'non_tender': False,
+            'jenis_paket': 'tender',
             'index_download_delay': 1,
             'keep_index': False,
             'log': 'INFO',
@@ -74,7 +74,7 @@ class TestDownloaderContext(unittest.TestCase):
         self.assertEqual(ctx.keyword, '')
         self.assertEqual(ctx.chunk_size, 100)
         self.assertEqual(ctx.timeout, 30)
-        self.assertFalse(ctx.non_tender)
+        self.assertEqual(ctx.jenis_paket, 'tender')
 
     def test_tahun_anggaran_single(self):
         args = self._make_args(tahun_anggaran='2020')
@@ -481,13 +481,13 @@ class TestDownloaderGetCtx(unittest.TestCase):
             '--keyword', 'sekolah',
             '--tahun-anggaran', '2025',
             '--timeout', '60',
-            '--non-tender',
+            '--jenis-paket', 'non_tender',
             'kemenkeu'
         ])
         self.assertEqual(ctx.keyword, 'sekolah')
         self.assertEqual(ctx.tahun_anggaran, [2025])
         self.assertEqual(ctx.timeout, 60)
-        self.assertTrue(ctx.non_tender)
+        self.assertEqual(ctx.jenis_paket, 'non_tender')
 
     def test_get_ctx_kategori_choices(self):
         downloader = Downloader()

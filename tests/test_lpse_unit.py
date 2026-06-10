@@ -9,6 +9,15 @@ from pyproc.lpse import (
     LpseDetilPengumumanParser, LpseDetilPesertaParser,
     LpseDetilHasilEvaluasiParser, LpseDetilPemenangParser,
     LpseDetilJadwalParser, By, JenisPengadaan,
+    KontrakStatus, TipeSwakelola,
+    LpseDetilPencatatanNonTender, LpseDetilSwakelola,
+    LpseDetilPengadaanDarurat,
+    LpseDetilPengumumanPencatatanNonTenderParser,
+    LpseDetilPemenangBerkontrakPencatatanNonTenderParser,
+    LpseDetilPengumumanSwakelolaParser,
+    LpseDetilPelaksanaSwakelolaParser,
+    LpseDetilPengumumanPengadaanDaruratParser,
+    LpseDetilPemenangBerkontrakPengadaanDaruratParser,
 )
 from pyproc.exceptions import LpseServerExceptions
 
@@ -177,6 +186,42 @@ class TestGetPaket(unittest.TestCase):
         self.assertEqual(posted_data['kategoriId'], 0)
 
     @patch.object(Lpse, 'check_error')
+    def test_get_paket_with_rekanan_instansi_order_and_kontrak_status(self, mock_check_error):
+        json_data = json.loads(load_fixture('dt_lelang.json'))
+        resp = mock_response(json_data=json_data)
+        self.lpse.session.post = MagicMock(return_value=resp)
+
+        self.lpse.get_paket(
+            'lelang',
+            rekanan='PT Test',
+            instansi_id='K66',
+            order=By.HPS,
+            ascending=False,
+            kontrak_status=KontrakStatus.SELESAI,
+        )
+
+        call_kwargs = self.lpse.session.post.call_args
+        posted_data = call_kwargs[1]['data'] if 'data' in call_kwargs[1] else call_kwargs[0][1]
+        self.assertEqual(posted_data['rekanan'], 'PT Test')
+        self.assertEqual(posted_data['rkn_nama'], 'PT Test')
+        self.assertEqual(posted_data['instansiId'], 'K66')
+        self.assertEqual(posted_data['order[0][column]'], By.HPS.value)
+        self.assertEqual(posted_data['order[0][dir]'], 'desc')
+        self.assertEqual(posted_data['kontrakStatus'], 0)
+
+    @patch.object(Lpse, 'check_error')
+    def test_get_paket_accepts_legacy_nama_penyedia_alias(self, mock_check_error):
+        json_data = json.loads(load_fixture('dt_lelang.json'))
+        resp = mock_response(json_data=json_data)
+        self.lpse.session.post = MagicMock(return_value=resp)
+
+        self.lpse.get_paket('lelang', nama_penyedia='PT Legacy')
+
+        call_kwargs = self.lpse.session.post.call_args
+        posted_data = call_kwargs[1]['data'] if 'data' in call_kwargs[1] else call_kwargs[0][1]
+        self.assertEqual(posted_data['rekanan'], 'PT Legacy')
+
+    @patch.object(Lpse, 'check_error')
     def test_get_paket_auto_fetches_auth_token(self, mock_check_error):
         self.lpse.auth_token = None
         json_data = json.loads(load_fixture('dt_lelang.json'))
@@ -205,6 +250,49 @@ class TestGetPaket(unittest.TestCase):
             'pl', 0, 5, False, None, None, None, By.KODE, None, False, None
         )
 
+    def test_get_paket_pencatatan_non_tender_calls_get_paket(self):
+        self.lpse.get_paket = MagicMock(return_value={'data': []})
+        self.lpse.get_paket_pencatatan_non_tender(start=0, length=5, rekanan='PT A')
+        self.lpse.get_paket.assert_called_once_with(
+            'nonspk', 0, 5, False, None, None, 'PT A', By.KODE, None, False, None, column_count=9
+        )
+
+    def test_get_paket_swakelola_calls_get_paket_with_tipe(self):
+        self.lpse.get_paket = MagicMock(return_value={'data': []})
+        self.lpse.get_paket_swakelola(start=0, length=5, tipe_swakelola=TipeSwakelola.KLPD_LAIN)
+        self.lpse.get_paket.assert_called_once_with(
+            'swakelola', 0, 5, False, None, None, None, By.KODE, None, False, None,
+            column_count=8, extra_params={'tipeSwakelolaId': 2}
+        )
+
+    def test_get_paket_pengadaan_darurat_calls_get_paket(self):
+        self.lpse.get_paket = MagicMock(return_value={'data': []})
+        self.lpse.get_paket_pengadaan_darurat(start=0, length=5, kategori=JenisPengadaan.PEKERJAAN_KONSTRUKSI)
+        self.lpse.get_paket.assert_called_once_with(
+            'darurat-list', 0, 5, False, JenisPengadaan.PEKERJAAN_KONSTRUKSI, None, None,
+            By.KODE, None, False, None, column_count=8
+        )
+
+    @patch('pyproc.lpse.requests.get')
+    def test_get_master_klpd(self, mock_get):
+        mock_get.return_value = mock_response(json_data=[
+            {
+                "kd_klpd": "K66",
+                "nama_klpd": "Kementerian Kependudukan dan Pembangunan Keluarga/BKKBN",
+                "jenis_klpd": "KEMENTERIAN",
+                "kd_provinsi": 11,
+                "kd_kabupaten": 14748,
+            }
+        ])
+
+        result = Lpse.get_master_klpd(timeout=5)
+
+        self.assertEqual(result[0]["kd_klpd"], "K66")
+        mock_get.assert_called_once_with(
+            'https://isb.lkpp.go.id/isb-2/api/satudata/MasterKLPD',
+            timeout=5,
+        )
+
     def tearDown(self):
         del self.lpse
 
@@ -222,6 +310,18 @@ class TestDetilPaket(unittest.TestCase):
     def test_detil_paket_non_tender_returns_lpse_detil_non_tender(self):
         detil = self.lpse.detil_paket_non_tender(10080116000)
         self.assertIsInstance(detil, LpseDetilNonTender)
+
+    def test_detil_pencatatan_non_tender_returns_detail(self):
+        detil = self.lpse.detil_paket_pencatatan_non_tender(10942236000)
+        self.assertIsInstance(detil, LpseDetilPencatatanNonTender)
+
+    def test_detil_swakelola_returns_detail(self):
+        detil = self.lpse.detil_paket_swakelola(10336514000)
+        self.assertIsInstance(detil, LpseDetilSwakelola)
+
+    def test_detil_pengadaan_darurat_returns_detail(self):
+        detil = self.lpse.detil_paket_pengadaan_darurat(106802)
+        self.assertIsInstance(detil, LpseDetilPengadaanDarurat)
 
     def test_detil_initial_attributes_are_none(self):
         detil = self.lpse.detil_paket_tender(10080116000)
@@ -443,6 +543,66 @@ class TestJadwalParser(unittest.TestCase):
         parser = LpseDetilJadwalParser(lpse, 10080116000)
         result = parser.parse_detil(b'<html><body></body></html>')
         self.assertIsNone(result)
+
+
+class TestPencatatanParsers(unittest.TestCase):
+
+    def test_parse_pencatatan_non_tender_pengumuman(self):
+        lpse = Lpse("nasional")
+        parser = LpseDetilPengumumanPencatatanNonTenderParser(lpse, 10942236000)
+        result = parser.parse_detil(load_fixture_bytes('nonspk_pengumuman.html'))
+        self.assertEqual(result['kode_paket'], '10942236000')
+        self.assertEqual(result['jenis_pengadaan'], 'Jasa Lainnya')
+        self.assertEqual(result['nilai_pagu_paket'], 3800000.0)
+        self.assertEqual(result['rencana_umum_pengadaan'][0]['kode_rup'], '62075727')
+
+    def test_parse_pencatatan_non_tender_pemenang_berkontrak(self):
+        lpse = Lpse("nasional")
+        parser = LpseDetilPemenangBerkontrakPencatatanNonTenderParser(lpse, 10942236000)
+        result = parser.parse_detil(load_fixture_bytes('nonspk_pemenang_berkontrak.html'))
+        self.assertEqual(result[0]['realisasi']['nilai_realisasi'], 266400.0)
+        self.assertEqual(result[0]['realisasi']['jenis_realisasi'], 'Dokumen FA Detail')
+
+    def test_parse_pencatatan_non_tender_pemenang_berkontrak_nested_penyedia(self):
+        lpse = Lpse("kemenkeu")
+        parser = LpseDetilPemenangBerkontrakPencatatanNonTenderParser(lpse, 10941898000)
+        result = parser.parse_detil(load_fixture_bytes('nonspk_pemenang_bug_10941898000.html'))
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0]['realisasi']['jenis_realisasi'], 'Kuitansi')
+        self.assertEqual(result[0]['realisasi']['nilai_realisasi'], 375000.0)
+        self.assertEqual(result[0]['penyedia'][0]['nama_penyedia'], 'Diana Safitri')
+        self.assertEqual(result[1]['realisasi']['nilai_realisasi'], 120000.0)
+        self.assertEqual(result[1]['penyedia'][0]['alamat'], 'Mataram (Kota) Nusa Tenggara Barat')
+
+    def test_parse_swakelola_pengumuman(self):
+        lpse = Lpse("nasional")
+        parser = LpseDetilPengumumanSwakelolaParser(lpse, 10336514000)
+        result = parser.parse_detil(load_fixture_bytes('swakelola_pengumuman.html'))
+        self.assertEqual(result['kode_swakelola'], '10336514000')
+        self.assertEqual(result['tipe_pelaksana_swakelola'], 'K/L/PD Penanggung Jawab Anggaran')
+        self.assertEqual(result['nilai_pagu_paket'], 176320000.0)
+
+    def test_parse_swakelola_pelaksana(self):
+        lpse = Lpse("nasional")
+        parser = LpseDetilPelaksanaSwakelolaParser(lpse, 10336514000)
+        result = parser.parse_detil(load_fixture_bytes('swakelola_pelaksana.html'))
+        self.assertEqual(result['nilai_total_realisasi'], 800000.0)
+        self.assertEqual(result['realisasi'][0]['pelaksana'][0]['nama_pelaksana'],
+                         'SEKRETARIAT KEMENTERIAN/SEKRETARIAT UTAMA KEMENTERIAN EKONOMI KREATIF/BADAN EKONOMI KREATIF')
+
+    def test_parse_pengadaan_darurat_pengumuman(self):
+        lpse = Lpse("nasional")
+        parser = LpseDetilPengumumanPengadaanDaruratParser(lpse, 106802)
+        result = parser.parse_detil(load_fixture_bytes('darurat_pengumuman.html'))
+        self.assertEqual(result['kode_paket'], '106802')
+        self.assertEqual(result['metode_pengadaan'], 'Darurat')
+        self.assertEqual(result['nilai_pagu_paket'], 500000000.0)
+
+    def test_parse_pengadaan_darurat_pemenang(self):
+        lpse = Lpse("nasional")
+        parser = LpseDetilPemenangBerkontrakPengadaanDaruratParser(lpse, 106802)
+        result = parser.parse_detil(load_fixture_bytes('darurat_pemenang.html'))
+        self.assertEqual(result, [])
 
 
 class TestEnums(unittest.TestCase):

@@ -24,6 +24,12 @@ class By(Enum):
     HPS = 4
 
 
+class KontrakStatus(Enum):
+    SELESAI = 0
+    PEMUTUSAN_KONTRAK = 1
+    PENGHENTIAN_KONTRAK = 2
+
+
 class JenisPengadaan(Enum):
     """
     Objek untuk menampung data kodifikasi jenis pengadaan
@@ -34,6 +40,13 @@ class JenisPengadaan(Enum):
     JASA_LAINNYA = 3
     JASA_KONSULTANSI_PERORANGAN = 4
     JASA_KONSULTANSI_BADAN_USAHA_KONSTRUKSI = 5
+
+
+class TipeSwakelola(Enum):
+    KLPD_PENANGGUNG_JAWAB_ANGGARAN = 1
+    KLPD_LAIN = 2
+    ORGANISASI_MASYARAKAT = 3
+    KELOMPOK_MASYARAKAT = 4
 
 
 class Lpse(object):
@@ -105,9 +118,13 @@ class Lpse(object):
                           jitter=None, max_tries=3)
     def get_paket(self, jenis_paket: str, start: int = 0, length: int = 0,
                   data_only: bool = False, kategori: Optional[JenisPengadaan] = None,
-                  search_keyword: Optional[str] = None, nama_penyedia: Optional[str] = None,
+                  search_keyword: Optional[str] = None, rekanan: Optional[str] = None,
                   order: By = By.KODE, tahun: Optional[int] = None, ascending: bool = False,
-                  instansi_id: Optional[str] = None) -> dict | list:
+                  instansi_id: Optional[str] = None,
+                  kontrak_status: Optional[KontrakStatus | int] = None,
+                  nama_penyedia: Optional[str] = None,
+                  column_count: int = 5,
+                  extra_params: Optional[dict] = None) -> dict | list:
         """
         Melakukan pencarian paket pengadaan
         :param jenis_paket: Paket Pengadaan Lelang (lelang) atau Penunjukkan Langsung (pl)
@@ -116,11 +133,14 @@ class Lpse(object):
         :param data_only: hanya menampilkan data tanpa menampilkan informasi lain
         :param kategori: kategori pengadaan (lihat di lpse.JenisPengadaan)
         :param search_keyword: keyword pencarian paket pengadaan
-        :param nama_penyedia: filter berdasarkan nama penyedia
+        :param rekanan: filter berdasarkan nama penyedia/rekanan
         :param order: Mengurutkan data berdasarkan kolom
         :param tahun: Tahun Pengadaan
         :param ascending: Ascending, descending jika diset False
         :param instansi_id: Filter pencarian berdasarkan instansi atau satker tertentu
+        :param kontrak_status: Filter status kontrak tender: 0 selesai, 1 pemutusan kontrak,
+                               2 penghentian kontrak, None semua
+        :param nama_penyedia: alias lama untuk rekanan
         :return: dictionary dari hasil pencarian paket (atau list jika data_only=True)
         """
 
@@ -143,7 +163,7 @@ class Lpse(object):
             '_': int(time.time()*1000)
         }
 
-        for i in range(0, 5):
+        for i in range(0, column_count):
             params.update(
                 {
                     'columns[{}][data]'.format(i): i,
@@ -158,12 +178,21 @@ class Lpse(object):
         if kategori:
             params.update({'kategoriId': kategori.value})
 
-        if nama_penyedia:
-            params.update({'rekanan': nama_penyedia})
-            params.update({'rkn_nama': nama_penyedia})
+        rekanan = rekanan or nama_penyedia
+        if rekanan:
+            params.update({'rekanan': rekanan})
+            params.update({'rkn_nama': rekanan})
 
         if instansi_id:
             params.update({'instansiId': instansi_id})
+
+        if kontrak_status is not None:
+            if isinstance(kontrak_status, KontrakStatus):
+                kontrak_status = kontrak_status.value
+            params.update({'kontrakStatus': kontrak_status})
+
+        if extra_params:
+            params.update(extra_params)
 
         # prepare request GET dan POST untuk spse 4.5.20221227
         headers = {
@@ -196,8 +225,9 @@ class Lpse(object):
         return data.json()
 
     def get_paket_tender(self, start=0, length=0, data_only=False,
-                         kategori=None, search_keyword=None, nama_penyedia=None,
-                         order=By.KODE, tahun=None, ascending=False, instansi_id=None):
+                         kategori=None, search_keyword=None, rekanan=None,
+                         order=By.KODE, tahun=None, ascending=False, instansi_id=None,
+                         kontrak_status=None, nama_penyedia=None):
         """
         Wrapper pencarian paket tender
         :param start: index data awal
@@ -205,15 +235,23 @@ class Lpse(object):
         :param data_only: hanya menampilkan data tanpa menampilkan informasi lain
         :param kategori: kategori pengadaan (lihat di pypro.kategori)
         :param search_keyword: keyword pencarian paket pengadaan
-        :param nama_penyedia: filter berdasarkan nama penyedia
+        :param rekanan: filter berdasarkan nama penyedia/rekanan
         :param order: Mengurutkan data berdasarkan kolom
         :param tahun: Tahun Pengadaan
         :param ascending: Ascending, descending jika diset False
         :param instansi_id: Filter pencarian berdasarkan instansi atau satker tertentu
+        :param kontrak_status: Filter status kontrak: 0 selesai, 1 pemutusan kontrak,
+                               2 penghentian kontrak, None semua
+        :param nama_penyedia: alias lama untuk rekanan
         :return: dictionary dari hasil pencarian paket (atau list jika data_only=True)
         """
-        return self.get_paket('lelang', start, length, data_only, kategori, search_keyword, nama_penyedia,
-                              order, tahun, ascending, instansi_id)
+        if kontrak_status is None and nama_penyedia is None:
+            return self.get_paket('lelang', start, length, data_only, kategori, search_keyword, rekanan,
+                                  order, tahun, ascending, instansi_id)
+        return self.get_paket(
+            'lelang', start, length, data_only, kategori, search_keyword, rekanan,
+            order, tahun, ascending, instansi_id, kontrak_status, nama_penyedia
+        )
 
     def get_paket_non_tender(self, start=0, length=0, data_only=False, kategori=None, search_keyword=None,
                              order=By.KODE, tahun=None, ascending=False, instansi_id=None):
@@ -234,6 +272,51 @@ class Lpse(object):
         return self.get_paket('pl', start, length, data_only, kategori, search_keyword, None, order, tahun,
                               ascending, instansi_id)
 
+    def get_paket_pencatatan_non_tender(self, start=0, length=0, data_only=False, kategori=None,
+                                        search_keyword=None, rekanan=None, order=By.KODE, tahun=None,
+                                        ascending=False, instansi_id=None):
+        return self.get_paket(
+            'nonspk', start, length, data_only, kategori, search_keyword, rekanan, order, tahun,
+            ascending, instansi_id, column_count=9
+        )
+
+    def get_paket_swakelola(self, start=0, length=0, data_only=False, search_keyword=None, rekanan=None,
+                            order=By.KODE, tahun=None, ascending=False, instansi_id=None,
+                            tipe_swakelola: Optional[TipeSwakelola | int] = None):
+        extra_params = {}
+        if tipe_swakelola is not None:
+            if isinstance(tipe_swakelola, TipeSwakelola):
+                tipe_swakelola = tipe_swakelola.value
+            extra_params['tipeSwakelolaId'] = tipe_swakelola
+        return self.get_paket(
+            'swakelola', start, length, data_only, None, search_keyword, rekanan, order, tahun,
+            ascending, instansi_id, column_count=8, extra_params=extra_params
+        )
+
+    def get_paket_pengadaan_darurat(self, start=0, length=0, data_only=False, kategori=None,
+                                    search_keyword=None, rekanan=None, order=By.KODE, tahun=None,
+                                    ascending=False, instansi_id=None):
+        return self.get_paket(
+            'darurat-list', start, length, data_only, kategori, search_keyword, rekanan, order, tahun,
+            ascending, instansi_id, column_count=8
+        )
+
+    @staticmethod
+    def get_master_klpd(timeout: int = 30) -> list[dict]:
+        """
+        Mengambil master data K/L/PD dari LKPP Satu Data.
+        kd_klpd dapat digunakan sebagai instansi_id pada pencarian paket.
+        """
+        resp = requests.get(
+            'https://isb.lkpp.go.id/isb-2/api/satudata/MasterKLPD',
+            timeout=timeout,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        if isinstance(data, dict):
+            data = data.get('data', data.get('result', []))
+        return data if isinstance(data, list) else []
+
     def detil_paket_tender(self, id_paket: int | str) -> LpseDetil:
         """
         Mengambil detil pengadaan
@@ -250,12 +333,26 @@ class Lpse(object):
         """
         return LpseDetilNonTender(self, id_paket)
 
+    def detil_paket_pencatatan_non_tender(self, id_paket):
+        return LpseDetilPencatatanNonTender(self, id_paket)
+
+    def detil_paket_swakelola(self, id_paket):
+        return LpseDetilSwakelola(self, id_paket)
+
+    def detil_paket_pengadaan_darurat(self, id_paket):
+        return LpseDetilPengadaanDarurat(self, id_paket)
+
     def __del__(self):
         self.session.close()
         del self.session
 
 
 class BaseLpseDetil(object):
+    detail_methods = [
+        'get_pengumuman', 'get_peserta', 'get_hasil_evaluasi',
+        'get_pemenang', 'get_pemenang_berkontrak', 'get_jadwal'
+    ]
+
     def __init__(self, lpse: Lpse, id_paket: int | str):
         self._lpse = lpse
         self.id_paket = id_paket
@@ -271,8 +368,7 @@ class BaseLpseDetil(object):
             'error': False,
             'error_message': []
         }
-        for name in ['get_pengumuman', 'get_peserta', 'get_hasil_evaluasi', 'get_pemenang', 'get_pemenang_berkontrak',
-                     'get_jadwal']:
+        for name in self.detail_methods:
             try:
                 getattr(self, name)()
             except Exception as e:
@@ -408,6 +504,50 @@ class LpseDetilNonTender(BaseLpseDetil):
         self.jadwal = LpseDetilJadwalNonTenderParser(self._lpse, self.id_paket).get_detil()
 
         return self.jadwal
+
+
+class LpseDetilPencatatanNonTender(BaseLpseDetil):
+    detail_methods = ['get_pengumuman', 'get_pemenang_berkontrak']
+
+    def get_pengumuman(self):
+        self.pengumuman = LpseDetilPengumumanPencatatanNonTenderParser(self._lpse, self.id_paket).get_detil()
+        return self.pengumuman
+
+    def get_pemenang_berkontrak(self):
+        self.pemenang_berkontrak = LpseDetilPemenangBerkontrakPencatatanNonTenderParser(
+            self._lpse, self.id_paket
+        ).get_detil()
+        return self.pemenang_berkontrak
+
+
+class LpseDetilSwakelola(BaseLpseDetil):
+    detail_methods = ['get_pengumuman', 'get_pelaksana']
+
+    def __init__(self, lpse: Lpse, id_paket: int | str):
+        super().__init__(lpse, id_paket)
+        self.pelaksana: Optional[dict] = None
+
+    def get_pengumuman(self):
+        self.pengumuman = LpseDetilPengumumanSwakelolaParser(self._lpse, self.id_paket).get_detil()
+        return self.pengumuman
+
+    def get_pelaksana(self):
+        self.pelaksana = LpseDetilPelaksanaSwakelolaParser(self._lpse, self.id_paket).get_detil()
+        return self.pelaksana
+
+
+class LpseDetilPengadaanDarurat(BaseLpseDetil):
+    detail_methods = ['get_pengumuman', 'get_pemenang_berkontrak']
+
+    def get_pengumuman(self):
+        self.pengumuman = LpseDetilPengumumanPengadaanDaruratParser(self._lpse, self.id_paket).get_detil()
+        return self.pengumuman
+
+    def get_pemenang_berkontrak(self):
+        self.pemenang_berkontrak = LpseDetilPemenangBerkontrakPengadaanDaruratParser(
+            self._lpse, self.id_paket
+        ).get_detil()
+        return self.pemenang_berkontrak
 
 
 class BaseLpseDetilParser(object):
@@ -771,3 +911,218 @@ class LpseDetilPemenangBerkontrakNonTenderParser(LpseDetilPemenangNonTenderParse
 class LpseDetilJadwalNonTenderParser(LpseDetilJadwalParser):
 
     detil_path = '/nontender/{}/jadwal'
+
+
+class PencatatanTableParserMixin:
+    @staticmethod
+    def normalize_key(text):
+        key = '_'.join(text.strip().split()).lower()
+        return key.replace('k/l/pd/instansi_lainnya', 'k/l/pd')
+
+    def parse_table_rows(self, table):
+        data = {}
+        for tr in self.top_level_rows(table):
+            th = tr.find('th', recursive=False)
+            td = tr.find('td', recursive=False)
+            if not th or not td:
+                continue
+            data_key = self.normalize_key(th.text)
+            sub_table = td.find('table', recursive=False)
+            if sub_table and data_key == 'rencana_umum_pengadaan':
+                data_value = self.parse_simple_table(sub_table)
+            elif data_key.startswith('nilai_'):
+                data_value = self.parse_currency(' '.join(td.text.strip().split()))
+            else:
+                data_value = ' '.join(td.stripped_strings)
+            data[data_key] = data_value
+        return data
+
+    def parse_simple_table(self, table):
+        header = []
+        data_rows = []
+        for tr in table.find_all('tr'):
+            ths = tr.find_all('th', recursive=False)
+            if ths and not header:
+                header = [self.normalize_key(' '.join(th.stripped_strings)) for th in ths]
+                continue
+            tds = tr.find_all('td', recursive=False)
+            if tds:
+                data_rows.append([' '.join(td.stripped_strings) for td in tds])
+        if not header:
+            return []
+        return [dict(zip(header, row)) for row in data_rows if row]
+
+    def parse_realisasi(self, content):
+        callout = content.find('div', string=lambda text: text and 'Realisasi' in text)
+        if not callout:
+            return []
+        table = callout.find_next('table')
+        if not table:
+            return []
+        rows = []
+        header = []
+        for tr in self.top_level_rows(table):
+            ths = tr.find_all('th', recursive=False)
+            if ths:
+                header = [self.normalize_key(th.text) for th in ths]
+                continue
+            tds = tr.find_all('td', recursive=False)
+            if not tds or not header:
+                continue
+            item = {}
+            for key, td in zip(header, tds):
+                nested_table = td.find('table')
+                if nested_table:
+                    nested_header = ' '.join(th.text.strip() for th in nested_table.find_all('th'))
+                    nested_key = 'pelaksana' if 'Nama Pelaksana' in nested_header else 'detail'
+                    item[nested_key] = self.parse_simple_table(nested_table)
+                else:
+                    value = ' '.join(td.stripped_strings)
+                    if key.startswith('nilai_'):
+                        value = self.parse_currency(value)
+                    item[key] = value
+            has_nested = any(key in item for key in ('pelaksana', 'detail'))
+            has_regular_data = any(
+                value not in (None, '', [])
+                for key, value in item.items()
+                if key not in ('pelaksana', 'detail')
+            )
+            if has_nested and not has_regular_data and rows:
+                rows[-1].update({key: value for key, value in item.items() if key in ('pelaksana', 'detail')})
+            elif any(value not in (None, '', []) for value in item.values()):
+                rows.append(item)
+        for nested_table in content.find_all('table'):
+            header_text = ' '.join(
+                th.text.strip()
+                for tr in self.top_level_rows(nested_table)
+                for th in tr.find_all('th', recursive=False)
+            )
+            if 'Nama Pelaksana' not in header_text:
+                continue
+            pelaksana = self.parse_simple_table(nested_table)
+            if pelaksana and rows and not rows[-1].get('pelaksana'):
+                rows[-1]['pelaksana'] = pelaksana
+        return rows
+
+    def parse_realisasi_groups(self, content):
+        callout = content.find('div', string=lambda text: text and 'Realisasi' in text)
+        if not callout:
+            return []
+        table = callout.find_next('table')
+        if not table:
+            return []
+
+        groups = []
+        header = []
+        current = None
+        for tr in self.top_level_rows(table):
+            ths = tr.find_all('th', recursive=False)
+            if ths:
+                header = [self.normalize_key(th.text) for th in ths]
+                continue
+
+            tds = tr.find_all('td', recursive=False)
+            if not tds or not header:
+                continue
+
+            nested_tables = []
+            for td in tds:
+                nested_tables.extend(td.find_all('table'))
+
+            values = [' '.join(td.stripped_strings) for td in tds[:len(header)]]
+            is_realisasi_row = bool(values and values[0].strip())
+            if is_realisasi_row:
+                realisasi = {}
+                for key, value in zip(header, values):
+                    if key.startswith('nilai_'):
+                        value = self.parse_currency(value)
+                    realisasi[key] = value
+                current = {'realisasi': realisasi}
+                groups.append(current)
+
+            if not nested_tables:
+                continue
+
+            if current is None:
+                current = {'realisasi': {}}
+                groups.append(current)
+
+            for nested_table in nested_tables:
+                nested_key = self.table_group_key(nested_table)
+                nested_rows = self.parse_simple_table(nested_table)
+                if nested_rows:
+                    current.setdefault(nested_key, []).extend(nested_rows)
+
+        return groups
+
+    @staticmethod
+    def table_group_key(table):
+        header_text = ' '.join(th.text.strip() for th in table.find_all('th'))
+        if 'Nama Penyedia' in header_text:
+            return 'penyedia'
+        if 'Nama Pelaksana' in header_text:
+            return 'pelaksana'
+        return 'detail'
+
+    @staticmethod
+    def top_level_rows(table):
+        tbody = table.find('tbody', recursive=False)
+        parent = tbody if tbody else table
+        return parent.find_all('tr', recursive=False)
+
+
+class LpseDetilPengumumanPencatatanParser(BaseLpseDetilParser, PencatatanTableParserMixin):
+    def parse_detil(self, content):
+        soup = Bs(content, 'html5lib')
+        content = soup.find('div', {'class': 'content'})
+        if not content:
+            return {}
+        table = content.find('table')
+        if not table:
+            return {}
+        return self.parse_table_rows(table)
+
+
+class LpseDetilRealisasiPencatatanParser(BaseLpseDetilParser, PencatatanTableParserMixin):
+    def parse_detil(self, content):
+        soup = Bs(content, 'html5lib')
+        content = soup.find('div', {'class': 'content'})
+        if not content:
+            return {}
+        table = content.find('table')
+        data = self.parse_table_rows(table) if table else {}
+        data['realisasi'] = self.parse_realisasi(content)
+        return data
+
+
+class LpseDetilPemenangBerkontrakPencatatanParser(LpseDetilRealisasiPencatatanParser):
+    def parse_detil(self, content):
+        soup = Bs(content, 'html5lib')
+        content = soup.find('div', {'class': 'content'})
+        if not content:
+            return []
+        return self.parse_realisasi_groups(content)
+
+
+class LpseDetilPengumumanPencatatanNonTenderParser(LpseDetilPengumumanPencatatanParser):
+    detil_path = '/pencatatan/pengumumannonspk?id={}'
+
+
+class LpseDetilPemenangBerkontrakPencatatanNonTenderParser(LpseDetilPemenangBerkontrakPencatatanParser):
+    detil_path = '/pencatatan/pengumumannonspkpemenang?id={}'
+
+
+class LpseDetilPengumumanSwakelolaParser(LpseDetilPengumumanPencatatanParser):
+    detil_path = '/swakelola/{}/pengumuman'
+
+
+class LpseDetilPelaksanaSwakelolaParser(LpseDetilRealisasiPencatatanParser):
+    detil_path = '/swakelola/pengumumanswakelolapelaksana/{}'
+
+
+class LpseDetilPengumumanPengadaanDaruratParser(LpseDetilPengumumanPencatatanParser):
+    detil_path = '/darurat/pengumumandarurat?id={}'
+
+
+class LpseDetilPemenangBerkontrakPengadaanDaruratParser(LpseDetilPemenangBerkontrakPencatatanParser):
+    detil_path = '/darurat/pengumumandaruratpemenang?id={}'
