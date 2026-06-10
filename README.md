@@ -1,9 +1,9 @@
 # PyProc MCP
 
 <p align="center">
-  <img src="docs/assets/pyproc-mcp-banner.png"
+  <img src="docs/assets/logo.png"
        alt="PyProc MCP — Real-time Indonesian procurement data for LLM agents"
-       width="800">
+       width="200">
 </p>
 
 <p align="center">
@@ -23,6 +23,12 @@
 PyProc MCP turns public **SPSE/Inaproc** procurement data into **MCP tools** that can be used by LLM clients (Claude Desktop, Continue, Cursor), AI agents, automation workflows, Python scripts, and command-line users.
 
 ## Why PyProc MCP?
+
+<p align="center">
+  <img src="docs/assets/pyproc-mcp-banner.png"
+       alt="PyProc MCP — Real-time Indonesian procurement data for LLM agents"
+       width="800">
+</p>
 
 Indonesia's public procurement system (SPSE/Inaproc) processes thousands of tender and non-tender packages across hundreds of government institutions (LPSE). This data is public — but not easily accessible to AI agents and automation tools.
 
@@ -535,20 +541,6 @@ pyproc/
         resources.py     # MCP resources
         errors.py        # Error mapping
 ```
-
----
-
-## Roadmap
-
-- [x] Python library for SPSE/Inaproc API
-- [x] CLI bulk downloader with CSV/JSON export
-- [x] MCP server with search and detail tools
-- [x] MCP host discovery tools
-- [x] MCP resources for documentation, host discovery, and responsible use
-- [ ] MCP prompts for procurement analysis workflows
-- [ ] Individual winner, participant, and schedule tools
-- [ ] Short-lived in-memory response cache for MCP
-- [ ] Optional HTTP/SSE transport for MCP server
 
 ---
 
