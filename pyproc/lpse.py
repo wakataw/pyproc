@@ -254,7 +254,8 @@ class Lpse(object):
         )
 
     def get_paket_non_tender(self, start=0, length=0, data_only=False, kategori=None, search_keyword=None,
-                             order=By.KODE, tahun=None, ascending=False, instansi_id=None):
+                             order=By.KODE, tahun=None, ascending=False, instansi_id=None,
+                             rekanan=None, nama_penyedia=None):
         """
         Wrapper pencarian paket non tender
         :param start: index data awal
@@ -262,14 +263,16 @@ class Lpse(object):
         :param data_only: hanya menampilkan data tanpa menampilkan informasi lain
         :param kategori: kategori pengadaan (lihat di pypro.kategori)
         :param search_keyword: keyword pencarian paket pengadaan
-        :param nama_penyedia: filter berdasarkan nama penyedia
         :param order: Mengurutkan data berdasarkan kolom
         :param tahun: Tahun pengadaan
         :param ascending: Ascending, descending jika diset False
         :param instansi_id: Filter pencarian berdasarkan instansi atau satker tertentu
+        :param rekanan: filter berdasarkan nama penyedia/rekanan
+        :param nama_penyedia: alias lama untuk rekanan
         :return: dictionary dari hasil pencarian paket (atau list jika data_only=True)
         """
-        return self.get_paket('pl', start, length, data_only, kategori, search_keyword, None, order, tahun,
+        rekanan = rekanan or nama_penyedia
+        return self.get_paket('pl', start, length, data_only, kategori, search_keyword, rekanan, order, tahun,
                               ascending, instansi_id)
 
     def get_paket_pencatatan_non_tender(self, start=0, length=0, data_only=False, kategori=None,

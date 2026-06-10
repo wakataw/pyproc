@@ -250,6 +250,20 @@ class TestGetPaket(unittest.TestCase):
             'pl', 0, 5, False, None, None, None, By.KODE, None, False, None
         )
 
+    def test_get_paket_non_tender_accepts_rekanan(self):
+        self.lpse.get_paket = MagicMock(return_value={'data': []})
+        self.lpse.get_paket_non_tender(start=0, length=5, rekanan='PT A')
+        self.lpse.get_paket.assert_called_once_with(
+            'pl', 0, 5, False, None, None, 'PT A', By.KODE, None, False, None
+        )
+
+    def test_get_paket_non_tender_accepts_legacy_nama_penyedia_alias(self):
+        self.lpse.get_paket = MagicMock(return_value={'data': []})
+        self.lpse.get_paket_non_tender(start=0, length=5, nama_penyedia='PT Legacy')
+        self.lpse.get_paket.assert_called_once_with(
+            'pl', 0, 5, False, None, None, 'PT Legacy', By.KODE, None, False, None
+        )
+
     def test_get_paket_pencatatan_non_tender_calls_get_paket(self):
         self.lpse.get_paket = MagicMock(return_value={'data': []})
         self.lpse.get_paket_pencatatan_non_tender(start=0, length=5, rekanan='PT A')
