@@ -1,7 +1,7 @@
 # PyProc MCP
 
 <p align="center">
-  <img src="docs/assets/logo.png"
+  <img src="https://raw.githubusercontent.com/wakataw/pyproc/remove-index-max-packages-cap/docs/assets/logo.png"
        alt="PyProc MCP — Real-time Indonesian procurement data for LLM agents"
        width="200">
 </p>
@@ -25,7 +25,7 @@ PyProc MCP turns public **SPSE/Inaproc** procurement data into **MCP tools** tha
 ## Why PyProc MCP?
 
 <p align="center">
-  <img src="docs/assets/pyproc-mcp-banner.png"
+  <img src="https://raw.githubusercontent.com/wakataw/pyproc/remove-index-max-packages-cap/docs/assets/pyproc-mcp-banner.png"
        alt="PyProc MCP — Real-time Indonesian procurement data for LLM agents"
        width="800">
 </p>
