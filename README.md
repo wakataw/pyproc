@@ -1,21 +1,19 @@
 # PyProc MCP
 
-<!--
 <p align="center">
   <img src="docs/assets/pyproc-mcp-banner.png"
        alt="PyProc MCP — Real-time Indonesian procurement data for LLM agents"
        width="800">
 </p>
--->
 
 <p align="center">
   <strong>Real-time Indonesian procurement data for LLM agents</strong>
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/pyproc/"><img src="https://img.shields.io/badge/version-v0.3-blue" alt="PyPI version"></a>
+  <a href="https://pypi.org/project/pyproc/"><img src="https://img.shields.io/badge/version-v0.3a-blue" alt="PyPI version"></a>
   <a href="https://pypi.org/project/pyproc/"><img src="https://img.shields.io/badge/python-≥3.9-yellow" alt="Python ≥3.9"></a>
-  <a href="https://github.com/wakataw/pyproc/actions/workflows/pyproc-pypi.yml"><img src="https://github.com/wakataw/pyproc/actions/workflows/pyproc-pypi.yml/badge.svg" alt="Build Status"></a>
+  <a href="https://github.com/wakataw/pyproc/actions/workflows/test.yml?query=branch%3Amaster"><img src="https://github.com/wakataw/pyproc/actions/workflows/test.yml/badge.svg?branch=master" alt="Test Status"></a>
   <a href="https://github.com/wakataw/pyproc/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="License: MIT"></a>
   <a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/MCP-compatible-purple" alt="MCP Compatible"></a>
 </p>
