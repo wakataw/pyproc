@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import shutil
 import sqlite3
@@ -11,6 +12,10 @@ from pathlib import Path
 from uuid import uuid4
 
 from pyproc import Lpse, JenisPengadaan
+
+logger = logging.getLogger(__name__)
+
+CHUNK_SIZE = 100
 
 PACKAGE_METHODS = {
     "tender": ("get_paket_tender", "detil_paket_tender"),
@@ -97,7 +102,7 @@ def create_procurement_search_index(
     tahun_anggaran: int | None = None,
     kategori: str | None = None,
     keyword_seed: str | None = None,
-    max_packages: int = 100,
+    max_packages: int = 0,
     timeout: int = 30,
     rate_limit_callback=None,
 ) -> dict:
@@ -125,22 +130,51 @@ def create_procurement_search_index(
             if rate_limit_callback:
                 rate_limit_callback()
             search_method = getattr(lpse, PACKAGE_METHODS[package_type][0])
-            kwargs = {
-                "start": 0,
-                "length": max_packages,
+            base_kwargs = {
                 "data_only": True,
                 "search_keyword": keyword_seed,
                 "tahun": tahun_anggaran,
             }
             if package_type != "swakelola":
-                kwargs["kategori"] = kategori_enum
-            rows = search_method(**kwargs)
+                base_kwargs["kategori"] = kategori_enum
 
-            for row in rows[:max_packages]:
+            # Paginate: scroll until max_packages reached or SPSE exhausted
+            all_rows = []
+            start = 0
+            unlimited = max_packages <= 0
+            limit = max_packages if not unlimited else float('inf')
+
+            while len(all_rows) < limit:
+                if unlimited:
+                    req_length = CHUNK_SIZE
+                else:
+                    req_length = min(CHUNK_SIZE, max(1, max_packages - len(all_rows)))
+                chunk_kwargs = {**base_kwargs, "start": start, "length": req_length}
+                chunk = search_method(**chunk_kwargs)
+                if not chunk:
+                    break
+                all_rows.extend(chunk)
+                logger.info(
+                    "Scrolled: %d rows from %s (TA %s)",
+                    len(all_rows), lpse_host, tahun_anggaran,
+                )
+                start += len(chunk)
+                if len(chunk) < req_length:
+                    break  # partial page -> end of data
+
+            # Respect max_packages cap (only matters if SPSE returned more than requested)
+            to_process = len(all_rows) if unlimited else min(len(all_rows), max_packages)
+            logger.info(
+                "Will index %d packages from %s (%s, %s)",
+                to_process, lpse_host, package_type, tahun_anggaran,
+            )
+
+            for idx, row in enumerate(all_rows[:to_process], start=1):
                 id_paket = _package_id(row)
                 if not id_paket:
                     continue
                 title = _package_title(row)
+                logger.info("[%d/%d] Indexing: %s", idx, to_process, title)
                 try:
                     if rate_limit_callback:
                         rate_limit_callback()
@@ -160,10 +194,18 @@ def create_procurement_search_index(
                     indexed += 1
                 except Exception:
                     failed += 1
+                    logger.warning(
+                        "Failed to index package %s (%s)", id_paket, title,
+                    )
                     continue
     finally:
         db.commit()
         db.close()
+
+    logger.info(
+        "Index complete: %d indexed, %d failed from %s (%s, %s)",
+        indexed, failed, lpse_host, package_type, tahun_anggaran,
+    )
 
     return {
         **metadata,

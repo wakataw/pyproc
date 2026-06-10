@@ -836,11 +836,12 @@ TOOL_DESCRIPTIONS = {
         "accessible. Useful before using a host with search or detail tools."
     ),
     "create_procurement_search_index": (
-        "Create a bounded local SQLite full-text search index by downloading "
-        "public package details for one LPSE host. Use only after the user "
-        "chooses a broader local full-text search. This can make many SPSE "
-        "requests, so keep max_packages small and prefer year/category/seed "
-        "filters. Does not call the CLI."
+        "Create a local SQLite full-text search index by downloading "
+        "public package details for one LPSE host. By default downloads all "
+        "available packages (max_packages=0). Set a positive max_packages to "
+        "limit scope. Prefer year/category/seed filters to narrow results. "
+        "This can make many SPSE requests — progress is logged to stderr. "
+        "Does not call the CLI."
     ),
     "search_procurement_index": (
         "Search a previously created local SQLite full-text procurement index. "
