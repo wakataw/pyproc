@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 import time
 import bs4
 import requests
@@ -49,17 +50,42 @@ class TipeSwakelola(Enum):
     KELOMPOK_MASYARAKAT = 4
 
 
+# Module-level SSL verify flag for static methods (get_master_klpd,
+# get_master_lpse, get_tender_umum_publik) that don't use an Lpse instance.
+# Updated by the MCP server when set_ssl_verify is called.
+_ssl_verify = True
+
+
+def _get_ssl_verify() -> bool:
+    """Return the current SSL verify flag used by static Satu Data methods."""
+    return _ssl_verify
+
+
+def _set_ssl_verify(enable: bool) -> None:
+    """Update SSL verify flag for static Satu Data methods."""
+    global _ssl_verify
+    _ssl_verify = enable
+
+
+def _jitter(delay: float) -> float:
+    """Apply random jitter of +/- 50% to desynchronize retry timing across workers."""
+    return delay * random.uniform(0.5, 1.5)
+
+
 class Lpse(object):
 
-    def __init__(self, instansi: str, timeout: int = 10, verify: bool = False):
+    def __init__(self, instansi: str, timeout: int = 10, verify: bool = False,
+                 user_agent: Optional[str] = None):
         self.session = requests.session()
         self.session.verify = verify
         if not verify:
             disable_warnings(InsecureRequestWarning)
         self.session.headers = {
-            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) '
-                          'AppleWebKit/537.36 (KHTML, like Gecko) '
-                          'Chrome/102.0.5005.61 Safari/537.36'
+            'user-agent': user_agent or (
+                'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) '
+                'AppleWebKit/537.36 (KHTML, like Gecko) '
+                'Chrome/102.0.5005.61 Safari/537.36'
+            )
         }
         self.timeout = timeout
         self.auth_token: Optional[str] = None
@@ -115,7 +141,7 @@ class Lpse(object):
     @backoff.on_exception(backoff.fibo,
                           (LpseServerExceptions, requests.exceptions.RequestException,
                            requests.exceptions.ConnectionError),
-                          jitter=None, max_tries=3)
+                          jitter=_jitter, max_tries=3)
     def get_paket(self, jenis_paket: str, start: int = 0, length: int = 0,
                   data_only: bool = False, kategori: Optional[JenisPengadaan] = None,
                   search_keyword: Optional[str] = None, rekanan: Optional[str] = None,
@@ -200,9 +226,6 @@ class Lpse(object):
             'Referer': self.url + '/lelang',
             'Sec-Fetch-Mode': 'cors',
             'Sec-Fetch-Site': 'same-origin',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-                          'AppleWebKit/537.36 (KHTML, like Gecko) '
-                          'Chrome/77.0.3865.90 Safari/537.36'
         }
         url = self.url + '/dt/' + jenis_paket
 
@@ -313,9 +336,66 @@ class Lpse(object):
         resp = requests.get(
             'https://isb.lkpp.go.id/isb-2/api/satudata/MasterKLPD',
             timeout=timeout,
+            verify=_get_ssl_verify(),
         )
         resp.raise_for_status()
         data = resp.json()
+        if isinstance(data, dict):
+            data = data.get('data', data.get('result', []))
+        return data if isinstance(data, list) else []
+
+    @staticmethod
+    def get_master_lpse(timeout: int = 30) -> list[dict]:
+        """
+        Mengambil master data LPSE dari LKPP Satu Data.
+        kd_lpse dapat digunakan untuk query TenderUmumPublik.
+
+        :param timeout: Request timeout in seconds.
+        :return: List of LPSE dicts with kd_lpse, nama_lpse, _event_date.
+        """
+        resp = requests.get(
+            'https://isb.lkpp.go.id/isb-2/api/satudata/MasterLPSE',
+            timeout=timeout,
+            verify=_get_ssl_verify(),
+        )
+        resp.raise_for_status()
+        try:
+            data = resp.json()
+        except ValueError:
+            return []
+        if isinstance(data, dict):
+            data = data.get('data', data.get('result', []))
+        return data if isinstance(data, list) else []
+
+    @staticmethod
+    def get_tender_umum_publik(
+        tahun_anggaran: int, kd_lpse: int, timeout: int = 30
+    ) -> list[dict]:
+        """
+        Mengambil data tender umum publik dari LKPP Satu Data.
+
+        Data ini bersumber dari ISB (Indonesia Satu Data) sebagai alternatif
+        apabila data dari SPSE langsung tidak tersedia.
+
+        :param tahun_anggaran: Tahun anggaran, e.g. 2026.
+        :param kd_lpse: Kode LPSE dari get_master_lpse(), e.g. 119.
+        :param timeout: Request timeout in seconds.
+        :return: List of tender dicts. Field names may contain spaces
+                 (e.g., "Kode Tender", "Nama Paket").
+                 Returns empty list when the API returns a non-JSON
+                 error response (e.g., "URL-NOT-DEFINED" for invalid kd_lpse).
+        """
+        resp = requests.get(
+            f'https://isb.lkpp.go.id/isb-2/api/satudata/TenderUmumPublik/'
+            f'{tahun_anggaran}/{kd_lpse}',
+            timeout=timeout,
+            verify=_get_ssl_verify(),
+        )
+        resp.raise_for_status()
+        try:
+            data = resp.json()
+        except ValueError:
+            return []
         if isinstance(data, dict):
             data = data.get('data', data.get('result', []))
         return data if isinstance(data, list) else []
@@ -395,7 +475,7 @@ class LpseDetil(BaseLpseDetil):
     @backoff.on_exception(backoff.fibo,
                           (LpseServerExceptions, requests.exceptions.RequestException,
                            requests.exceptions.ConnectionError),
-                          max_tries=3, jitter=None)
+                          max_tries=3, jitter=_jitter)
     def get_pengumuman(self):
         self.pengumuman = LpseDetilPengumumanParser(self._lpse, self.id_paket).get_detil()
 
@@ -404,7 +484,7 @@ class LpseDetil(BaseLpseDetil):
     @backoff.on_exception(backoff.fibo,
                           (LpseServerExceptions, requests.exceptions.RequestException,
                            requests.exceptions.ConnectionError),
-                          max_tries=3, jitter=None)
+                          max_tries=3, jitter=_jitter)
     def get_peserta(self):
         self.peserta = LpseDetilPesertaParser(self._lpse, self.id_paket).get_detil()
 
@@ -413,7 +493,7 @@ class LpseDetil(BaseLpseDetil):
     @backoff.on_exception(backoff.fibo,
                           (LpseServerExceptions, requests.exceptions.RequestException,
                            requests.exceptions.ConnectionError),
-                          max_tries=3, jitter=None)
+                          max_tries=3, jitter=_jitter)
     def get_hasil_evaluasi(self):
         self.hasil = LpseDetilHasilEvaluasiParser(self._lpse, self.id_paket).get_detil()
 
@@ -422,7 +502,7 @@ class LpseDetil(BaseLpseDetil):
     @backoff.on_exception(backoff.fibo,
                           (LpseServerExceptions, requests.exceptions.RequestException,
                            requests.exceptions.ConnectionError),
-                          max_tries=3, jitter=None)
+                          max_tries=3, jitter=_jitter)
     def get_pemenang(self, all=False, key='hasil_negosiasi'):
         self.pemenang = LpseDetilPemenangParser(
             self._lpse,
@@ -436,7 +516,7 @@ class LpseDetil(BaseLpseDetil):
     @backoff.on_exception(backoff.fibo,
                           (LpseServerExceptions, requests.exceptions.RequestException,
                            requests.exceptions.ConnectionError),
-                          max_tries=3, jitter=None)
+                          max_tries=3, jitter=_jitter)
     def get_pemenang_berkontrak(self):
         self.pemenang_berkontrak = LpseDetilPemenangBerkontrakParser(self._lpse, self.id_paket).get_detil()
 
@@ -445,7 +525,7 @@ class LpseDetil(BaseLpseDetil):
     @backoff.on_exception(backoff.fibo,
                           (LpseServerExceptions, requests.exceptions.RequestException,
                            requests.exceptions.ConnectionError),
-                          max_tries=3, jitter=None)
+                          max_tries=3, jitter=_jitter)
     def get_jadwal(self):
         self.jadwal = LpseDetilJadwalParser(self._lpse, self.id_paket).get_detil()
 
@@ -457,7 +537,7 @@ class LpseDetilNonTender(BaseLpseDetil):
     @backoff.on_exception(backoff.fibo,
                           (LpseServerExceptions, requests.exceptions.RequestException,
                            requests.exceptions.ConnectionError),
-                          max_tries=3, jitter=None)
+                          max_tries=3, jitter=_jitter)
     def get_pengumuman(self):
         self.pengumuman = LpseDetilPengumumanNonTenderParser(self._lpse, self.id_paket).get_detil()
 
@@ -466,7 +546,7 @@ class LpseDetilNonTender(BaseLpseDetil):
     @backoff.on_exception(backoff.fibo,
                           (LpseServerExceptions, requests.exceptions.RequestException,
                            requests.exceptions.ConnectionError),
-                          max_tries=3, jitter=None)
+                          max_tries=3, jitter=_jitter)
     def get_peserta(self):
         self.peserta = LpseDetilPesertaNonTenderParser(self._lpse, self.id_paket).get_detil()
 
@@ -475,7 +555,7 @@ class LpseDetilNonTender(BaseLpseDetil):
     @backoff.on_exception(backoff.fibo,
                           (LpseServerExceptions, requests.exceptions.RequestException,
                            requests.exceptions.ConnectionError),
-                          max_tries=3, jitter=None)
+                          max_tries=3, jitter=_jitter)
     def get_hasil_evaluasi(self):
         self.hasil = LpseDetilHasilEvaluasiNonTenderParser(self._lpse, self.id_paket).get_detil()
 
@@ -484,7 +564,7 @@ class LpseDetilNonTender(BaseLpseDetil):
     @backoff.on_exception(backoff.fibo,
                           (LpseServerExceptions, requests.exceptions.RequestException,
                            requests.exceptions.ConnectionError),
-                          max_tries=3, jitter=None)
+                          max_tries=3, jitter=_jitter)
     def get_pemenang(self):
         self.pemenang = LpseDetilPemenangNonTenderParser(self._lpse, self.id_paket).get_detil()
 
@@ -493,7 +573,7 @@ class LpseDetilNonTender(BaseLpseDetil):
     @backoff.on_exception(backoff.fibo,
                           (LpseServerExceptions, requests.exceptions.RequestException,
                            requests.exceptions.ConnectionError),
-                          max_tries=3, jitter=None)
+                          max_tries=3, jitter=_jitter)
     def get_pemenang_berkontrak(self):
         self.pemenang_berkontrak = LpseDetilPemenangBerkontrakNonTenderParser(self._lpse, self.id_paket).get_detil()
 
@@ -502,7 +582,7 @@ class LpseDetilNonTender(BaseLpseDetil):
     @backoff.on_exception(backoff.fibo,
                           (LpseServerExceptions, requests.exceptions.RequestException,
                            requests.exceptions.ConnectionError),
-                          max_tries=3, jitter=None)
+                          max_tries=3, jitter=_jitter)
     def get_jadwal(self):
         self.jadwal = LpseDetilJadwalNonTenderParser(self._lpse, self.id_paket).get_detil()
 
@@ -564,7 +644,7 @@ class BaseLpseDetilParser(object):
     @backoff.on_exception(backoff.fibo,
                           (LpseServerExceptions, requests.exceptions.RequestException,
                            requests.exceptions.ConnectionError),
-                          max_tries=3, jitter=None)
+                          max_tries=3, jitter=_jitter)
     def get_detil(self):
         url = self.lpse.url+self.detil_path.format(self.id_paket)
         r = self.lpse.session.get(

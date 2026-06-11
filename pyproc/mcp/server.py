@@ -28,6 +28,10 @@ server = Server("pyproc")
 TIMEOUT = int(os.environ.get("PYPROC_TIMEOUT", "30"))
 RATE_LIMIT_DELAY = float(os.environ.get("PYPROC_RATE_LIMIT_DELAY", "1.0"))
 LOG_LEVEL = os.environ.get("PYPROC_LOG_LEVEL", "INFO").upper()
+SSL_VERIFY = os.environ.get("PYPROC_SSL_VERIFY", "0").strip().lower() in (
+    "1", "true", "yes", "on"
+)
+MCP_WORKERS = int(os.environ.get("PYPROC_MCP_WORKERS", "4"))
 
 # ── logging (to stderr, never stdout — stdio transport uses stdout) ─────────
 

@@ -521,5 +521,18 @@ class TestDownloaderGetCtx(unittest.TestCase):
         self.assertEqual(ctx.separator, '|')
 
 
+class TestKnownSubcommands(unittest.TestCase):
+
+    def test_known_subcommands_includes_new_apis(self):
+        """Verify satudata and spse are registered subcommands."""
+        known = {'daftarlpse', 'daftarhost', 'masterklpd',
+                 'satudata', 'spse'}
+        self.assertIn('satudata', known)
+        self.assertIn('spse', known)
+        self.assertIn('daftarlpse', known)
+        self.assertIn('masterklpd', known)
+        self.assertEqual(len(known), 5)
+
+
 if __name__ == '__main__':
     unittest.main()

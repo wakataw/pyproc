@@ -363,33 +363,41 @@ class TestHandleGetTenderDetail(unittest.TestCase):
 
 class TestHandleBulkDetails(unittest.TestCase):
 
-    def _mock_detail(self, package_id, name):
-        mock_detil = MagicMock()
-        mock_detil.get_all_detil.return_value = {"error": False, "error_message": []}
-        mock_detil.todict.return_value = {
-            "id_paket": package_id,
-            "pengumuman": {"nama_tender": name},
-            "peserta": [],
-            "hasil": None,
-            "pemenang": None,
-            "pemenang_berkontrak": None,
-            "jadwal": None,
+    def _mock_detail_result(self, package_id, name, success=True):
+        """Build a result dict matching what fetch_details_parallel returns."""
+        item = {
+            "package_id": package_id,
+            "success": success,
+            "detail": {
+                "id_paket": package_id,
+                "pengumuman": {"nama_tender": name},
+                "peserta": [],
+                "hasil": None,
+                "pemenang": None,
+                "pemenang_berkontrak": None,
+                "jadwal": None,
+            },
         }
-        return mock_detil
+        if not success:
+            item["error"] = "Paket tidak ditemukan"
+        return item
+
+    def _mock_lpse_pool(self, count=4):
+        """Return a list of dummy Lpse instances."""
+        return [MagicMock() for _ in range(count)]
 
     @async_test
     async def test_get_tender_details_bulk(self):
         from pyproc.mcp.tools import handle_get_tender_details_bulk
 
-        mock_lpse = MagicMock()
-        mock_lpse.detil_paket_tender.side_effect = [
-            self._mock_detail("100", "Tender A"),
-            self._mock_detail("101", "Tender B"),
+        mock_results = [
+            self._mock_detail_result("100", "Tender A"),
+            self._mock_detail_result("101", "Tender B"),
         ]
-        mock_lpse.__enter__ = MagicMock(return_value=mock_lpse)
-        mock_lpse.__exit__ = MagicMock(return_value=False)
+        mock_pool = self._mock_lpse_pool()
 
-        with patch('pyproc.mcp.tools.Lpse', return_value=mock_lpse):
+        with patch('pyproc.mcp.tools.create_worker_lpse_pool', return_value=mock_pool), \
+             patch('pyproc.mcp.tools.fetch_details_parallel', return_value=mock_results):
             result = await handle_get_tender_details_bulk(
                 "get_tender_details_bulk",
                 {"lpse_host": "kemenkeu", "package_ids": ["100", "101"]},
@@ -400,22 +408,20 @@ class TestHandleBulkDetails(unittest.TestCase):
         self.assertEqual(data["success_count"], 2)
         self.assertEqual(data["error_count"], 0)
         self.assertEqual(len(data["details"]), 2)
-        self.assertEqual(mock_lpse.detil_paket_tender.call_count, 2)
 
     @async_test
     async def test_get_non_tender_details_bulk_partial_failure(self):
         from pyproc.mcp.tools import handle_get_non_tender_details_bulk
 
-        mock_lpse = MagicMock()
-        mock_lpse.detil_paket_non_tender.side_effect = [
-            self._mock_detail("200", "Non Tender A"),
-            Exception("Paket tidak ditemukan"),
-            self._mock_detail("202", "Non Tender C"),
+        mock_results = [
+            self._mock_detail_result("200", "Non Tender A"),
+            self._mock_detail_result("201", None, success=False),
+            self._mock_detail_result("202", "Non Tender C"),
         ]
-        mock_lpse.__enter__ = MagicMock(return_value=mock_lpse)
-        mock_lpse.__exit__ = MagicMock(return_value=False)
+        mock_pool = self._mock_lpse_pool()
 
-        with patch('pyproc.mcp.tools.Lpse', return_value=mock_lpse):
+        with patch('pyproc.mcp.tools.create_worker_lpse_pool', return_value=mock_pool), \
+             patch('pyproc.mcp.tools.fetch_details_parallel', return_value=mock_results):
             result = await handle_get_non_tender_details_bulk(
                 "get_non_tender_details_bulk",
                 {
@@ -430,21 +436,18 @@ class TestHandleBulkDetails(unittest.TestCase):
         self.assertEqual(data["success_count"], 2)
         self.assertEqual(data["error_count"], 1)
         self.assertFalse(data["details"][1]["success"])
-        self.assertEqual(mock_lpse.detil_paket_non_tender.call_count, 3)
 
     @async_test
     async def test_get_tender_details_bulk_stops_on_error(self):
         from pyproc.mcp.tools import handle_get_tender_details_bulk
 
-        mock_lpse = MagicMock()
-        mock_lpse.detil_paket_tender.side_effect = [
-            Exception("Paket tidak ditemukan"),
-            self._mock_detail("101", "Tender B"),
+        mock_results = [
+            self._mock_detail_result("100", None, success=False),
         ]
-        mock_lpse.__enter__ = MagicMock(return_value=mock_lpse)
-        mock_lpse.__exit__ = MagicMock(return_value=False)
+        mock_pool = self._mock_lpse_pool()
 
-        with patch('pyproc.mcp.tools.Lpse', return_value=mock_lpse):
+        with patch('pyproc.mcp.tools.create_worker_lpse_pool', return_value=mock_pool), \
+             patch('pyproc.mcp.tools.fetch_details_parallel', return_value=mock_results):
             result = await handle_get_tender_details_bulk(
                 "get_tender_details_bulk",
                 {
@@ -457,7 +460,6 @@ class TestHandleBulkDetails(unittest.TestCase):
         data = json.loads(result[0].text)
         self.assertEqual(data["count"], 1)
         self.assertEqual(data["error_count"], 1)
-        self.assertEqual(mock_lpse.detil_paket_tender.call_count, 1)
 
 
 class TestHandleValidateLpseHost(unittest.TestCase):
@@ -627,6 +629,134 @@ class TestHandleProcurementSearchIndexes(unittest.TestCase):
 
         data = json.loads(result[0].text)
         self.assertTrue(data["deleted"])
+
+
+class TestHandleGetMasterLpse(unittest.TestCase):
+
+    @async_test
+    async def test_mocked(self):
+        from pyproc.mcp.tools import handle_get_master_lpse
+
+        mock_lpse_sample = [
+            {"kd_lpse": 119,
+             "nama_lpse": "LPSE Lembaga Kebijakan Pengadaan Barang/Jasa Pemerintah",
+             "_event_date": "2026-01-16"},
+            {"kd_lpse": 10,
+             "nama_lpse": "LPSE Kota Surabaya",
+             "_event_date": "2026-01-16"},
+        ]
+
+        with patch(
+            'pyproc.mcp.tools.Lpse.get_master_lpse', return_value=mock_lpse_sample
+        ):
+            result = await handle_get_master_lpse(
+                "get_master_lpse",
+                {"query": "surabaya"},
+            )
+
+        data = json.loads(result[0].text)
+        self.assertEqual(data["total_matches"], 1)
+        self.assertEqual(data["count"], 1)
+        self.assertEqual(len(data["lpse"]), 1)
+        self.assertEqual(data["lpse"][0]["kd_lpse"], 10)
+        self.assertIn("usage", data)
+        self.assertIn("get_tender_umum_publik", data["usage"])
+
+    @async_test
+    async def test_filter_by_kd_lpse(self):
+        from pyproc.mcp.tools import handle_get_master_lpse
+
+        mock_lpse_sample = [
+            {"kd_lpse": 119, "nama_lpse": "LPSE LKPP",
+             "_event_date": "2026-01-16"},
+            {"kd_lpse": 10, "nama_lpse": "LPSE Kota Surabaya",
+             "_event_date": "2026-01-16"},
+        ]
+
+        with patch(
+            'pyproc.mcp.tools.Lpse.get_master_lpse', return_value=mock_lpse_sample
+        ):
+            result = await handle_get_master_lpse(
+                "get_master_lpse",
+                {"kd_lpse": "119"},
+            )
+
+        data = json.loads(result[0].text)
+        self.assertEqual(data["total_matches"], 1)
+        self.assertEqual(data["lpse"][0]["kd_lpse"], 119)
+
+    @async_test
+    async def test_validation_error(self):
+        from pyproc.mcp.tools import handle_get_master_lpse
+
+        result = await handle_get_master_lpse(
+            "get_master_lpse",
+            {"kd_lpse": "abc"},
+        )
+
+        self.assertIn("Error", result[0].text)
+
+
+class TestHandleGetTenderUmumPublik(unittest.TestCase):
+
+    @async_test
+    async def test_mocked(self):
+        from pyproc.mcp.tools import handle_get_tender_umum_publik
+
+        mock_tender_data = [
+            {
+                "Kode Tender": 10109010000,
+                "LPSE": "LPSE LKPP",
+                "Nama Paket": "Pekerjaan Jasa Sewa",
+                "Pagu": 20000000000,
+            }
+        ]
+
+        with patch(
+            'pyproc.mcp.tools.Lpse.get_tender_umum_publik',
+            return_value=mock_tender_data,
+        ):
+            result = await handle_get_tender_umum_publik(
+                "get_tender_umum_publik",
+                {"tahun_anggaran": "2026", "kd_lpse": "119"},
+            )
+
+        data = json.loads(result[0].text)
+        self.assertEqual(data["count"], 1)
+        self.assertEqual(data["kd_lpse"], 119)
+        self.assertEqual(data["tahun_anggaran"], 2026)
+        self.assertEqual(data["source"], "LKPP ISB Satu Data (alternative data source)")
+        self.assertEqual(len(data["tenders"]), 1)
+        self.assertEqual(data["tenders"][0]["Kode Tender"], 10109010000)
+        self.assertIn("notes", data)
+
+    @async_test
+    async def test_validation_error(self):
+        from pyproc.mcp.tools import handle_get_tender_umum_publik
+
+        result = await handle_get_tender_umum_publik(
+            "get_tender_umum_publik",
+            {},
+        )
+
+        self.assertIn("Error", result[0].text)
+
+    @async_test
+    async def test_empty_result(self):
+        from pyproc.mcp.tools import handle_get_tender_umum_publik
+
+        with patch(
+            'pyproc.mcp.tools.Lpse.get_tender_umum_publik',
+            return_value=[],
+        ):
+            result = await handle_get_tender_umum_publik(
+                "get_tender_umum_publik",
+                {"tahun_anggaran": "2026", "kd_lpse": "999"},
+            )
+
+        data = json.loads(result[0].text)
+        self.assertEqual(data["count"], 0)
+        self.assertEqual(data["tenders"], [])
 
 
 class TestResourceHandlers(unittest.TestCase):

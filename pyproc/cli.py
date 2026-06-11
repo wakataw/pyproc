@@ -2,9 +2,13 @@ import argparse
 import csv
 import re
 import logging
+import random
 import signal
 import sys
 import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from time import sleep
+
 import requests
 import pyproc
 import json
@@ -135,7 +139,7 @@ class DownloaderContext(object):
         self.nama_penyedia = (rekanan if isinstance(rekanan, str) else None) or \
             (nama_penyedia if isinstance(nama_penyedia, str) else None)
         self.chunk_size = args.chunk_size
-        self.workers = 1 # hard coded worker to 1
+        self.workers = args.workers
         self.timeout = args.timeout
         jenis_paket = getattr(args, 'jenis_paket', 'tender')
         self.jenis_paket = jenis_paket if isinstance(jenis_paket, str) else 'tender'
@@ -423,9 +427,10 @@ class IndexDownloader(object):
 
 class DetailDownloader(object):
 
-    def __init__(self, index_downloader):
+    def __init__(self, index_downloader, lpse_pool=None):
         self.index_downloader = index_downloader
         self.lock = threading.Lock()
+        self.lpse_pool = lpse_pool or []
 
         logging.info("{} - Mulai pengunduhan detail data".format(self.index_downloader.lpse_host.url))
 
@@ -436,29 +441,54 @@ class DetailDownloader(object):
 
         return total, deleted
 
-    def get_detail(self, lpse_index):
+    def _ensure_lpse_pool(self, count):
+        """Populate the Lpse pool with unique-footprint instances, one per worker."""
+        from pyproc.user_agents import create_session_headers
+
+        while len(self.lpse_pool) < count:
+            worker_id = len(self.lpse_pool)
+            headers = create_session_headers(worker_id)
+            lpse = pyproc.Lpse(
+                self.index_downloader.lpse_host.url,
+                timeout=self.index_downloader.ctx.timeout,
+                user_agent=headers.pop('User-Agent'),
+            )
+            # Apply remaining headers (Accept, Accept-Language) from profile
+            lpse.session.headers.update(headers)
+            self.lpse_pool.append(lpse)
+        return self.lpse_pool[:count]
+
+    def _download_worker(self, lpse_index, lpse):
+        """Download detail for a single package using the given Lpse instance.
+
+        Each worker gets its own Lpse with unique session/cookies/headers
+        so the server sees parallel requests as distinct clients.
         """
-        Get detail paket berdasarkan paket ID
-        :param package_id:
-        :return:
-        """
-        logging.debug("[DETAIL DOWNLOADER] download detail for {}".format(lpse_index))
         method = getattr(
-            self.index_downloader.lpse,
+            lpse,
             self.index_downloader.ctx.package_config['detail_method']
         )
-        package_detail = method(lpse_index.id_paket)
+        try:
+            package_detail = method(lpse_index.id_paket)
+            info = package_detail.get_all_detil()
 
-        info = package_detail.get_all_detil()
+            if info['error']:
+                logging.error('{} - Terjadi kesalahan untuk paket {}: {}'.format(
+                    self.index_downloader.lpse_host.url,
+                    lpse_index.id_paket,
+                    info['error_message']
+                ))
+            lpse_index.detail = package_detail
 
-        if info['error']:
-            logging.error('{} - Terjadi kesalahan untuk paket {}'.format(
-                self.index_downloader.lpse_host.url, info['error_message']
+            logging.debug("[DETAIL DOWNLOADER] update database detail data")
+            self.update_detail(lpse_index)
+        except Exception as e:
+            logging.error('{} - Worker error untuk paket {}: {}'.format(
+                self.index_downloader.lpse_host.url, lpse_index.id_paket, e
             ))
-        lpse_index.detail = package_detail
-
-        logging.debug("[DETAIL DOWNLOADER] update database detail data")
-        self.update_detail(lpse_index)
+        finally:
+            # Desynchronize workers with random delay between packages
+            sleep(random.uniform(0.5, 2.5))
 
     def update_detail(self, lpse_index):
         with self.lock:
@@ -471,55 +501,38 @@ class DetailDownloader(object):
     def start(self):
         total, deleted = self.__pre_process_index_db()
         total_to_download = total - deleted
-        index_generator = self.index_downloader.get_index()
+        index_list = list(self.index_downloader.get_index())
+        workers = self.index_downloader.ctx.workers
+        if workers < 1:
+            workers = 1
+
+        lpse_pool = self._ensure_lpse_pool(workers)
         total_downloaded = 0
 
-        while True:
-            lpse_index = []
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            future_to_index = {}
+            for i, idx in enumerate(index_list):
+                lpse = lpse_pool[i % workers]
+                future = executor.submit(self._download_worker, idx, lpse)
+                future_to_index[future] = idx
 
-            for i in range(self.index_downloader.ctx.workers):
-                try:
-                    lpse_index.append(index_generator.__next__())
-                except StopIteration:
-                    pass
-
-            logging.debug("[DETAIL DOWNLOADER] starting batch for {}".format(lpse_index))
-
-            threads = []
-
-            for i, index in enumerate(lpse_index):
-                t = threading.Thread(target=self.get_detail, args=(index,), name='detail-thread-{}'.format(i))
-                t.start()
-                logging.debug("[DETAIL DOWNLOADER] {} started".format(t.name))
-                threads.append(t)
-
-            for t in threads:
-                logging.debug("[DETAIL DOWNLOADER] thread {} join".format(t.name))
-                t.join()
-
-            for t in threads:
-                logging.debug("[DETAIL DOWNLOADER] thread {} deleted".format(t.name))
-                del t
-
-            del threads
-
-            total_downloaded += len(lpse_index)
-
-            if self.index_downloader.ctx.log_level == 'INFO':
-                print(
-                    "\rMemproses {}/{} ({:,.2f}%) data".format(
-                        total_downloaded,
-                        total_to_download,
-                        total_downloaded/total_to_download*100 if total_to_download > 0 else 0.0
-                    ),
-                    end=' '
-                )
-
-            if len(lpse_index) != self.index_downloader.ctx.workers:
-                break
+            for future in as_completed(future_to_index):
+                total_downloaded += 1
+                if self.index_downloader.ctx.log_level == 'INFO':
+                    print(
+                        "\rMemproses {}/{} ({:,.2f}%) data".format(
+                            total_downloaded,
+                            total_to_download,
+                            total_downloaded / total_to_download * 100
+                            if total_to_download > 0 else 0.0
+                        ),
+                        end=' '
+                    )
 
         print()
-        logging.info("{} - {} data selesai diproses".format(self.index_downloader.lpse_host.url, total_downloaded))
+        logging.info("{} - {} data selesai diproses".format(
+            self.index_downloader.lpse_host.url, total_downloaded
+        ))
 
 
 class Exporter:
@@ -716,7 +729,7 @@ class Downloader(object):
         parser.add_argument('--tipe-swakelola-id', type=int, choices=[1, 2, 3, 4], default=None,
                             help=text.HELP_TIPE_SWAKELA)
         parser.add_argument('-c', '--chunk-size', type=int, default=100, help=text.HELP_CHUNK_SIZE)
-        parser.add_argument('-w', '--workers', type=int, default=8, help=argparse.SUPPRESS)
+        parser.add_argument('-w', '--workers', type=int, default=8, help=text.HELP_WORKERS)
         parser.add_argument('-x', '--timeout', type=int, default=30, help=text.HELP_TIMEOUT)
         parser.add_argument('--jenis-paket', choices=list(PACKAGE_TYPES.keys()), default='tender',
                             help=text.HELP_JENIS_PAKET)
@@ -799,30 +812,64 @@ def main():
 
     print(text.INFO)
 
+    # Check for top-level --help / -h before subcommand dispatch
+    if len(sys.argv) > 1 and sys.argv[1] in {'-h', '--help'}:
+        print("Usage: pyproc [subcommand] [options]")
+        print()
+        print("Subcommands:")
+        print("  spse           Unduh data paket langsung dari SPSE/Inaproc (default)")
+        print("  daftarlpse     Unduh daftar host LPSE dalam format CSV")
+        print("  daftarhost     " + text.HELP_DAFTARHOST)
+        print("  masterklpd     Query Master K/L/PD references dari LKPP ISB")
+        print("  satudata       Akses data dari LKPP ISB Satu Data API (alternatif)")
+        print("    masterlpse   Cari LPSE secara interaktif dan unduh data tender")
+        print("    tenderumum   Unduh data tender umum publik berdasarkan kode LPSE")
+        print()
+        print(
+            "Gunakan 'pyproc <subcommand> --help' "
+            "untuk bantuan spesifik subcommand."
+        )
+        sys.exit(0)
+
     # Detect subcommands by checking if first arg is a known subcommand
     # For backward compatibility, treat non-subcommand args as download args
-    known_subcommands = {'daftarlpse', 'daftarhost', 'masterklpd', 'download'}
+    known_subcommands = {'daftarlpse', 'daftarhost', 'masterklpd', 'satudata', 'spse'}
 
     if len(sys.argv) > 1 and sys.argv[1] in known_subcommands:
         subcommand = sys.argv[1]
         remaining_args = sys.argv[2:]
     else:
-        subcommand = 'download'
+        subcommand = 'spse'
         remaining_args = sys.argv[1:]
 
     if subcommand == 'daftarlpse':
+        if remaining_args and remaining_args[0] in {'-h', '--help'}:
+            print("Usage: pyproc daftarlpse")
+            print()
+            print("Unduh daftar host LPSE dalam format CSV dari GitHub Gist.")
+            sys.exit(0)
         set_up_log('INFO')
         pyproc.utils.download_host()
         sys.exit(0)
 
     if subcommand == 'daftarhost':
-        set_up_log('INFO')
+        if remaining_args and remaining_args[0] in {'-h', '--help'}:
+            print("Usage: pyproc daftarhost [directory]")
+            print()
+            print(text.HELP_DAFTARHOST)
+            print()
+            print("Arguments:")
+            print("  directory    Direktori output (default: direktori saat ini)")
+            sys.exit(0)
         directory = remaining_args[0] if remaining_args else '.'
+        set_up_log('INFO')
         pyproc.utils.download_host_json(directory=directory)
         sys.exit(0)
 
     if subcommand == 'masterklpd':
-        parser = argparse.ArgumentParser()
+        parser = argparse.ArgumentParser(
+            description="Query Master K/L/PD references dari LKPP ISB Satu Data API."
+        )
         parser.add_argument('--query', type=str, default="")
         parser.add_argument('--jenis', type=str, default=None)
         parser.add_argument('--kd-klpd', type=str, default=None)
@@ -846,7 +893,232 @@ def main():
         print(json.dumps(rows, ensure_ascii=False, indent=2))
         sys.exit(0)
 
-    # Default: download
+    if subcommand == 'satudata':
+        satudata_subs = {'masterlpse', 'tenderumum'}
+        if not remaining_args or remaining_args[0] not in satudata_subs:
+            print("Usage: pyproc satudata {masterlpse|tenderumum} [options]")
+            print()
+            print("  masterlpse   Cari LPSE secara interaktif dan unduh data tender")
+            print("  tenderumum   Unduh data tender umum publik berdasarkan kode LPSE")
+            print()
+            print(
+                "Gunakan 'pyproc satudata <subcommand> --help' "
+                "untuk bantuan spesifik."
+            )
+            sys.exit(1)
+        satudata_cmd = remaining_args[0]
+        satudata_args = remaining_args[1:]
+
+        if satudata_cmd == 'masterlpse':
+            parser = argparse.ArgumentParser(
+                description="Cari LPSE secara interaktif dan unduh data tender."
+            )
+            parser.add_argument('--timeout', type=int, default=30)
+            parser.add_argument(
+                '--output', type=str, default='json', choices=['json', 'csv'],
+            )
+            parser.add_argument(
+                '--output-file', type=str, default=None,
+                help='Lokasi file output. Dibuat otomatis jika tidak diberikan.',
+            )
+            args = parser.parse_args(satudata_args)
+
+            print("Mengambil data master LPSE...")
+            try:
+                rows = pyproc.Lpse.get_master_lpse(timeout=args.timeout)
+            except Exception as e:
+                print(f"Gagal mengambil data LPSE: {e}")
+                sys.exit(1)
+
+            if not rows:
+                print("Tidak ada data LPSE ditemukan.")
+                sys.exit(1)
+
+            selected_lpse = None
+            while selected_lpse is None:
+                print("\n" + "=" * 60)
+                print(
+                    "CARI LPSE (ketik kata kunci, "
+                    "kosongkan untuk menampilkan semua)"
+                )
+                keyword = input("Kata kunci: ").strip().lower()
+
+                filtered = []
+                if keyword:
+                    filtered = [
+                        row for row in rows
+                        if keyword in str(row.get('nama_lpse', '')).lower()
+                        or keyword in str(row.get('kd_lpse', '')).lower()
+                    ]
+                else:
+                    filtered = rows
+
+                display = filtered[:50]
+                print(
+                    f"\nMenampilkan {len(display)} dari {len(filtered)} LPSE:"
+                )
+                for i, row in enumerate(display, 1):
+                    print(
+                        f"  {i:3d}. [{row.get('kd_lpse')}] "
+                        f"{row.get('nama_lpse')}"
+                    )
+                if len(filtered) > 50:
+                    print(f"  ... dan {len(filtered) - 50} lainnya")
+
+                if not filtered:
+                    print("Tidak ada LPSE yang cocok. Coba kata kunci lain.")
+                    continue
+
+                try:
+                    choice = input(
+                        "\nPilih nomor LPSE (atau Enter untuk cari lagi, "
+                        "q untuk keluar): "
+                    ).strip()
+                    if choice.lower() == 'q':
+                        print("Dibatalkan.")
+                        sys.exit(0)
+                    if not choice:
+                        continue
+                    idx = int(choice) - 1
+                    if 0 <= idx < len(display):
+                        selected_lpse = display[idx]
+                    else:
+                        print("Nomor tidak valid.")
+                except ValueError:
+                    print("Masukkan nomor yang valid.")
+
+            # Ask for tahun anggaran
+            tahun = None
+            while tahun is None:
+                try:
+                    tahun_input = input(
+                        f"\nTahun anggaran (contoh: 2026): "
+                    ).strip()
+                    tahun = int(tahun_input)
+                    if tahun < 2000 or tahun > 2100:
+                        print("Tahun di luar jangkauan (2000-2100).")
+                        tahun = None
+                except ValueError:
+                    print("Masukkan tahun yang valid.")
+
+            kd_lpse = selected_lpse['kd_lpse']
+            nama_lpse = selected_lpse['nama_lpse']
+            print(
+                f"\nMengambil data tender untuk LPSE {nama_lpse} "
+                f"({kd_lpse}), tahun {tahun}..."
+            )
+
+            try:
+                tender_data = pyproc.Lpse.get_tender_umum_publik(
+                    tahun_anggaran=tahun,
+                    kd_lpse=kd_lpse,
+                    timeout=args.timeout,
+                )
+            except Exception as e:
+                print(f"Gagal mengambil data tender: {e}")
+                sys.exit(1)
+
+            if not tender_data:
+                print("Tidak ada data tender ditemukan.")
+                sys.exit(1)
+
+            # Determine output file
+            safe_name = re.sub(r'[^a-z0-9]', '_', nama_lpse.lower())[:30]
+            if args.output_file:
+                output_path = Path(args.output_file)
+            else:
+                output_path = Path(
+                    f"tender_{safe_name}_{kd_lpse}_{tahun}.{args.output}"
+                )
+
+            if args.output == 'json':
+                with open(output_path, 'w', encoding='utf-8') as f:
+                    json.dump(tender_data, f, ensure_ascii=False, indent=2)
+            else:  # csv
+                if tender_data:
+                    fieldnames = list(tender_data[0].keys())
+                    with open(output_path, 'w', newline='', encoding='utf-8') as f:
+                        writer = csv.DictWriter(f, fieldnames=fieldnames)
+                        writer.writeheader()
+                        writer.writerows(tender_data)
+
+            print(
+                f"Berhasil menyimpan {len(tender_data)} tender ke {output_path}"
+            )
+            sys.exit(0)
+
+        elif satudata_cmd == 'tenderumum':
+            parser = argparse.ArgumentParser(
+                description="Unduh data tender umum publik dari LKPP ISB."
+            )
+            parser.add_argument(
+                '--tahun-anggaran', type=int, required=True,
+                help='Tahun anggaran, misal 2026.',
+            )
+            parser.add_argument(
+                '--kode-lpse', type=int, required=True,
+                help='Kode LPSE dari master LPSE, misal 119.',
+            )
+            parser.add_argument('--timeout', type=int, default=30)
+            parser.add_argument(
+                '--output', type=str, default='json', choices=['json', 'csv'],
+            )
+            parser.add_argument(
+                '--output-file', type=str, default=None,
+                help='Lokasi file output. Dibuat otomatis jika tidak diberikan.',
+            )
+            args = parser.parse_args(satudata_args)
+
+            if args.tahun_anggaran < 2000 or args.tahun_anggaran > 2100:
+                print(
+                    f"Tahun anggaran {args.tahun_anggaran} di luar "
+                    f"jangkauan (2000-2100)."
+                )
+                sys.exit(1)
+
+            print(
+                f"Mengambil data tender umum publik untuk LPSE "
+                f"{args.kode_lpse}, tahun {args.tahun_anggaran}..."
+            )
+
+            try:
+                rows = pyproc.Lpse.get_tender_umum_publik(
+                    tahun_anggaran=args.tahun_anggaran,
+                    kd_lpse=args.kode_lpse,
+                    timeout=args.timeout,
+                )
+            except Exception as e:
+                print(f"Gagal mengambil data tender: {e}")
+                sys.exit(1)
+
+            if not rows:
+                print("Tidak ada data tender ditemukan.")
+                sys.exit(1)
+
+            if args.output_file:
+                output_path = Path(args.output_file)
+            else:
+                output_path = Path(
+                    f"tender_umum_{args.kode_lpse}_{args.tahun_anggaran}"
+                    f".{args.output}"
+                )
+
+            if args.output == 'json':
+                with open(output_path, 'w', encoding='utf-8') as f:
+                    json.dump(rows, f, ensure_ascii=False, indent=2)
+            else:
+                fieldnames = list(rows[0].keys())
+                with open(output_path, 'w', newline='', encoding='utf-8') as f:
+                    writer = csv.DictWriter(f, fieldnames=fieldnames)
+                    writer.writeheader()
+                    writer.writerows(rows)
+
+            print(
+                f"Berhasil menyimpan {len(rows)} tender ke {output_path}"
+            )
+            sys.exit(0)
+
+    # Default: spse
     downloader = Downloader()
     downloader.get_ctx(remaining_args)
 

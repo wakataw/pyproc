@@ -69,6 +69,39 @@ class TestLpseInit(unittest.TestCase):
         lpse = Lpse("test")
         self.assertFalse(lpse.session.verify)
 
+    def test_default_user_agent(self):
+        """Lpse should use a default User-Agent when none is provided."""
+        lpse = Lpse("test")
+        ua = lpse.session.headers.get('user-agent', '')
+        self.assertIn('Chrome', ua)
+        self.assertIn('Safari', ua)
+
+    def test_custom_user_agent(self):
+        """Lpse should accept a custom User-Agent string."""
+        custom_ua = 'Mozilla/5.0 CustomBot/1.0'
+        lpse = Lpse("test", user_agent=custom_ua)
+        self.assertEqual(lpse.session.headers['user-agent'], custom_ua)
+
+
+class TestJitter(unittest.TestCase):
+
+    def test_jitter_returns_float(self):
+        from pyproc.lpse import _jitter
+        result = _jitter(1.0)
+        self.assertIsInstance(result, float)
+
+    def test_jitter_range(self):
+        from pyproc.lpse import _jitter
+        for _ in range(100):
+            result = _jitter(1.0)
+            self.assertGreaterEqual(result, 0.5)
+            self.assertLessEqual(result, 1.5)
+
+    def test_jitter_zero_delay(self):
+        from pyproc.lpse import _jitter
+        result = _jitter(0.0)
+        self.assertEqual(result, 0.0)
+
 
 class TestGetAuthToken(unittest.TestCase):
 
@@ -287,8 +320,9 @@ class TestGetPaket(unittest.TestCase):
             By.KODE, None, False, None, column_count=8
         )
 
+    @patch('pyproc.lpse._get_ssl_verify', return_value=True)
     @patch('pyproc.lpse.requests.get')
-    def test_get_master_klpd(self, mock_get):
+    def test_get_master_klpd(self, mock_get, _mock_verify):
         mock_get.return_value = mock_response(json_data=[
             {
                 "kd_klpd": "K66",
@@ -304,11 +338,156 @@ class TestGetPaket(unittest.TestCase):
         self.assertEqual(result[0]["kd_klpd"], "K66")
         mock_get.assert_called_once_with(
             'https://isb.lkpp.go.id/isb-2/api/satudata/MasterKLPD',
-            timeout=5,
+            timeout=5, verify=True,
         )
 
     def tearDown(self):
         del self.lpse
+
+
+class TestIsbApis(unittest.TestCase):
+    """Tests for ISB Satu Data static methods on Lpse."""
+
+    @patch('pyproc.lpse._get_ssl_verify', return_value=True)
+    @patch('pyproc.lpse.requests.get')
+    def test_get_master_lpse(self, mock_get, _mock_verify):
+        mock_get.return_value = mock_response(json_data=[
+            {
+                "kd_lpse": 119,
+                "nama_lpse": "LPSE Lembaga Kebijakan Pengadaan Barang/Jasa Pemerintah",
+                "_event_date": "2026-01-16",
+            },
+            {
+                "kd_lpse": 10,
+                "nama_lpse": "LPSE Kota Surabaya",
+                "_event_date": "2026-01-16",
+            },
+        ])
+
+        result = Lpse.get_master_lpse(timeout=10)
+
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0]["kd_lpse"], 119)
+        self.assertEqual(result[0]["nama_lpse"],
+                         "LPSE Lembaga Kebijakan Pengadaan Barang/Jasa Pemerintah")
+        mock_get.assert_called_once_with(
+            'https://isb.lkpp.go.id/isb-2/api/satudata/MasterLPSE',
+            timeout=10, verify=True,
+        )
+
+    @patch('pyproc.lpse.requests.get')
+    def test_get_master_lpse_dict_wrapper(self, mock_get):
+        """Response wrapped in {'data': [...]} should be unwrapped."""
+        mock_get.return_value = mock_response(json_data={
+            "data": [
+                {"kd_lpse": 1, "nama_lpse": "LPSE Test",
+                 "_event_date": "2026-01-01"},
+            ]
+        })
+
+        result = Lpse.get_master_lpse()
+
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["kd_lpse"], 1)
+
+    @patch('pyproc.lpse.requests.get')
+    def test_get_master_lpse_empty(self, mock_get):
+        mock_get.return_value = mock_response(json_data=[])
+
+        result = Lpse.get_master_lpse()
+
+        self.assertEqual(result, [])
+
+    @patch('pyproc.lpse._get_ssl_verify', return_value=True)
+    @patch('pyproc.lpse.requests.get')
+    def test_get_tender_umum_publik(self, mock_get, _mock_verify):
+        mock_get.return_value = mock_response(json_data=[
+            {
+                "Kode Tender": 10109010000,
+                "LPSE": "LPSE Lembaga Kebijakan Pengadaan Barang/Jasa Pemerintah",
+                "Nama Paket": "Pekerjaan Jasa Sewa",
+                "Pagu": 20000000000,
+            }
+        ])
+
+        result = Lpse.get_tender_umum_publik(
+            tahun_anggaran=2026, kd_lpse=119, timeout=10,
+        )
+
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["Kode Tender"], 10109010000)
+        self.assertEqual(result[0]["Nama Paket"], "Pekerjaan Jasa Sewa")
+        mock_get.assert_called_once_with(
+            'https://isb.lkpp.go.id/isb-2/api/satudata/TenderUmumPublik/2026/119',
+            timeout=10, verify=True,
+        )
+
+    @patch('pyproc.lpse.requests.get')
+    def test_get_tender_umum_publik_dict_wrapper(self, mock_get):
+        """Response wrapped in {'result': [...]} should be unwrapped."""
+        mock_get.return_value = mock_response(json_data={
+            "result": [
+                {"Kode Tender": 1, "Nama Paket": "Test"},
+            ]
+        })
+
+        result = Lpse.get_tender_umum_publik(
+            tahun_anggaran=2025, kd_lpse=99,
+        )
+
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["Kode Tender"], 1)
+
+    @patch('pyproc.lpse.requests.get')
+    def test_get_tender_umum_publik_empty(self, mock_get):
+        mock_get.return_value = mock_response(json_data=[])
+
+        result = Lpse.get_tender_umum_publik(
+            tahun_anggaran=2026, kd_lpse=999,
+        )
+
+        self.assertEqual(result, [])
+
+    @patch('pyproc.lpse.requests.get')
+    def test_get_tender_umum_publik_http_error(self, mock_get):
+        from requests.exceptions import HTTPError
+        resp = mock_response(status_code=500)
+        resp.raise_for_status.side_effect = HTTPError("500 Server Error")
+        mock_get.return_value = resp
+
+        with self.assertRaises(HTTPError):
+            Lpse.get_tender_umum_publik(
+                tahun_anggaran=2026, kd_lpse=1,
+            )
+
+    @patch('pyproc.lpse.requests.get')
+    def test_get_tender_umum_publik_non_json_error(self, mock_get):
+        """API returns text error like URL-NOT-DEFINED for invalid kd_lpse."""
+        resp = mock_response(
+            text='URL-NOT-DEFINED: /isb-2/api/satudata/TenderUmumPublik/2026/x',
+            status_code=200,
+        )
+        resp.json.side_effect = ValueError("JSON decode error")
+        mock_get.return_value = resp
+
+        result = Lpse.get_tender_umum_publik(
+            tahun_anggaran=2026, kd_lpse=99999,
+        )
+
+        self.assertEqual(result, [])
+
+    @patch('pyproc.lpse.requests.get')
+    def test_get_master_lpse_non_json_error(self, mock_get):
+        resp = mock_response(
+            text='Some error text',
+            status_code=200,
+        )
+        resp.json.side_effect = ValueError("JSON decode error")
+        mock_get.return_value = resp
+
+        result = Lpse.get_master_lpse()
+
+        self.assertEqual(result, [])
 
 
 class TestDetilPaket(unittest.TestCase):

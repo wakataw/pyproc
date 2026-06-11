@@ -15,6 +15,7 @@ import time
 from mcp import types as mcp_types
 
 from pyproc import Lpse, JenisPengadaan
+import pyproc.lpse as _lpse_mod  # for _set_ssl_verify
 from pyproc.mcp.schemas import (
     validate_search_params,
     validate_detail_params,
@@ -26,6 +27,9 @@ from pyproc.mcp.schemas import (
     validate_search_index_query_params,
     validate_search_index_delete_params,
     validate_master_klpd_params,
+    validate_master_lpse_params,
+    validate_tender_umum_publik_params,
+    validate_ssl_verify_params,
     normalize_search_results,
     normalize_detail_result,
     normalize_categories,
@@ -39,12 +43,25 @@ from pyproc.mcp.schemas import (
     HOST_DETAIL_SCHEMA,
     SEARCH_OPTIONS_SCHEMA,
     MASTER_KLPD_SCHEMA,
+    MASTER_LPSE_SCHEMA,
+    TENDER_UMUM_PUBLIK_SCHEMA,
+    SSL_VERIFY_SCHEMA,
     CREATE_SEARCH_INDEX_SCHEMA,
     SEARCH_INDEX_SCHEMA,
     LIST_SEARCH_INDEXES_SCHEMA,
     DELETE_SEARCH_INDEX_SCHEMA,
 )
-from pyproc.mcp.server import register_tool, server, TIMEOUT, RATE_LIMIT_DELAY
+from pyproc.mcp.server import register_tool, server, TIMEOUT, RATE_LIMIT_DELAY, MCP_WORKERS
+import pyproc.mcp.server as mcp_server_cfg  # for mutable SSL_VERIFY
+from pyproc.mcp.parallel import (
+    ThreadSafeRateLimiter,
+    create_worker_lpse_pool,
+    fetch_details_parallel,
+)
+
+# Sync lpse module's SSL_VERIFY with server config on startup
+_lpse_mod._set_ssl_verify(mcp_server_cfg.SSL_VERIFY)
+
 from pyproc.mcp.hosts import (
     HostMetadataError,
     search_lpse_hosts,
@@ -171,7 +188,7 @@ async def _handle_search_packages(arguments: dict, package_type: str) -> list[mc
     )
 
     _rate_limit()
-    with Lpse(params['lpse_host'], timeout=TIMEOUT) as lpse:
+    with Lpse(params['lpse_host'], timeout=TIMEOUT, verify=mcp_server_cfg.SSL_VERIFY) as lpse:
         kategori = None
         if params.get('kategori'):
             kategori = JenisPengadaan[params['kategori']]
@@ -264,7 +281,7 @@ async def handle_get_tender_detail(
     )
 
     _rate_limit()
-    with Lpse(params['lpse_host'], timeout=TIMEOUT) as lpse:
+    with Lpse(params['lpse_host'], timeout=TIMEOUT, verify=mcp_server_cfg.SSL_VERIFY) as lpse:
         detil = lpse.detil_paket_tender(params['package_id'])
         info = detil.get_all_detil()
 
@@ -301,7 +318,7 @@ async def handle_get_non_tender_detail(
     )
 
     _rate_limit()
-    with Lpse(params['lpse_host'], timeout=TIMEOUT) as lpse:
+    with Lpse(params['lpse_host'], timeout=TIMEOUT, verify=mcp_server_cfg.SSL_VERIFY) as lpse:
         detil = lpse.detil_paket_non_tender(params['package_id'])
         info = detil.get_all_detil()
 
@@ -335,7 +352,7 @@ async def _handle_get_detail(arguments: dict, package_type: str) -> list[mcp_typ
     )
 
     _rate_limit()
-    with Lpse(params['lpse_host'], timeout=TIMEOUT) as lpse:
+    with Lpse(params['lpse_host'], timeout=TIMEOUT, verify=mcp_server_cfg.SSL_VERIFY) as lpse:
         detil = getattr(lpse, PACKAGE_TOOL_METHODS[package_type][1])(params['package_id'])
         info = detil.get_all_detil()
         if info.get('error') and not detil.pengumuman:
@@ -376,14 +393,6 @@ async def handle_get_pengadaan_darurat_detail(
     return await _handle_get_detail(arguments, "darurat")
 
 
-def _detail_error_response(package_id: str, exc: Exception) -> dict:
-    return {
-        "package_id": package_id,
-        "success": False,
-        "error": str(exc),
-    }
-
-
 async def _handle_bulk_detail(
     arguments: dict,
     package_type: str,
@@ -394,34 +403,40 @@ async def _handle_bulk_detail(
         return [mcp_types.TextContent(type="text",
                      text=f"Error: Invalid parameter: {exc}")]
 
-    details = []
-    with Lpse(params["lpse_host"], timeout=TIMEOUT) as lpse:
-        for package_id in params["package_ids"]:
-            try:
-                _rate_limit()
-                detil = getattr(lpse, PACKAGE_TOOL_METHODS[package_type][1])(package_id)
+    # Create per-worker Lpse pool with unique browser footprints
+    package_ids = params["package_ids"]
+    workers = min(len(package_ids), MCP_WORKERS)
+    lpse_pool = create_worker_lpse_pool(
+        params["lpse_host"], workers, TIMEOUT, mcp_server_cfg.SSL_VERIFY,
+    )
+    rate_limiter = ThreadSafeRateLimiter(min_delay=RATE_LIMIT_DELAY)
 
-                info = detil.get_all_detil()
-                detail_dict = detil.todict()
-                normalized = normalize_detail_result(detail_dict)
-                item = {
-                    "package_id": package_id,
-                    "success": not bool(info.get("error")),
-                    "detail": normalized,
-                }
-                if info.get("error"):
-                    item["error_messages"] = info.get("error_message", [])
-                details.append(item)
-            except Exception as exc:
-                details.append(_detail_error_response(package_id, exc))
-                if not params["continue_on_error"]:
-                    break
+    try:
+        # Offload blocking parallel fetch from the anyio event loop
+        raw_details = await anyio.to_thread.run_sync(
+            fetch_details_parallel,
+            package_ids,
+            lpse_pool,
+            PACKAGE_TOOL_METHODS[package_type][1],
+            rate_limiter,
+            params["continue_on_error"],
+        )
+    finally:
+        for lpse in lpse_pool:
+            lpse.session.close()
+
+    # Normalize and assemble final output
+    details = []
+    for item in raw_details:
+        if item.get("success") and "detail" in item:
+            item["detail"] = normalize_detail_result(item["detail"])
+        details.append(item)
 
     success_count = len([item for item in details if item.get("success")])
     output = {
         "lpse_host": params["lpse_host"],
         "package_type": package_type,
-        "requested_count": len(params["package_ids"]),
+        "requested_count": len(package_ids),
         "count": len(details),
         "success_count": success_count,
         "error_count": len(details) - success_count,
@@ -517,6 +532,129 @@ async def handle_get_master_klpd(
         "usage": (
             "Use kd_klpd as instansi_id in search_tender_packages or "
             "search_non_tender_packages."
+        ),
+    }
+    return _make_json_response(output)
+
+
+async def handle_get_master_lpse(
+    name: str, arguments: dict
+) -> list[mcp_types.TextContent]:
+    """Return LKPP Satu Data master LPSE references for kd_lpse values."""
+    try:
+        params = validate_master_lpse_params(arguments)
+    except ValueError as exc:
+        return [mcp_types.TextContent(type="text",
+                     text=f"Error: Invalid parameter: {exc}")]
+
+    logger.info(
+        "Get master LPSE: query=%s kd=%s limit=%s",
+        params["query"], params["kd_lpse"], params["limit"],
+    )
+
+    _rate_limit()
+    rows = Lpse.get_master_lpse(timeout=TIMEOUT)
+    query = params["query"].lower()
+    if params["kd_lpse"]:
+        rows = [
+            row for row in rows
+            if int(row.get("kd_lpse", 0)) == params["kd_lpse"]
+        ]
+    if query:
+        rows = [
+            row for row in rows
+            if query in str(row.get("nama_lpse", "")).lower()
+            or query in str(row.get("kd_lpse", "")).lower()
+        ]
+
+    output = {
+        "count": min(len(rows), params["limit"]),
+        "total_matches": len(rows),
+        "lpse": rows[:params["limit"]],
+        "usage": (
+            "Use kd_lpse from this tool as the kd_lpse parameter in "
+            "get_tender_umum_publik."
+        ),
+    }
+    return _make_json_response(output)
+
+
+async def handle_get_tender_umum_publik(
+    name: str, arguments: dict
+) -> list[mcp_types.TextContent]:
+    """Return tender data from LKPP ISB Satu Data as alternative source."""
+    try:
+        params = validate_tender_umum_publik_params(arguments)
+    except ValueError as exc:
+        return [mcp_types.TextContent(type="text",
+                     text=f"Error: Invalid parameter: {exc}")]
+
+    logger.info(
+        "Get tender umum publik: tahun=%s kd_lpse=%s",
+        params["tahun_anggaran"], params["kd_lpse"],
+    )
+
+    _rate_limit()
+    rows = Lpse.get_tender_umum_publik(
+        tahun_anggaran=params["tahun_anggaran"],
+        kd_lpse=params["kd_lpse"],
+        timeout=TIMEOUT,
+    )
+
+    output = {
+        "count": len(rows),
+        "source": "LKPP ISB Satu Data (alternative data source)",
+        "kd_lpse": params["kd_lpse"],
+        "tahun_anggaran": params["tahun_anggaran"],
+        "tenders": rows,
+        "notes": (
+            "Data from ISB Satu Data. Field names may contain spaces "
+            "(e.g., 'Kode Tender', 'Nama Paket'). This is an alternative "
+            "data source. Use as fallback when realtime SPSE/Inaproc "
+            "search returns no results or errors."
+        ),
+    }
+    return _make_json_response(output)
+
+
+async def handle_set_ssl_verify(
+    name: str, arguments: dict
+) -> list[mcp_types.TextContent]:
+    """Enable or disable TLS/SSL certificate verification for SPSE requests."""
+    try:
+        params = validate_ssl_verify_params(arguments)
+    except ValueError as exc:
+        return [mcp_types.TextContent(type="text",
+                     text=f"Error: Invalid parameter: {exc}")]
+
+    old_value = mcp_server_cfg.SSL_VERIFY
+    mcp_server_cfg.SSL_VERIFY = params["enable"]
+    _lpse_mod._set_ssl_verify(params["enable"])
+
+    logger.info(
+        "SSL verification changed: %s -> %s", old_value, params["enable"]
+    )
+
+    output = {
+        "ssl_verify": params["enable"],
+        "previous": old_value,
+        "message": (
+            "SSL certificate verification is now "
+            + ("ENABLED." if params["enable"] else "DISABLED.")
+        ),
+    }
+    return _make_json_response(output)
+
+
+async def handle_get_ssl_verify(
+    name: str, arguments: dict
+) -> list[mcp_types.TextContent]:
+    """Return the current TLS/SSL certificate verification setting."""
+    output = {
+        "ssl_verify": mcp_server_cfg.SSL_VERIFY,
+        "message": (
+            "SSL certificate verification is currently "
+            + ("ENABLED." if mcp_server_cfg.SSL_VERIFY else "DISABLED.")
         ),
     }
     return _make_json_response(output)
@@ -633,7 +771,7 @@ async def handle_validate_lpse_host(
 
     try:
         _rate_limit()
-        lpse = Lpse(host, timeout=TIMEOUT)
+        lpse = Lpse(host, timeout=TIMEOUT, verify=mcp_server_cfg.SSL_VERIFY)
         token = lpse.get_auth_token()
         lpse.session.close()
 
@@ -882,6 +1020,33 @@ TOOL_DESCRIPTIONS = {
         "tool as instansi_id when filtering search_tender_packages or "
         "search_non_tender_packages by institution."
     ),
+    "get_master_lpse": (
+        "Get LKPP Satu Data master LPSE references. Use kd_lpse from this "
+        "tool as the kd_lpse parameter in get_tender_umum_publik. This is "
+        "reference data for valid LPSE codes."
+    ),
+    "get_tender_umum_publik": (
+        "Get tender procurement data from LKPP ISB Satu Data (alternative "
+        "data source). Use this as a fallback when the realtime SPSE/Inaproc "
+        "search tools (search_tender_packages) return no results or errors. "
+        "Also use when the user explicitly asks for ISB Satu Data. Requires "
+        "kd_lpse from get_master_lpse and tahun_anggaran. Field names in "
+        "results may contain spaces (e.g., 'Kode Tender', 'Nama Paket')."
+    ),
+    "set_ssl_verify": (
+        "Enable or disable TLS/SSL certificate verification for all SPSE/Inaproc "
+        "requests made by this MCP server. When disabled (enable=false), "
+        "certificate errors such as self-signed or expired certificates are "
+        "ignored. This is useful when connecting through corporate proxies or "
+        "VPNs that intercept TLS traffic. The setting takes effect immediately "
+        "and persists for the lifetime of the MCP session. The initial value "
+        "can be set via the PYPROC_SSL_VERIFY environment variable "
+        "(set to '1', 'true', or 'yes' to enable)."
+    ),
+    "get_ssl_verify": (
+        "Return the current TLS/SSL certificate verification setting. "
+        "Returns whether SSL verification is currently enabled or disabled."
+    ),
     "get_procurement_search_options": (
         "Explain the two MCP search strategies: direct SPSE keyword search "
         "and optional local full-text indexing. Use this when a user asks "
@@ -1029,6 +1194,26 @@ register_tool(
     "get_master_klpd",
     handle_get_master_klpd,
     {**MASTER_KLPD_SCHEMA, "_description": TOOL_DESCRIPTIONS["get_master_klpd"]},
+)
+register_tool(
+    "get_master_lpse",
+    handle_get_master_lpse,
+    {**MASTER_LPSE_SCHEMA, "_description": TOOL_DESCRIPTIONS["get_master_lpse"]},
+)
+register_tool(
+    "get_tender_umum_publik",
+    handle_get_tender_umum_publik,
+    {**TENDER_UMUM_PUBLIK_SCHEMA, "_description": TOOL_DESCRIPTIONS["get_tender_umum_publik"]},
+)
+register_tool(
+    "set_ssl_verify",
+    handle_set_ssl_verify,
+    {**SSL_VERIFY_SCHEMA, "_description": TOOL_DESCRIPTIONS["set_ssl_verify"]},
+)
+register_tool(
+    "get_ssl_verify",
+    handle_get_ssl_verify,
+    {"type": "object", "properties": {}, "_description": TOOL_DESCRIPTIONS["get_ssl_verify"]},
 )
 register_tool(
     "get_procurement_search_options",

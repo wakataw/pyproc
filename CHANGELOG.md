@@ -4,6 +4,59 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.3.2
+
+### Added
+- [mcp] Tambah tool `get_master_klpd` untuk referensi K/L/PD dari LKPP ISB Satu Data
+- [mcp] Tambah tool `get_master_lpse` untuk referensi LPSE dari LKPP ISB Satu Data
+- [mcp] Tambah tool `get_tender_umum_publik` untuk unduh data tender dari ISB Satu Data (sumber alternatif)
+- [mcp] Tambah tool `set_ssl_verify` untuk mengaktifkan/menonaktifkan verifikasi sertifikat TLS/SSL
+- [mcp] Tambah tool `get_ssl_verify` untuk mengecek status verifikasi sertifikat TLS/SSL
+- [mcp] Tambah notifikasi progress untuk `create_procurement_search_index`
+- [cli] Subcommand `satudata` grouping `masterlpse` dan `tenderumum` untuk akses ISB Satu Data
+- [env] Tambah variabel lingkungan `PYPROC_SSL_VERIFY` untuk konfigurasi SSL saat startup
+
+## 0.3.1
+
+### Changed
+- [mcp] Hapus batas `max_packages` pada `create_procurement_search_index`, tambah pagination dan progress logging
+
+## 0.3
+
+### Added
+- [mcp] Server MCP dengan dukungan penuh untuk MCP protocol (stdio transport)
+- [mcp] Tool pencarian paket tender, non-tender, pencatatan, swakelola, dan darurat
+- [mcp] Tool detil paket individu dan bulk (sampai 20 paket per panggilan)
+- [mcp] Tool pencarian host LPSE berdasarkan nama instansi dan validasi host
+- [mcp] Tool kategori pengadaan (tanpa panggilan jaringan)
+- [mcp] Tool opsi pencarian (penjelasan strategi direct keyword vs local FTS index)
+- [mcp] Local SQLite full-text search index (create, search, list, delete)
+- [cli] Subcommand `masterklpd` untuk query referensi K/L/PD dari ISB API
+- [cli] Subcommand `masterlpse` untuk browser LPSE interaktif dan unduh data tender
+- [cli] Subcommand `tenderumum` untuk unduh data tender dari ISB API
+- [library] Method `Lpse.get_master_klpd()`, `Lpse.get_master_lpse()`, `Lpse.get_tender_umum_publik()`
+- [library] Dukungan context manager untuk class `Lpse`
+
+## 0.2
+
+### Added
+- [cli] Subcommand `daftarhost` untuk unduh daftar host LPSE dalam format JSON dari GitHub Gist
+- [cli] Argument `--instansi-id` untuk filter pencarian berdasarkan kode K/L/PD
+- [cli] Argument `--tipe-swakelola-id` untuk filter tipe swakelola
+- [library] Module `cache.py` untuk SQLite cache store dengan context manager
+- [library] Parameter `verify` pada constructor `Lpse` untuk kontrol verifikasi SSL
+- [test] Unit test framework dengan 102 test case (cache, CLI, API layer)
+
+### Changed
+- [cli] Restruktur CLI dengan subcommand dispatch system, backward compatible
+- [cli] Ganti flag `--non-tender` menjadi `--jenis-paket` dengan dukungan 5 tipe paket
+- [build] Migrasi ke `pyproject.toml`, upgrade GitHub Actions
+
+### Fixed
+- [downloader] Filter tahun anggaran pada infinite scrolling
+- [downloader] Detil referer header
+- [library] Method `get_paket` request method
+
 ## 0.1.7
 
 ### Fix
