@@ -12,9 +12,7 @@ class TestSearchIndex(unittest.TestCase):
         from pyproc.mcp import search_index
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            mock_detail = MagicMock()
-            mock_detail.get_all_detil.return_value = {"error": False, "error_message": []}
-            mock_detail.todict.return_value = {
+            mock_detail = {
                 "id_paket": "100",
                 "pengumuman": {
                     "nama_tender": "Pengadaan Laptop",
@@ -26,12 +24,24 @@ class TestSearchIndex(unittest.TestCase):
             mock_lpse.get_paket_tender.return_value = [
                 ["100", "Pengadaan Laptop", "KEMENTERIAN KEUANGAN"],
             ]
-            mock_lpse.detil_paket_tender.return_value = mock_detail
             mock_lpse.__enter__ = MagicMock(return_value=mock_lpse)
             mock_lpse.__exit__ = MagicMock(return_value=False)
 
+            # fetch_details_parallel returns the detail phase results
+            mock_pool = [MagicMock() for _ in range(4)]
+
+            def _fetch_side_effect(package_ids, **kwargs):
+                return [{
+                    "package_id": pid,
+                    "success": True,
+                    "detail": mock_detail,
+                } for pid in package_ids]
+
             with patch.dict(os.environ, {"PYPROC_MCP_INDEX_DIR": tmpdir}):
-                with patch("pyproc.mcp.search_index.Lpse", return_value=mock_lpse):
+                with patch("pyproc.mcp.search_index.Lpse", return_value=mock_lpse), \
+                     patch("pyproc.mcp.search_index.create_worker_lpse_pool", return_value=mock_pool), \
+                     patch("pyproc.mcp.search_index.fetch_details_parallel",
+                           side_effect=_fetch_side_effect):
                     created = search_index.create_procurement_search_index(
                         lpse_host="kemenkeu",
                         package_type="tender",
@@ -64,22 +74,49 @@ class TestSearchIndex(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     search_index.search_procurement_index("missing", "laptop")
 
-    def _make_mock_lpse(self, chunks, detail=None):
-        """Build a mock Lpse that returns paginated chunks from get_paket_tender."""
-        if detail is None:
-            detail = MagicMock()
-            detail.get_all_detil.return_value = {"error": False, "error_message": []}
-            detail.todict.return_value = {"id_paket": "100"}
+    def _make_mock_lpse(self, chunks):
+        """Build a mock Lpse that returns paginated chunks from get_paket_tender.
 
+        Detail fetching is now handled by ``fetch_details_parallel`` in the
+        parallel module — this mock only covers the scroll/index phase.
+        """
         mock_lpse = MagicMock()
         mock_lpse.get_paket_tender.side_effect = list(chunks)
-        mock_lpse.detil_paket_tender.return_value = detail
         mock_lpse.__enter__ = MagicMock(return_value=mock_lpse)
         mock_lpse.__exit__ = MagicMock(return_value=False)
         return mock_lpse
 
     def _make_row(self, pkg_id, title="Test Package"):
         return [str(pkg_id), title, "TEST INSTANSI"]
+
+    def _make_fetch_results(self, pkg_ids, success=True):
+        """Build mock results from ``fetch_details_parallel``."""
+        return [{
+            "package_id": str(pid),
+            "success": success,
+            "detail": {"id_paket": str(pid)},
+        } for pid in pkg_ids]
+
+    def _mock_parallel_patches(self, success=True):
+        """Return patches for the parallel detail fetch in search_index.
+
+        Uses ``side_effect`` so each batch call returns results only for
+        the package IDs actually passed to it.
+        """
+        pool = [MagicMock() for _ in range(4)]
+
+        def _fetch_side_effect(package_ids, **kwargs):
+            return [{
+                "package_id": str(pid),
+                "success": success,
+                "detail": {"id_paket": str(pid)},
+            } for pid in package_ids]
+
+        return (
+            patch("pyproc.mcp.search_index.create_worker_lpse_pool", return_value=pool),
+            patch("pyproc.mcp.search_index.fetch_details_parallel",
+                  side_effect=_fetch_side_effect),
+        )
 
     def test_pagination_multiple_chunks(self):
         """All rows from multiple chunks are collected."""
@@ -90,9 +127,11 @@ class TestSearchIndex(unittest.TestCase):
         chunk3 = [self._make_row(i) for i in range(201, 251)]  # 50 rows (partial)
         mock_lpse = self._make_mock_lpse([chunk1, chunk2, chunk3])
 
+        p1, p2 = self._mock_parallel_patches()
+
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch.dict(os.environ, {"PYPROC_MCP_INDEX_DIR": tmpdir}):
-                with patch("pyproc.mcp.search_index.Lpse", return_value=mock_lpse):
+                with patch("pyproc.mcp.search_index.Lpse", return_value=mock_lpse), p1, p2:
                     created = search_index.create_procurement_search_index(
                         lpse_host="kemenkeu",
                         max_packages=0,
@@ -101,7 +140,7 @@ class TestSearchIndex(unittest.TestCase):
 
                 self.assertEqual(created["indexed_packages"], 250)
                 self.assertEqual(created["failed_packages"], 0)
-                # Should have made exactly 3 requests
+                # Should have made exactly 3 scroll requests
                 self.assertEqual(mock_lpse.get_paket_tender.call_count, 3)
 
     def test_pagination_stops_on_empty(self):
@@ -112,9 +151,11 @@ class TestSearchIndex(unittest.TestCase):
         chunk2 = []  # empty -> stop
         mock_lpse = self._make_mock_lpse([chunk1, chunk2])
 
+        p1, p2 = self._mock_parallel_patches()
+
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch.dict(os.environ, {"PYPROC_MCP_INDEX_DIR": tmpdir}):
-                with patch("pyproc.mcp.search_index.Lpse", return_value=mock_lpse):
+                with patch("pyproc.mcp.search_index.Lpse", return_value=mock_lpse), p1, p2:
                     created = search_index.create_procurement_search_index(
                         lpse_host="kemenkeu",
                         max_packages=0,
@@ -131,9 +172,11 @@ class TestSearchIndex(unittest.TestCase):
         chunk1 = [self._make_row(i) for i in range(1, 101)]  # 100 rows
         mock_lpse = self._make_mock_lpse([chunk1])
 
+        p1, p2 = self._mock_parallel_patches()
+
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch.dict(os.environ, {"PYPROC_MCP_INDEX_DIR": tmpdir}):
-                with patch("pyproc.mcp.search_index.Lpse", return_value=mock_lpse):
+                with patch("pyproc.mcp.search_index.Lpse", return_value=mock_lpse), p1, p2:
                     created = search_index.create_procurement_search_index(
                         lpse_host="kemenkeu",
                         max_packages=30,
@@ -150,9 +193,11 @@ class TestSearchIndex(unittest.TestCase):
         chunk = [self._make_row(i) for i in range(1, 51)]
         mock_lpse = self._make_mock_lpse([chunk])
 
+        p1, p2 = self._mock_parallel_patches()
+
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch.dict(os.environ, {"PYPROC_MCP_INDEX_DIR": tmpdir}):
-                with patch("pyproc.mcp.search_index.Lpse", return_value=mock_lpse):
+                with patch("pyproc.mcp.search_index.Lpse", return_value=mock_lpse), p1, p2:
                     created = search_index.create_procurement_search_index(
                         lpse_host="kemenkeu",
                         max_packages=50,

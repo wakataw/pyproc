@@ -13,6 +13,11 @@ from uuid import uuid4
 
 from pyproc import Lpse, JenisPengadaan
 import pyproc.mcp.server as mcp_server_cfg  # for mutable SSL_VERIFY
+from pyproc.mcp.parallel import (
+    ThreadSafeRateLimiter,
+    create_worker_lpse_pool,
+    fetch_details_parallel,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -95,6 +100,37 @@ def _init_db(path: Path, metadata: dict) -> sqlite3.Connection:
         )
     db.commit()
     return db
+
+
+def _create_worker_lpse_pool(host, count, timeout, verify):
+    """Thin wrapper that re-exports ``parallel.create_worker_lpse_pool``."""
+    return create_worker_lpse_pool(host, count, timeout, verify)
+
+
+def _make_rate_limiter(rate_limit_callback):
+    """Create a ``ThreadSafeRateLimiter`` from the legacy callback's delay.
+
+    If *rate_limit_callback* is the MCP ``_rate_limit`` function, the
+    effective delay is ``RATE_LIMIT_DELAY`` (imported from server config).
+    """
+    from pyproc.mcp.server import RATE_LIMIT_DELAY
+    return ThreadSafeRateLimiter(min_delay=RATE_LIMIT_DELAY)
+
+
+def _batch_position(pid, batch_items):
+    """Return the 0-based index of *pid* in *batch_items*."""
+    for i, (item_pid, _title) in enumerate(batch_items):
+        if item_pid == pid:
+            return i
+    return 0
+
+
+def _batch_title(pid, batch_items):
+    """Return the title for *pid* from *batch_items*."""
+    for item_pid, title in batch_items:
+        if item_pid == pid:
+            return title
+    return str(pid)
 
 
 def create_procurement_search_index(
@@ -187,40 +223,78 @@ def create_procurement_search_index(
                     f"Indexing {to_process} packages from {lpse_host}",
                 )
 
-            for idx, row in enumerate(all_rows[:to_process], start=1):
-                id_paket = _package_id(row)
-                if not id_paket:
-                    continue
-                title = _package_title(row)
-                logger.info("[%d/%d] Indexing: %s", idx, to_process, title)
-                if progress_callback:
-                    progress_callback(
-                        "index_package", idx, to_process,
-                        f"Indexing package {idx}/{to_process}: {title}",
-                    )
-                try:
-                    if rate_limit_callback:
-                        rate_limit_callback()
-                    detail = getattr(lpse, PACKAGE_METHODS[package_type][1])(id_paket)
-                    info = detail.get_all_detil()
-                    detail_dict = detail.todict()
-                    detail_dict["_index_errors"] = info.get("error_message", [])
+        # ── Detail / index phase (parallel batches) ──────────────────────────
+        # The scroll Lpse is released; create a fresh pool of workers, each
+        # with its own session and browser footprint so the server sees
+        # concurrent requests as distinct clients.
+        BATCH_SIZE = 16
+        from pyproc.mcp.server import MCP_WORKERS
+        workers = min(MCP_WORKERS, BATCH_SIZE)
+        lpse_pool = _create_worker_lpse_pool(
+            lpse_host, workers, timeout, mcp_server_cfg.SSL_VERIFY,
+        )
+        rate_limiter = _make_rate_limiter(rate_limit_callback)
+
+        detail_method_name = PACKAGE_METHODS[package_type][1]
+
+        for batch_start in range(0, to_process, BATCH_SIZE):
+            batch_end = min(batch_start + BATCH_SIZE, to_process)
+            batch = all_rows[batch_start:batch_end]
+            # Build (id_paket, title) pairs, skipping rows without an ID
+            batch_items = []
+            for row in batch:
+                pid = _package_id(row)
+                if pid:
+                    batch_items.append((pid, _package_title(row)))
+
+            if not batch_items:
+                continue
+
+            pids = [item[0] for item in batch_items]
+            results = fetch_details_parallel(
+                package_ids=pids,
+                lpse_pool=lpse_pool,
+                detail_method_name=detail_method_name,
+                rate_limiter=rate_limiter,
+                continue_on_error=True,
+            )
+
+            # Write batch results to SQLite (single-threaded, safe)
+            for result in results:
+                pid = result["package_id"]
+                batch_idx = batch_start + _batch_position(pid, batch_items) + 1
+                if result.get("success") and "detail" in result:
+                    detail_dict = result["detail"]
+                    detail_dict["_index_errors"] = result.get("error_messages", [])
                     body = _detail_text(detail_dict)
+                    title = _batch_title(pid, batch_items)
                     db.execute(
                         "INSERT OR REPLACE INTO packages VALUES(?, ?, ?, ?, ?)",
-                        (id_paket, title, lpse_host, package_type, body),
+                        (pid, title, lpse_host, package_type, body),
                     )
                     db.execute(
                         "INSERT INTO packages_fts(id_paket, title, body) VALUES(?, ?, ?)",
-                        (id_paket, title, body),
+                        (pid, title, body),
                     )
                     indexed += 1
-                except Exception:
+                else:
                     failed += 1
+                    title = _batch_title(pid, batch_items)
                     logger.warning(
-                        "Failed to index package %s (%s)", id_paket, title,
+                        "Failed to index package %s (%s)", pid, title,
                     )
-                    continue
+
+            # Report progress at batch granularity
+            if progress_callback:
+                progress_callback(
+                    "index_package", batch_end, to_process,
+                    f"Indexed batch up to {batch_end}/{to_process}",
+                )
+            db.commit()  # commit each batch for durability
+
+        # Clean up worker sessions
+        for lpse in lpse_pool:
+            lpse.session.close()
     finally:
         db.commit()
         db.close()

@@ -2,9 +2,13 @@ import argparse
 import csv
 import re
 import logging
+import random
 import signal
 import sys
 import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from time import sleep
+
 import requests
 import pyproc
 import json
@@ -135,7 +139,7 @@ class DownloaderContext(object):
         self.nama_penyedia = (rekanan if isinstance(rekanan, str) else None) or \
             (nama_penyedia if isinstance(nama_penyedia, str) else None)
         self.chunk_size = args.chunk_size
-        self.workers = 1 # hard coded worker to 1
+        self.workers = args.workers
         self.timeout = args.timeout
         jenis_paket = getattr(args, 'jenis_paket', 'tender')
         self.jenis_paket = jenis_paket if isinstance(jenis_paket, str) else 'tender'
@@ -423,9 +427,10 @@ class IndexDownloader(object):
 
 class DetailDownloader(object):
 
-    def __init__(self, index_downloader):
+    def __init__(self, index_downloader, lpse_pool=None):
         self.index_downloader = index_downloader
         self.lock = threading.Lock()
+        self.lpse_pool = lpse_pool or []
 
         logging.info("{} - Mulai pengunduhan detail data".format(self.index_downloader.lpse_host.url))
 
@@ -436,29 +441,54 @@ class DetailDownloader(object):
 
         return total, deleted
 
-    def get_detail(self, lpse_index):
+    def _ensure_lpse_pool(self, count):
+        """Populate the Lpse pool with unique-footprint instances, one per worker."""
+        from pyproc.user_agents import create_session_headers
+
+        while len(self.lpse_pool) < count:
+            worker_id = len(self.lpse_pool)
+            headers = create_session_headers(worker_id)
+            lpse = pyproc.Lpse(
+                self.index_downloader.lpse_host.url,
+                timeout=self.index_downloader.ctx.timeout,
+                user_agent=headers.pop('User-Agent'),
+            )
+            # Apply remaining headers (Accept, Accept-Language) from profile
+            lpse.session.headers.update(headers)
+            self.lpse_pool.append(lpse)
+        return self.lpse_pool[:count]
+
+    def _download_worker(self, lpse_index, lpse):
+        """Download detail for a single package using the given Lpse instance.
+
+        Each worker gets its own Lpse with unique session/cookies/headers
+        so the server sees parallel requests as distinct clients.
         """
-        Get detail paket berdasarkan paket ID
-        :param package_id:
-        :return:
-        """
-        logging.debug("[DETAIL DOWNLOADER] download detail for {}".format(lpse_index))
         method = getattr(
-            self.index_downloader.lpse,
+            lpse,
             self.index_downloader.ctx.package_config['detail_method']
         )
-        package_detail = method(lpse_index.id_paket)
+        try:
+            package_detail = method(lpse_index.id_paket)
+            info = package_detail.get_all_detil()
 
-        info = package_detail.get_all_detil()
+            if info['error']:
+                logging.error('{} - Terjadi kesalahan untuk paket {}: {}'.format(
+                    self.index_downloader.lpse_host.url,
+                    lpse_index.id_paket,
+                    info['error_message']
+                ))
+            lpse_index.detail = package_detail
 
-        if info['error']:
-            logging.error('{} - Terjadi kesalahan untuk paket {}'.format(
-                self.index_downloader.lpse_host.url, info['error_message']
+            logging.debug("[DETAIL DOWNLOADER] update database detail data")
+            self.update_detail(lpse_index)
+        except Exception as e:
+            logging.error('{} - Worker error untuk paket {}: {}'.format(
+                self.index_downloader.lpse_host.url, lpse_index.id_paket, e
             ))
-        lpse_index.detail = package_detail
-
-        logging.debug("[DETAIL DOWNLOADER] update database detail data")
-        self.update_detail(lpse_index)
+        finally:
+            # Desynchronize workers with random delay between packages
+            sleep(random.uniform(0.5, 2.5))
 
     def update_detail(self, lpse_index):
         with self.lock:
@@ -471,55 +501,38 @@ class DetailDownloader(object):
     def start(self):
         total, deleted = self.__pre_process_index_db()
         total_to_download = total - deleted
-        index_generator = self.index_downloader.get_index()
+        index_list = list(self.index_downloader.get_index())
+        workers = self.index_downloader.ctx.workers
+        if workers < 1:
+            workers = 1
+
+        lpse_pool = self._ensure_lpse_pool(workers)
         total_downloaded = 0
 
-        while True:
-            lpse_index = []
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            future_to_index = {}
+            for i, idx in enumerate(index_list):
+                lpse = lpse_pool[i % workers]
+                future = executor.submit(self._download_worker, idx, lpse)
+                future_to_index[future] = idx
 
-            for i in range(self.index_downloader.ctx.workers):
-                try:
-                    lpse_index.append(index_generator.__next__())
-                except StopIteration:
-                    pass
-
-            logging.debug("[DETAIL DOWNLOADER] starting batch for {}".format(lpse_index))
-
-            threads = []
-
-            for i, index in enumerate(lpse_index):
-                t = threading.Thread(target=self.get_detail, args=(index,), name='detail-thread-{}'.format(i))
-                t.start()
-                logging.debug("[DETAIL DOWNLOADER] {} started".format(t.name))
-                threads.append(t)
-
-            for t in threads:
-                logging.debug("[DETAIL DOWNLOADER] thread {} join".format(t.name))
-                t.join()
-
-            for t in threads:
-                logging.debug("[DETAIL DOWNLOADER] thread {} deleted".format(t.name))
-                del t
-
-            del threads
-
-            total_downloaded += len(lpse_index)
-
-            if self.index_downloader.ctx.log_level == 'INFO':
-                print(
-                    "\rMemproses {}/{} ({:,.2f}%) data".format(
-                        total_downloaded,
-                        total_to_download,
-                        total_downloaded/total_to_download*100 if total_to_download > 0 else 0.0
-                    ),
-                    end=' '
-                )
-
-            if len(lpse_index) != self.index_downloader.ctx.workers:
-                break
+            for future in as_completed(future_to_index):
+                total_downloaded += 1
+                if self.index_downloader.ctx.log_level == 'INFO':
+                    print(
+                        "\rMemproses {}/{} ({:,.2f}%) data".format(
+                            total_downloaded,
+                            total_to_download,
+                            total_downloaded / total_to_download * 100
+                            if total_to_download > 0 else 0.0
+                        ),
+                        end=' '
+                    )
 
         print()
-        logging.info("{} - {} data selesai diproses".format(self.index_downloader.lpse_host.url, total_downloaded))
+        logging.info("{} - {} data selesai diproses".format(
+            self.index_downloader.lpse_host.url, total_downloaded
+        ))
 
 
 class Exporter:
@@ -716,7 +729,7 @@ class Downloader(object):
         parser.add_argument('--tipe-swakelola-id', type=int, choices=[1, 2, 3, 4], default=None,
                             help=text.HELP_TIPE_SWAKELA)
         parser.add_argument('-c', '--chunk-size', type=int, default=100, help=text.HELP_CHUNK_SIZE)
-        parser.add_argument('-w', '--workers', type=int, default=8, help=argparse.SUPPRESS)
+        parser.add_argument('-w', '--workers', type=int, default=8, help=text.HELP_WORKERS)
         parser.add_argument('-x', '--timeout', type=int, default=30, help=text.HELP_TIMEOUT)
         parser.add_argument('--jenis-paket', choices=list(PACKAGE_TYPES.keys()), default='tender',
                             help=text.HELP_JENIS_PAKET)

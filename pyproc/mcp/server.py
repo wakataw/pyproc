@@ -31,6 +31,7 @@ LOG_LEVEL = os.environ.get("PYPROC_LOG_LEVEL", "INFO").upper()
 SSL_VERIFY = os.environ.get("PYPROC_SSL_VERIFY", "0").strip().lower() in (
     "1", "true", "yes", "on"
 )
+MCP_WORKERS = int(os.environ.get("PYPROC_MCP_WORKERS", "4"))
 
 # ── logging (to stderr, never stdout — stdio transport uses stdout) ─────────
 

@@ -51,8 +51,13 @@ from pyproc.mcp.schemas import (
     LIST_SEARCH_INDEXES_SCHEMA,
     DELETE_SEARCH_INDEX_SCHEMA,
 )
-from pyproc.mcp.server import register_tool, server, TIMEOUT, RATE_LIMIT_DELAY
+from pyproc.mcp.server import register_tool, server, TIMEOUT, RATE_LIMIT_DELAY, MCP_WORKERS
 import pyproc.mcp.server as mcp_server_cfg  # for mutable SSL_VERIFY
+from pyproc.mcp.parallel import (
+    ThreadSafeRateLimiter,
+    create_worker_lpse_pool,
+    fetch_details_parallel,
+)
 
 # Sync lpse module's SSL_VERIFY with server config on startup
 _lpse_mod._set_ssl_verify(mcp_server_cfg.SSL_VERIFY)
@@ -388,14 +393,6 @@ async def handle_get_pengadaan_darurat_detail(
     return await _handle_get_detail(arguments, "darurat")
 
 
-def _detail_error_response(package_id: str, exc: Exception) -> dict:
-    return {
-        "package_id": package_id,
-        "success": False,
-        "error": str(exc),
-    }
-
-
 async def _handle_bulk_detail(
     arguments: dict,
     package_type: str,
@@ -406,34 +403,40 @@ async def _handle_bulk_detail(
         return [mcp_types.TextContent(type="text",
                      text=f"Error: Invalid parameter: {exc}")]
 
-    details = []
-    with Lpse(params["lpse_host"], timeout=TIMEOUT, verify=mcp_server_cfg.SSL_VERIFY) as lpse:
-        for package_id in params["package_ids"]:
-            try:
-                _rate_limit()
-                detil = getattr(lpse, PACKAGE_TOOL_METHODS[package_type][1])(package_id)
+    # Create per-worker Lpse pool with unique browser footprints
+    package_ids = params["package_ids"]
+    workers = min(len(package_ids), MCP_WORKERS)
+    lpse_pool = create_worker_lpse_pool(
+        params["lpse_host"], workers, TIMEOUT, mcp_server_cfg.SSL_VERIFY,
+    )
+    rate_limiter = ThreadSafeRateLimiter(min_delay=RATE_LIMIT_DELAY)
 
-                info = detil.get_all_detil()
-                detail_dict = detil.todict()
-                normalized = normalize_detail_result(detail_dict)
-                item = {
-                    "package_id": package_id,
-                    "success": not bool(info.get("error")),
-                    "detail": normalized,
-                }
-                if info.get("error"):
-                    item["error_messages"] = info.get("error_message", [])
-                details.append(item)
-            except Exception as exc:
-                details.append(_detail_error_response(package_id, exc))
-                if not params["continue_on_error"]:
-                    break
+    try:
+        # Offload blocking parallel fetch from the anyio event loop
+        raw_details = await anyio.to_thread.run_sync(
+            fetch_details_parallel,
+            package_ids,
+            lpse_pool,
+            PACKAGE_TOOL_METHODS[package_type][1],
+            rate_limiter,
+            params["continue_on_error"],
+        )
+    finally:
+        for lpse in lpse_pool:
+            lpse.session.close()
+
+    # Normalize and assemble final output
+    details = []
+    for item in raw_details:
+        if item.get("success") and "detail" in item:
+            item["detail"] = normalize_detail_result(item["detail"])
+        details.append(item)
 
     success_count = len([item for item in details if item.get("success")])
     output = {
         "lpse_host": params["lpse_host"],
         "package_type": package_type,
-        "requested_count": len(params["package_ids"]),
+        "requested_count": len(package_ids),
         "count": len(details),
         "success_count": success_count,
         "error_count": len(details) - success_count,
