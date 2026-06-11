@@ -6,8 +6,10 @@ normalizes output, and returns MCP TextContent responses.
 This module auto-registers all tools with the server on import.
 """
 
+import anyio
 import json
 import logging
+import queue
 import time
 
 from mcp import types as mcp_types
@@ -42,7 +44,7 @@ from pyproc.mcp.schemas import (
     LIST_SEARCH_INDEXES_SCHEMA,
     DELETE_SEARCH_INDEX_SCHEMA,
 )
-from pyproc.mcp.server import register_tool, TIMEOUT, RATE_LIMIT_DELAY
+from pyproc.mcp.server import register_tool, server, TIMEOUT, RATE_LIMIT_DELAY
 from pyproc.mcp.hosts import (
     HostMetadataError,
     search_lpse_hosts,
@@ -651,7 +653,10 @@ async def handle_validate_lpse_host(
 async def handle_create_procurement_search_index(
     name: str, arguments: dict
 ) -> list[mcp_types.TextContent]:
-    """Create a bounded local SQLite FTS index from public procurement data."""
+    """Create a bounded local SQLite FTS index from public procurement data.
+
+    Sends MCP progress notifications when the client provides a progressToken.
+    """
     try:
         params = validate_search_index_create_params(arguments)
     except ValueError as exc:
@@ -665,12 +670,87 @@ async def handle_create_procurement_search_index(
     )
     params = dict(params)
     params.pop("confirm_download", None)
-    output = create_procurement_search_index(
-        timeout=TIMEOUT,
-        rate_limit_callback=_rate_limit,
-        **params,
-    )
-    return _make_json_response(output)
+
+    # ── check for MCP progress token ──────────────────────────────────────
+    progress_token = None
+    session = None
+    try:
+        ctx = server.request_context
+        if ctx.meta is not None:
+            progress_token = ctx.meta.progressToken
+            session = ctx.session
+    except LookupError:
+        pass  # Not inside an MCP request (e.g., direct test call)
+
+    if progress_token is None or session is None:
+        # No progress support — call directly (preserves existing behaviour)
+        output = create_procurement_search_index(
+            timeout=TIMEOUT,
+            rate_limit_callback=_rate_limit,
+            **params,
+        )
+        return _make_json_response(output)
+
+    # ── progress requested — run indexing in worker thread, send notifications ──
+    progress_queue: queue.Queue = queue.Queue(maxsize=100)
+    _SENTINEL = object()
+
+    def _progress_callback(step: str, current: int, total: int | None,
+                           message: str) -> None:
+        """Thread-safe: push progress data to queue (non-blocking)."""
+        try:
+            progress_queue.put_nowait((step, current, total, message))
+        except queue.Full:
+            pass  # Non-critical; discard if queue is overwhelmed
+
+    result_container: list[dict] = []
+
+    async def _run_index() -> None:
+        """Run the synchronous indexing function in a worker thread."""
+        def _sync_index():
+            return create_procurement_search_index(
+                timeout=TIMEOUT,
+                rate_limit_callback=_rate_limit,
+                progress_callback=_progress_callback,
+                **params,
+            )
+        result = await anyio.to_thread.run_sync(_sync_index)
+        result_container.append(result)
+        progress_queue.put(_SENTINEL)
+
+    async def _drain_progress() -> None:
+        """Drain progress events from the queue and send MCP notifications."""
+        sentinel_seen = False
+        while not sentinel_seen:
+            # Drain all currently queued items without blocking
+            while True:
+                try:
+                    item = progress_queue.get_nowait()
+                except queue.Empty:
+                    break
+                if item is _SENTINEL:
+                    sentinel_seen = True
+                    break
+                _step, current, total, message = item
+                try:
+                    await session.send_progress_notification(
+                        progress_token=progress_token,
+                        progress=float(current),
+                        total=float(total) if total is not None else None,
+                        message=message,
+                    )
+                except Exception:
+                    logger.debug(
+                        "Failed to send progress notification", exc_info=True,
+                    )
+            if not sentinel_seen:
+                await anyio.sleep(0.5)
+
+    async with anyio.create_task_group() as tg:
+        tg.start_soon(_drain_progress)
+        tg.start_soon(_run_index)
+
+    return _make_json_response(result_container[0])
 
 
 async def handle_search_procurement_index(
@@ -840,7 +920,9 @@ TOOL_DESCRIPTIONS = {
         "public package details for one LPSE host. By default downloads all "
         "available packages (max_packages=0). Set a positive max_packages to "
         "limit scope. Prefer year/category/seed filters to narrow results. "
-        "This can make many SPSE requests — progress is logged to stderr. "
+        "This can make many SPSE requests. "
+        "Progress notifications are sent during index creation when the "
+        "client supports the notifications/progress protocol. "
         "Does not call the CLI."
     ),
     "search_procurement_index": (

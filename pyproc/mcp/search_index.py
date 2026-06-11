@@ -105,8 +105,15 @@ def create_procurement_search_index(
     max_packages: int = 0,
     timeout: int = 30,
     rate_limit_callback=None,
+    progress_callback=None,
 ) -> dict:
-    """Download a bounded package set and index details into local SQLite FTS."""
+    """Download a bounded package set and index details into local SQLite FTS.
+
+    Args:
+        progress_callback: Optional callable(step, current, total, message)
+            called at progress milestones.  step is one of 'scroll',
+            'index_start', 'index_package', 'complete'.
+    """
     index_id = f"{lpse_host}-{package_type}-{int(time.time())}-{uuid4().hex[:8]}"
     path = _index_path(index_id)
     metadata = {
@@ -158,6 +165,11 @@ def create_procurement_search_index(
                     "Scrolled: %d rows from %s (TA %s)",
                     len(all_rows), lpse_host, tahun_anggaran,
                 )
+                if progress_callback:
+                    progress_callback(
+                        "scroll", len(all_rows), None,
+                        f"Scrolled {len(all_rows)} packages from {lpse_host}",
+                    )
                 start += len(chunk)
                 if len(chunk) < req_length:
                     break  # partial page -> end of data
@@ -168,6 +180,11 @@ def create_procurement_search_index(
                 "Will index %d packages from %s (%s, %s)",
                 to_process, lpse_host, package_type, tahun_anggaran,
             )
+            if progress_callback:
+                progress_callback(
+                    "index_start", 0, to_process,
+                    f"Indexing {to_process} packages from {lpse_host}",
+                )
 
             for idx, row in enumerate(all_rows[:to_process], start=1):
                 id_paket = _package_id(row)
@@ -175,6 +192,11 @@ def create_procurement_search_index(
                     continue
                 title = _package_title(row)
                 logger.info("[%d/%d] Indexing: %s", idx, to_process, title)
+                if progress_callback:
+                    progress_callback(
+                        "index_package", idx, to_process,
+                        f"Indexing package {idx}/{to_process}: {title}",
+                    )
                 try:
                     if rate_limit_callback:
                         rate_limit_callback()
@@ -206,6 +228,11 @@ def create_procurement_search_index(
         "Index complete: %d indexed, %d failed from %s (%s, %s)",
         indexed, failed, lpse_host, package_type, tahun_anggaran,
     )
+    if progress_callback:
+        progress_callback(
+            "complete", indexed + failed, indexed + failed,
+            f"Index complete: {indexed} indexed, {failed} failed",
+        )
 
     return {
         **metadata,
