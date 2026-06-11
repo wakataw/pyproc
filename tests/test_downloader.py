@@ -34,7 +34,7 @@ class DownloaderTest(unittest.TestCase):
             'output_format': 'csv',
             'resume': True,
             'separator': '|',
-            'workers': 1
+            'workers': 999
         }
 
         for key, v in ctx.__dict__.items():
