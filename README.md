@@ -125,17 +125,19 @@ Download procurement data in bulk from the command line.
 
 ```bash
 # Download tender data from Kemenkeu LPSE, export as JSON
-pyproc kemenkeu --keyword "mobil dinas" --tahun-anggaran 2025 --output-format json
+pyproc spse kemenkeu --keyword "mobil dinas" --tahun-anggaran 2025 --output-format json
 
 # Download non-tender data from multiple LPSE hosts
-pyproc jakarta,sumbarprov --jenis-paket non_tender --tahun-anggaran 2025
+pyproc spse jakarta,sumbarprov --jenis-paket non_tender --tahun-anggaran 2025
 
 # Download pencatatan non-tender data. This is distinct from non_tender.
-pyproc nasional --jenis-paket pencatatan_non_tender --tahun-anggaran 2026
+pyproc spse nasional --jenis-paket pencatatan_non_tender --tahun-anggaran 2026
 
 # Download with custom output filename
-pyproc "kemenkeu;output_kemenkeu" --output-format csv --separator ";"
+pyproc spse "kemenkeu;output_kemenkeu" --output-format csv --separator ";"
 ```
+
+The `spse` subcommand is the default, so `pyproc kemenkeu` is shorthand for `pyproc spse kemenkeu`.
 
 See [CLI Usage](#cli-usage) for the full argument reference.
 
@@ -166,6 +168,11 @@ The MCP server exposes the following tools:
 | `get_swakelola_details_bulk` | Get details for multiple swakelola packages |
 | `get_pengadaan_darurat_details_bulk` | Get details for multiple pengadaan darurat packages |
 | `get_procurement_categories` | List supported procurement categories (no network call) |
+| `get_master_klpd` | Get LKPP Satu Data master K/L/PD references (alternative data source) |
+| `get_master_lpse` | Get LKPP Satu Data master LPSE references (alternative data source) |
+| `get_tender_umum_publik` | Get tender data from LKPP ISB Satu Data (alternative data source / fallback) |
+| `set_ssl_verify` | Enable/disable TLS/SSL certificate verification for all SPSE requests |
+| `get_ssl_verify` | Return current SSL verification setting |
 | `validate_lpse_host` | Check if an LPSE host is accessible |
 | `create_procurement_search_index` | Download a bounded package set into a local SQLite full-text index |
 | `search_procurement_index` | Search a local SQLite full-text index |
@@ -215,6 +222,24 @@ SPSE/Inaproc package search is keyword-based. PyProc MCP therefore exposes two s
 - **Local full-text search**: broader but slower. Use `create_procurement_search_index` only after the user agrees to download and index a bounded package set locally; the tool requires `confirm_download=true`. Then use `search_procurement_index` to search downloaded package details with SQLite FTS.
 
 The LLM should start with direct keyword search. If results are weak or the user asks for a broader full-text search, it should explain the tradeoff before creating a local index.
+
+---
+
+## ISB Satu Data API (Alternative Data Source)
+
+In addition to direct realtime SPSE/Inaproc queries, PyProc also integrates with the **LKPP ISB (Indonesia Satu Data) API**. This is a curated, government-maintained dataset that provides:
+
+- **Master LPSE** — reference list of all LPSE units with their codes and names
+- **Master K/L/PD** — reference list of all government institutions (Kementerian, Lembaga, Perangkat Daerah)
+- **Tender Umum Publik** — public tender data indexed by LPSE code and budget year
+
+The ISB Satu Data API serves as an **alternative data source** when:
+
+- Direct SPSE/Inaproc queries fail or return errors (e.g., server timeouts, blocked hosts)
+- You need reference data (LPSE codes, institution codes) before making SPSE queries
+- The user explicitly wants the curated ISB dataset rather than realtime SPSE data
+
+Use the `satudata` CLI subcommand or the `get_master_lpse`, `get_master_klpd`, and `get_tender_umum_publik` MCP tools to access ISB data.
 
 ---
 
@@ -282,6 +307,7 @@ The MCP server is configured via environment variables:
 | `PYPROC_TIMEOUT` | `30` | HTTP request timeout in seconds |
 | `PYPROC_RATE_LIMIT_DELAY` | `1.0` | Minimum seconds between requests |
 | `PYPROC_LOG_LEVEL` | `INFO` | Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL) |
+| `PYPROC_SSL_VERIFY` | `0` | Enable SSL/TLS certificate verification (`1`, `true`, `yes`, `on` to enable) |
 
 ---
 
@@ -433,7 +459,9 @@ JenisPengadaan.JASA_LAINNYA               # Other Services
 
 ## CLI Usage
 
-### Basic Download
+### SPSE (Direct Realtime Data)
+
+Download procurement data directly from SPSE/Inaproc servers. The `spse` subcommand is the default.
 
 ```bash
 pyproc kemenkeu
@@ -445,7 +473,7 @@ This downloads tender data from the Kemenkeu LPSE and exports it as `kemenkeu.cs
 
 | Argument | Example | Default | Description |
 |---|---|---|---|
-| `lpse_host` | `pyproc kemenkeu` | Required | LPSE host or text file with host list |
+| `lpse_host` | `pyproc spse kemenkeu` | Required | LPSE host or text file with host list |
 | `-k, --keyword` | `--keyword "mobil dinas"` | `""` | Search keyword filter |
 | `-t, --tahun-anggaran` | `--tahun-anggaran 2025` | Current year | Budget year (single, comma-separated, or range) |
 | `--kategori` | `--kategori PEKERJAAN_KONSTRUKSI` | None | Procurement category |
@@ -466,10 +494,10 @@ This downloads tender data from the Kemenkeu LPSE and exports it as `kemenkeu.cs
 
 ```bash
 # Download from multiple LPSE hosts
-pyproc jakarta,kemenkeu,sumbarprov
+pyproc spse jakarta,kemenkeu,sumbarprov
 
 # With custom output filenames
-pyproc "jakarta;file_jakarta,kemenkeu;file_kemenkeu"
+pyproc spse "jakarta;file_jakarta,kemenkeu;file_kemenkeu"
 ```
 
 ### Download Host List
@@ -481,6 +509,71 @@ pyproc daftarlpse
 # Export LPSE host list as sanitized Gist-backed JSON
 pyproc daftarhost
 ```
+
+### Master KLPD
+
+Query K/L/PD reference data from the LKPP ISB Satu Data API:
+
+```bash
+# Show all K/L/PD references
+pyproc masterklpd
+
+# Search by institution name or code
+pyproc masterklpd --query kemenkeu
+
+# Filter by jenis (K, L, PD)
+pyproc masterklpd --jenis K
+
+# Get specific K/L/PD by code
+pyproc masterklpd --kd-klpd K68
+
+# Limit results
+pyproc masterklpd --limit 5
+```
+
+### Satu Data (Alternative Source)
+
+Access tender data from the LKPP ISB Satu Data API as an alternative to direct realtime SPSE queries.
+
+#### Master LPSE (Interactive Browser)
+
+```bash
+# Launch interactive LPSE browser
+pyproc satudata masterlpse
+
+# With custom timeout
+pyproc satudata masterlpse --timeout 60
+
+# Specify output format and file
+pyproc satudata masterlpse --output csv --output-file hasil.csv
+```
+
+#### Tender Umum Publik (Direct Download)
+
+Download tender data for a specific LPSE code and budget year:
+
+```bash
+# Download tender data for a specific LPSE and year
+pyproc satudata tenderumum --kode-lpse 119 --tahun-anggaran 2026
+
+# With custom options
+pyproc satudata tenderumum --kode-lpse 119 --tahun-anggaran 2026 --timeout 60 --output json
+```
+
+**Required arguments for `tenderumum`**:
+
+| Argument | Example | Description |
+|---|---|---|
+| `--tahun-anggaran` | `2026` | Budget year |
+| `--kode-lpse` | `119` | LPSE code from master LPSE |
+
+**Optional arguments**:
+
+| Argument | Default | Description |
+|---|---|---|
+| `--timeout` | `30` | Request timeout in seconds |
+| `--output` | `json` | Output format: `json` or `csv` |
+| `--output-file` | Auto-generated | Output file path |
 
 ---
 
@@ -547,11 +640,3 @@ pyproc/
 ## License
 
 MIT License. See [LICENSE](LICENSE) for details.
-
----
-
-## Donatur ☕️
-
-Orang-orang yang berjasa menyediakan kopi sehingga pengembangan paket tetap berjalan:
-
-- Angga Rinaldi Rizal (50 cangkir ☕️)

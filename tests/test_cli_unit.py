@@ -524,14 +524,14 @@ class TestDownloaderGetCtx(unittest.TestCase):
 class TestKnownSubcommands(unittest.TestCase):
 
     def test_known_subcommands_includes_new_apis(self):
-        """Verify masterlpse and tenderumum are registered subcommands."""
+        """Verify satudata and spse are registered subcommands."""
         known = {'daftarlpse', 'daftarhost', 'masterklpd',
-                 'masterlpse', 'tenderumum', 'download'}
-        self.assertIn('masterlpse', known)
-        self.assertIn('tenderumum', known)
+                 'satudata', 'spse'}
+        self.assertIn('satudata', known)
+        self.assertIn('spse', known)
         self.assertIn('daftarlpse', known)
-        self.assertIn('download', known)
-        self.assertEqual(len(known), 6)
+        self.assertIn('masterklpd', known)
+        self.assertEqual(len(known), 5)
 
 
 if __name__ == '__main__':
