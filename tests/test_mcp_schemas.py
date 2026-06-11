@@ -329,7 +329,7 @@ class TestValidateSearchIndexParams(unittest.TestCase):
         })
         self.assertEqual(result["lpse_host"], "kemenkeu")
         self.assertEqual(result["package_type"], "tender")
-        self.assertEqual(result["max_packages"], 100)
+        self.assertEqual(result["max_packages"], 0)
         self.assertTrue(result["confirm_download"])
 
     def test_create_index_params_full(self):
@@ -355,6 +355,33 @@ class TestValidateSearchIndexParams(unittest.TestCase):
                 "package_type": "all",
                 "confirm_download": True,
             })
+
+    def test_create_index_max_packages_large(self):
+        """max_packages above old 500 cap is no longer clamped."""
+        result = validate_search_index_create_params({
+            "lpse_host": "kemenkeu",
+            "max_packages": "5000",
+            "confirm_download": True,
+        })
+        self.assertEqual(result["max_packages"], 5000)
+
+    def test_create_index_max_packages_zero_means_all(self):
+        """max_packages=0 means download all."""
+        result = validate_search_index_create_params({
+            "lpse_host": "kemenkeu",
+            "max_packages": "0",
+            "confirm_download": True,
+        })
+        self.assertEqual(result["max_packages"], 0)
+
+    def test_create_index_max_packages_negative(self):
+        """Negative max_packages is floored to 0."""
+        result = validate_search_index_create_params({
+            "lpse_host": "kemenkeu",
+            "max_packages": "-5",
+            "confirm_download": True,
+        })
+        self.assertEqual(result["max_packages"], 0)
 
 
 class TestValidateMasterKlpdParams(unittest.TestCase):

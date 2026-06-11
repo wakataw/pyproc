@@ -29,8 +29,7 @@ VALID_ORDER_BY = {
 }
 VALID_ORDER_DIR = {"asc", "desc"}
 VALID_KONTRAK_STATUS = {0, 1, 2}
-DEFAULT_INDEX_MAX_PACKAGES = 100
-MAX_INDEX_PACKAGES = 500
+DEFAULT_INDEX_MAX_PACKAGES = 0
 DEFAULT_INDEX_SEARCH_LIMIT = 20
 MAX_INDEX_SEARCH_LIMIT = 100
 MAX_BULK_DETAIL_PACKAGE_IDS = 20
@@ -407,7 +406,7 @@ def validate_search_index_create_params(params: dict) -> dict:
         "tahun_anggaran": validate_tahun_anggaran(params.get("tahun_anggaran")),
         "kategori": validate_kategori(params.get("kategori")),
         "keyword_seed": str(params.get("keyword_seed") or "").strip() or None,
-        "max_packages": max(1, min(max_packages, MAX_INDEX_PACKAGES)),
+        "max_packages": max(0, max_packages),
         "confirm_download": True,
     }
 
@@ -952,17 +951,17 @@ CREATE_SEARCH_INDEX_SCHEMA = {
         "max_packages": {
             "type": "integer",
             "description": (
-                "Maximum packages to download and index. Default "
-                f"{DEFAULT_INDEX_MAX_PACKAGES}, maximum {MAX_INDEX_PACKAGES}."
+                "Maximum packages to download and index. 0 = all available. "
+                f"Default {DEFAULT_INDEX_MAX_PACKAGES}."
             ),
             "default": DEFAULT_INDEX_MAX_PACKAGES,
-            "maximum": MAX_INDEX_PACKAGES,
         },
         "confirm_download": {
             "type": "boolean",
             "description": (
-                "Must be true. This confirms the user agreed to download "
-                "package details into a local disposable full-text index."
+                "Must be true. Confirms user consent to download package details "
+                "into a local disposable full-text index. May involve many "
+                "SPSE requests when max_packages is 0 or large."
             ),
         },
     },

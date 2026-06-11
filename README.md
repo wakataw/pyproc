@@ -1,7 +1,7 @@
 # PyProc MCP
 
 <p align="center">
-  <img src="docs/assets/logo.png"
+  <img src="https://raw.githubusercontent.com/wakataw/pyproc/remove-index-max-packages-cap/docs/assets/logo.png"
        alt="PyProc MCP — Real-time Indonesian procurement data for LLM agents"
        width="200">
 </p>
@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/pyproc/"><img src="https://img.shields.io/badge/version-v0.3.1-blue" alt="PyPI version"></a>
+  <a href="https://pypi.org/project/pyproc/"><img src="https://img.shields.io/badge/version-v0.3.2-blue" alt="PyPI version"></a>
   <a href="https://pypi.org/project/pyproc/"><img src="https://img.shields.io/badge/python-≥3.9-yellow" alt="Python ≥3.9"></a>
   <a href="https://github.com/wakataw/pyproc/actions/workflows/test.yml?query=branch%3Amaster"><img src="https://github.com/wakataw/pyproc/actions/workflows/test.yml/badge.svg?branch=master" alt="Test Status"></a>
   <a href="https://github.com/wakataw/pyproc/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="License: MIT"></a>
@@ -25,7 +25,7 @@ PyProc MCP turns public **SPSE/Inaproc** procurement data into **MCP tools** tha
 ## Why PyProc MCP?
 
 <p align="center">
-  <img src="docs/assets/pyproc-mcp-banner.png"
+  <img src="https://raw.githubusercontent.com/wakataw/pyproc/remove-index-max-packages-cap/docs/assets/pyproc-mcp-banner.png"
        alt="PyProc MCP — Real-time Indonesian procurement data for LLM agents"
        width="800">
 </p>
