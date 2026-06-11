@@ -12,6 +12,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from pyproc import Lpse, JenisPengadaan
+import pyproc.mcp.server as mcp_server_cfg  # for mutable SSL_VERIFY
 
 logger = logging.getLogger(__name__)
 
@@ -133,7 +134,7 @@ def create_procurement_search_index(
     kategori_enum = JenisPengadaan[kategori] if kategori else None
 
     try:
-        with Lpse(lpse_host, timeout=timeout) as lpse:
+        with Lpse(lpse_host, timeout=timeout, verify=mcp_server_cfg.SSL_VERIFY) as lpse:
             if rate_limit_callback:
                 rate_limit_callback()
             search_method = getattr(lpse, PACKAGE_METHODS[package_type][0])

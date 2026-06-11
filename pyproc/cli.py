@@ -801,7 +801,7 @@ def main():
 
     # Detect subcommands by checking if first arg is a known subcommand
     # For backward compatibility, treat non-subcommand args as download args
-    known_subcommands = {'daftarlpse', 'daftarhost', 'masterklpd', 'download'}
+    known_subcommands = {'daftarlpse', 'daftarhost', 'masterklpd', 'masterlpse', 'tenderumum', 'download'}
 
     if len(sys.argv) > 1 and sys.argv[1] in known_subcommands:
         subcommand = sys.argv[1]
@@ -844,6 +844,211 @@ def main():
         if args.limit > 0:
             rows = rows[:args.limit]
         print(json.dumps(rows, ensure_ascii=False, indent=2))
+        sys.exit(0)
+
+    if subcommand == 'masterlpse':
+        parser = argparse.ArgumentParser(
+            description="Cari LPSE secara interaktif dan unduh data tender."
+        )
+        parser.add_argument('--timeout', type=int, default=30)
+        parser.add_argument(
+            '--output', type=str, default='json', choices=['json', 'csv'],
+        )
+        parser.add_argument(
+            '--output-file', type=str, default=None,
+            help='Lokasi file output. Dibuat otomatis jika tidak diberikan.',
+        )
+        args = parser.parse_args(remaining_args)
+
+        print("Mengambil data master LPSE...")
+        try:
+            rows = pyproc.Lpse.get_master_lpse(timeout=args.timeout)
+        except Exception as e:
+            print(f"Gagal mengambil data LPSE: {e}")
+            sys.exit(1)
+
+        if not rows:
+            print("Tidak ada data LPSE ditemukan.")
+            sys.exit(1)
+
+        selected_lpse = None
+        while selected_lpse is None:
+            print("\n" + "=" * 60)
+            print("CARI LPSE (ketik kata kunci, kosongkan untuk menampilkan semua)")
+            keyword = input("Kata kunci: ").strip().lower()
+
+            filtered = []
+            if keyword:
+                filtered = [
+                    row for row in rows
+                    if keyword in str(row.get('nama_lpse', '')).lower()
+                    or keyword in str(row.get('kd_lpse', '')).lower()
+                ]
+            else:
+                filtered = rows
+
+            display = filtered[:50]
+            print(
+                f"\nMenampilkan {len(display)} dari {len(filtered)} LPSE:"
+            )
+            for i, row in enumerate(display, 1):
+                print(
+                    f"  {i:3d}. [{row.get('kd_lpse')}] {row.get('nama_lpse')}"
+                )
+            if len(filtered) > 50:
+                print(f"  ... dan {len(filtered) - 50} lainnya")
+
+            if not filtered:
+                print("Tidak ada LPSE yang cocok. Coba kata kunci lain.")
+                continue
+
+            try:
+                choice = input(
+                    "\nPilih nomor LPSE (atau Enter untuk cari lagi, "
+                    "q untuk keluar): "
+                ).strip()
+                if choice.lower() == 'q':
+                    print("Dibatalkan.")
+                    sys.exit(0)
+                if not choice:
+                    continue
+                idx = int(choice) - 1
+                if 0 <= idx < len(display):
+                    selected_lpse = display[idx]
+                else:
+                    print("Nomor tidak valid.")
+            except ValueError:
+                print("Masukkan nomor yang valid.")
+
+        # Ask for tahun anggaran
+        tahun = None
+        while tahun is None:
+            try:
+                tahun_input = input(
+                    f"\nTahun anggaran (contoh: 2026): "
+                ).strip()
+                tahun = int(tahun_input)
+                if tahun < 2000 or tahun > 2100:
+                    print("Tahun di luar jangkauan (2000-2100).")
+                    tahun = None
+            except ValueError:
+                print("Masukkan tahun yang valid.")
+
+        kd_lpse = selected_lpse['kd_lpse']
+        nama_lpse = selected_lpse['nama_lpse']
+        print(
+            f"\nMengambil data tender untuk LPSE {nama_lpse} "
+            f"({kd_lpse}), tahun {tahun}..."
+        )
+
+        try:
+            tender_data = pyproc.Lpse.get_tender_umum_publik(
+                tahun_anggaran=tahun,
+                kd_lpse=kd_lpse,
+                timeout=args.timeout,
+            )
+        except Exception as e:
+            print(f"Gagal mengambil data tender: {e}")
+            sys.exit(1)
+
+        if not tender_data:
+            print("Tidak ada data tender ditemukan.")
+            sys.exit(1)
+
+        # Determine output file
+        safe_name = re.sub(r'[^a-z0-9]', '_', nama_lpse.lower())[:30]
+        if args.output_file:
+            output_path = Path(args.output_file)
+        else:
+            output_path = Path(
+                f"tender_{safe_name}_{kd_lpse}_{tahun}.{args.output}"
+            )
+
+        if args.output == 'json':
+            with open(output_path, 'w', encoding='utf-8') as f:
+                json.dump(tender_data, f, ensure_ascii=False, indent=2)
+        else:  # csv
+            if tender_data:
+                fieldnames = list(tender_data[0].keys())
+                with open(output_path, 'w', newline='', encoding='utf-8') as f:
+                    writer = csv.DictWriter(f, fieldnames=fieldnames)
+                    writer.writeheader()
+                    writer.writerows(tender_data)
+
+        print(
+            f"Berhasil menyimpan {len(tender_data)} tender ke {output_path}"
+        )
+        sys.exit(0)
+
+    if subcommand == 'tenderumum':
+        parser = argparse.ArgumentParser(
+            description="Unduh data tender umum publik dari LKPP ISB."
+        )
+        parser.add_argument(
+            '--tahun-anggaran', type=int, required=True,
+            help='Tahun anggaran, misal 2026.',
+        )
+        parser.add_argument(
+            '--kd-lpse', type=int, required=True,
+            help='Kode LPSE dari master LPSE, misal 119.',
+        )
+        parser.add_argument('--timeout', type=int, default=30)
+        parser.add_argument(
+            '--output', type=str, default='json', choices=['json', 'csv'],
+        )
+        parser.add_argument(
+            '--output-file', type=str, default=None,
+            help='Lokasi file output. Dibuat otomatis jika tidak diberikan.',
+        )
+        args = parser.parse_args(remaining_args)
+
+        if args.tahun_anggaran < 2000 or args.tahun_anggaran > 2100:
+            print(
+                f"Tahun anggaran {args.tahun_anggaran} di luar "
+                f"jangkauan (2000-2100)."
+            )
+            sys.exit(1)
+
+        print(
+            f"Mengambil data tender umum publik untuk LPSE "
+            f"{args.kd_lpse}, tahun {args.tahun_anggaran}..."
+        )
+
+        try:
+            rows = pyproc.Lpse.get_tender_umum_publik(
+                tahun_anggaran=args.tahun_anggaran,
+                kd_lpse=args.kd_lpse,
+                timeout=args.timeout,
+            )
+        except Exception as e:
+            print(f"Gagal mengambil data tender: {e}")
+            sys.exit(1)
+
+        if not rows:
+            print("Tidak ada data tender ditemukan.")
+            sys.exit(1)
+
+        if args.output_file:
+            output_path = Path(args.output_file)
+        else:
+            output_path = Path(
+                f"tender_umum_{args.kd_lpse}_{args.tahun_anggaran}"
+                f".{args.output}"
+            )
+
+        if args.output == 'json':
+            with open(output_path, 'w', encoding='utf-8') as f:
+                json.dump(rows, f, ensure_ascii=False, indent=2)
+        else:
+            fieldnames = list(rows[0].keys())
+            with open(output_path, 'w', newline='', encoding='utf-8') as f:
+                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(rows)
+
+        print(
+            f"Berhasil menyimpan {len(rows)} tender ke {output_path}"
+        )
         sys.exit(0)
 
     # Default: download

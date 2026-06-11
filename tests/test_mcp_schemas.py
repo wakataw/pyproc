@@ -12,6 +12,8 @@ from pyproc.mcp.schemas import (
     validate_search_index_create_params,
     validate_search_index_query_params,
     validate_master_klpd_params,
+    validate_master_lpse_params,
+    validate_tender_umum_publik_params,
     sanitize_text,
     sanitize_dict_keys,
     normalize_search_results,
@@ -422,6 +424,83 @@ class TestValidateMasterKlpdParams(unittest.TestCase):
         self.assertEqual(result["index_id"], "idx-1")
         self.assertEqual(result["query"], "laptop")
         self.assertEqual(result["limit"], 5)
+
+
+class TestValidateMasterLpseParams(unittest.TestCase):
+
+    def test_defaults(self):
+        result = validate_master_lpse_params({})
+        self.assertEqual(result["query"], "")
+        self.assertIsNone(result["kd_lpse"])
+        self.assertEqual(result["limit"], 50)
+
+    def test_full_params(self):
+        result = validate_master_lpse_params({
+            "query": "surabaya",
+            "kd_lpse": "119",
+            "limit": "10",
+        })
+        self.assertEqual(result["query"], "surabaya")
+        self.assertEqual(result["kd_lpse"], 119)
+        self.assertEqual(result["limit"], 10)
+
+    def test_invalid_kd_lpse(self):
+        with self.assertRaises(ValueError):
+            validate_master_lpse_params({"kd_lpse": "abc"})
+
+    def test_limit_bounds(self):
+        result = validate_master_lpse_params({"limit": "1000"})
+        self.assertEqual(result["limit"], 500)
+
+
+class TestValidateTenderUmumPublikParams(unittest.TestCase):
+
+    def test_valid(self):
+        result = validate_tender_umum_publik_params({
+            "tahun_anggaran": "2026",
+            "kd_lpse": "119",
+        })
+        self.assertEqual(result["tahun_anggaran"], 2026)
+        self.assertEqual(result["kd_lpse"], 119)
+
+    def test_missing_kd_lpse(self):
+        with self.assertRaises(ValueError):
+            validate_tender_umum_publik_params({"tahun_anggaran": "2026"})
+
+    def test_invalid_tahun_too_low(self):
+        with self.assertRaises(ValueError):
+            validate_tender_umum_publik_params({
+                "tahun_anggaran": "1999",
+                "kd_lpse": "1",
+            })
+
+    def test_invalid_tahun_too_high(self):
+        with self.assertRaises(ValueError):
+            validate_tender_umum_publik_params({
+                "tahun_anggaran": "2101",
+                "kd_lpse": "1",
+            })
+
+    def test_non_numeric_tahun(self):
+        with self.assertRaises(ValueError):
+            validate_tender_umum_publik_params({
+                "tahun_anggaran": "abc",
+                "kd_lpse": "1",
+            })
+
+    def test_negative_kd_lpse(self):
+        with self.assertRaises(ValueError):
+            validate_tender_umum_publik_params({
+                "tahun_anggaran": "2026",
+                "kd_lpse": "-1",
+            })
+
+    def test_non_numeric_kd_lpse(self):
+        with self.assertRaises(ValueError):
+            validate_tender_umum_publik_params({
+                "tahun_anggaran": "2026",
+                "kd_lpse": "abc",
+            })
 
 
 class TestNormalizeSearchResults(unittest.TestCase):

@@ -49,6 +49,23 @@ class TipeSwakelola(Enum):
     KELOMPOK_MASYARAKAT = 4
 
 
+# Module-level SSL verify flag for static methods (get_master_klpd,
+# get_master_lpse, get_tender_umum_publik) that don't use an Lpse instance.
+# Updated by the MCP server when set_ssl_verify is called.
+_ssl_verify = True
+
+
+def _get_ssl_verify() -> bool:
+    """Return the current SSL verify flag used by static Satu Data methods."""
+    return _ssl_verify
+
+
+def _set_ssl_verify(enable: bool) -> None:
+    """Update SSL verify flag for static Satu Data methods."""
+    global _ssl_verify
+    _ssl_verify = enable
+
+
 class Lpse(object):
 
     def __init__(self, instansi: str, timeout: int = 10, verify: bool = False):
@@ -313,9 +330,66 @@ class Lpse(object):
         resp = requests.get(
             'https://isb.lkpp.go.id/isb-2/api/satudata/MasterKLPD',
             timeout=timeout,
+            verify=_get_ssl_verify(),
         )
         resp.raise_for_status()
         data = resp.json()
+        if isinstance(data, dict):
+            data = data.get('data', data.get('result', []))
+        return data if isinstance(data, list) else []
+
+    @staticmethod
+    def get_master_lpse(timeout: int = 30) -> list[dict]:
+        """
+        Mengambil master data LPSE dari LKPP Satu Data.
+        kd_lpse dapat digunakan untuk query TenderUmumPublik.
+
+        :param timeout: Request timeout in seconds.
+        :return: List of LPSE dicts with kd_lpse, nama_lpse, _event_date.
+        """
+        resp = requests.get(
+            'https://isb.lkpp.go.id/isb-2/api/satudata/MasterLPSE',
+            timeout=timeout,
+            verify=_get_ssl_verify(),
+        )
+        resp.raise_for_status()
+        try:
+            data = resp.json()
+        except ValueError:
+            return []
+        if isinstance(data, dict):
+            data = data.get('data', data.get('result', []))
+        return data if isinstance(data, list) else []
+
+    @staticmethod
+    def get_tender_umum_publik(
+        tahun_anggaran: int, kd_lpse: int, timeout: int = 30
+    ) -> list[dict]:
+        """
+        Mengambil data tender umum publik dari LKPP Satu Data.
+
+        Data ini bersumber dari ISB (Indonesia Satu Data) sebagai alternatif
+        apabila data dari SPSE langsung tidak tersedia.
+
+        :param tahun_anggaran: Tahun anggaran, e.g. 2026.
+        :param kd_lpse: Kode LPSE dari get_master_lpse(), e.g. 119.
+        :param timeout: Request timeout in seconds.
+        :return: List of tender dicts. Field names may contain spaces
+                 (e.g., "Kode Tender", "Nama Paket").
+                 Returns empty list when the API returns a non-JSON
+                 error response (e.g., "URL-NOT-DEFINED" for invalid kd_lpse).
+        """
+        resp = requests.get(
+            f'https://isb.lkpp.go.id/isb-2/api/satudata/TenderUmumPublik/'
+            f'{tahun_anggaran}/{kd_lpse}',
+            timeout=timeout,
+            verify=_get_ssl_verify(),
+        )
+        resp.raise_for_status()
+        try:
+            data = resp.json()
+        except ValueError:
+            return []
         if isinstance(data, dict):
             data = data.get('data', data.get('result', []))
         return data if isinstance(data, list) else []

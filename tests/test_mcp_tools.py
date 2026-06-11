@@ -629,6 +629,134 @@ class TestHandleProcurementSearchIndexes(unittest.TestCase):
         self.assertTrue(data["deleted"])
 
 
+class TestHandleGetMasterLpse(unittest.TestCase):
+
+    @async_test
+    async def test_mocked(self):
+        from pyproc.mcp.tools import handle_get_master_lpse
+
+        mock_lpse_sample = [
+            {"kd_lpse": 119,
+             "nama_lpse": "LPSE Lembaga Kebijakan Pengadaan Barang/Jasa Pemerintah",
+             "_event_date": "2026-01-16"},
+            {"kd_lpse": 10,
+             "nama_lpse": "LPSE Kota Surabaya",
+             "_event_date": "2026-01-16"},
+        ]
+
+        with patch(
+            'pyproc.mcp.tools.Lpse.get_master_lpse', return_value=mock_lpse_sample
+        ):
+            result = await handle_get_master_lpse(
+                "get_master_lpse",
+                {"query": "surabaya"},
+            )
+
+        data = json.loads(result[0].text)
+        self.assertEqual(data["total_matches"], 1)
+        self.assertEqual(data["count"], 1)
+        self.assertEqual(len(data["lpse"]), 1)
+        self.assertEqual(data["lpse"][0]["kd_lpse"], 10)
+        self.assertIn("usage", data)
+        self.assertIn("get_tender_umum_publik", data["usage"])
+
+    @async_test
+    async def test_filter_by_kd_lpse(self):
+        from pyproc.mcp.tools import handle_get_master_lpse
+
+        mock_lpse_sample = [
+            {"kd_lpse": 119, "nama_lpse": "LPSE LKPP",
+             "_event_date": "2026-01-16"},
+            {"kd_lpse": 10, "nama_lpse": "LPSE Kota Surabaya",
+             "_event_date": "2026-01-16"},
+        ]
+
+        with patch(
+            'pyproc.mcp.tools.Lpse.get_master_lpse', return_value=mock_lpse_sample
+        ):
+            result = await handle_get_master_lpse(
+                "get_master_lpse",
+                {"kd_lpse": "119"},
+            )
+
+        data = json.loads(result[0].text)
+        self.assertEqual(data["total_matches"], 1)
+        self.assertEqual(data["lpse"][0]["kd_lpse"], 119)
+
+    @async_test
+    async def test_validation_error(self):
+        from pyproc.mcp.tools import handle_get_master_lpse
+
+        result = await handle_get_master_lpse(
+            "get_master_lpse",
+            {"kd_lpse": "abc"},
+        )
+
+        self.assertIn("Error", result[0].text)
+
+
+class TestHandleGetTenderUmumPublik(unittest.TestCase):
+
+    @async_test
+    async def test_mocked(self):
+        from pyproc.mcp.tools import handle_get_tender_umum_publik
+
+        mock_tender_data = [
+            {
+                "Kode Tender": 10109010000,
+                "LPSE": "LPSE LKPP",
+                "Nama Paket": "Pekerjaan Jasa Sewa",
+                "Pagu": 20000000000,
+            }
+        ]
+
+        with patch(
+            'pyproc.mcp.tools.Lpse.get_tender_umum_publik',
+            return_value=mock_tender_data,
+        ):
+            result = await handle_get_tender_umum_publik(
+                "get_tender_umum_publik",
+                {"tahun_anggaran": "2026", "kd_lpse": "119"},
+            )
+
+        data = json.loads(result[0].text)
+        self.assertEqual(data["count"], 1)
+        self.assertEqual(data["kd_lpse"], 119)
+        self.assertEqual(data["tahun_anggaran"], 2026)
+        self.assertEqual(data["source"], "LKPP ISB Satu Data (alternative data source)")
+        self.assertEqual(len(data["tenders"]), 1)
+        self.assertEqual(data["tenders"][0]["Kode Tender"], 10109010000)
+        self.assertIn("notes", data)
+
+    @async_test
+    async def test_validation_error(self):
+        from pyproc.mcp.tools import handle_get_tender_umum_publik
+
+        result = await handle_get_tender_umum_publik(
+            "get_tender_umum_publik",
+            {},
+        )
+
+        self.assertIn("Error", result[0].text)
+
+    @async_test
+    async def test_empty_result(self):
+        from pyproc.mcp.tools import handle_get_tender_umum_publik
+
+        with patch(
+            'pyproc.mcp.tools.Lpse.get_tender_umum_publik',
+            return_value=[],
+        ):
+            result = await handle_get_tender_umum_publik(
+                "get_tender_umum_publik",
+                {"tahun_anggaran": "2026", "kd_lpse": "999"},
+            )
+
+        data = json.loads(result[0].text)
+        self.assertEqual(data["count"], 0)
+        self.assertEqual(data["tenders"], [])
+
+
 class TestResourceHandlers(unittest.TestCase):
 
     @async_test

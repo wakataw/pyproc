@@ -465,6 +465,93 @@ def validate_master_klpd_params(params: dict) -> dict:
     }
 
 
+def validate_master_lpse_params(params: dict) -> dict:
+    """Validate master LPSE lookup parameters."""
+    query = str(params.get("query") or "").strip()
+    kd_lpse_str = str(params.get("kd_lpse") or "").strip()
+
+    kd_lpse = None
+    if kd_lpse_str:
+        try:
+            kd_lpse = int(kd_lpse_str)
+        except ValueError:
+            raise ValueError(
+                f"Invalid kd_lpse: {kd_lpse_str}. Must be an integer."
+            )
+
+    try:
+        limit = int(params.get("limit", 50))
+    except (ValueError, TypeError):
+        raise ValueError(f"Invalid limit value: {params.get('limit')}")
+
+    return {
+        "query": query,
+        "kd_lpse": kd_lpse,
+        "limit": max(1, min(limit, 500)),
+    }
+
+
+def validate_tender_umum_publik_params(params: dict) -> dict:
+    """Validate TenderUmumPublik lookup parameters."""
+    try:
+        tahun_anggaran = int(params.get("tahun_anggaran", 0))
+    except (ValueError, TypeError):
+        raise ValueError(
+            f"Invalid tahun_anggaran: {params.get('tahun_anggaran')}. "
+            f"Must be an integer."
+        )
+    if tahun_anggaran < 2000 or tahun_anggaran > 2100:
+        raise ValueError(
+            f"tahun_anggaran {tahun_anggaran} is out of range (2000-2100)."
+        )
+
+    kd_lpse_str = params.get("kd_lpse")
+    if kd_lpse_str is None:
+        raise ValueError("kd_lpse is required.")
+    try:
+        kd_lpse = int(kd_lpse_str)
+    except (ValueError, TypeError):
+        raise ValueError(
+            f"Invalid kd_lpse: {kd_lpse_str}. Must be an integer."
+        )
+    if kd_lpse <= 0:
+        raise ValueError(
+            f"kd_lpse must be a positive integer, got {kd_lpse}."
+        )
+
+    return {
+        "tahun_anggaran": tahun_anggaran,
+        "kd_lpse": kd_lpse,
+    }
+
+
+def validate_ssl_verify_params(params: dict) -> dict:
+    """Validate set_ssl_verify parameters."""
+    enable_raw = params.get("enable")
+    if enable_raw is None:
+        raise ValueError("'enable' parameter is required (boolean).")
+
+    if isinstance(enable_raw, bool):
+        enable = enable_raw
+    elif isinstance(enable_raw, str):
+        if enable_raw.strip().lower() in ("true", "1", "yes", "on"):
+            enable = True
+        elif enable_raw.strip().lower() in ("false", "0", "no", "off"):
+            enable = False
+        else:
+            raise ValueError(
+                f"Invalid value for 'enable': {enable_raw}. "
+                f"Must be a boolean (true/false)."
+            )
+    else:
+        raise ValueError(
+            f"Invalid type for 'enable': {type(enable_raw).__name__}. "
+            f"Must be a boolean."
+        )
+
+    return {"enable": enable}
+
+
 # ── output normalization ─────────────────────────────────────────────────────
 
 def normalize_search_results(
@@ -791,6 +878,45 @@ MASTER_KLPD_SCHEMA = {
     },
 }
 
+MASTER_LPSE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "query": {
+            "type": "string",
+            "description": "Filter by LPSE name or kd_lpse.",
+        },
+        "kd_lpse": {
+            "type": "integer",
+            "description": "Exact LPSE code, e.g. 119.",
+        },
+        "limit": {
+            "type": "integer",
+            "description": "Maximum rows to return.",
+            "default": 50,
+            "minimum": 1,
+            "maximum": 500,
+        },
+    },
+}
+
+TENDER_UMUM_PUBLIK_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "tahun_anggaran": {
+            "type": "integer",
+            "description": "Budget year, e.g. 2026.",
+        },
+        "kd_lpse": {
+            "type": "integer",
+            "description": (
+                "LPSE code from get_master_lpse, e.g. 119 for "
+                "LPSE Kota Surabaya."
+            ),
+        },
+    },
+    "required": ["tahun_anggaran", "kd_lpse"],
+}
+
 DETAIL_TOOL_SCHEMA = {
     "type": "object",
     "properties": {
@@ -1003,4 +1129,21 @@ DELETE_SEARCH_INDEX_SCHEMA = {
         },
     },
     "required": ["index_id"],
+}
+
+SSL_VERIFY_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "enable": {
+            "type": "boolean",
+            "description": (
+                "Set to true to enable TLS/SSL certificate verification, "
+                "false to disable it. When disabled, certificate errors "
+                "(e.g., self-signed or expired certificates) are ignored. "
+                "Disabling is useful when connecting through proxies or "
+                "to servers with untrusted certificates."
+            ),
+        },
+    },
+    "required": ["enable"],
 }
