@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/pyproc/"><img src="https://img.shields.io/badge/version-v0.3.2-blue" alt="PyPI version"></a>
+  <a href="https://pypi.org/project/pyproc/"><img src="https://img.shields.io/badge/version-v0.3.3-blue" alt="PyPI version"></a>
   <a href="https://pypi.org/project/pyproc/"><img src="https://img.shields.io/badge/python-≥3.9-yellow" alt="Python ≥3.9"></a>
   <a href="https://github.com/wakataw/pyproc/actions/workflows/test.yml?query=branch%3Amaster"><img src="https://github.com/wakataw/pyproc/actions/workflows/test.yml/badge.svg?branch=master" alt="Test Status"></a>
   <a href="https://github.com/wakataw/pyproc/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="License: MIT"></a>

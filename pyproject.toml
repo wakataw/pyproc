@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pyproc"
-version = "0.3.3a"
+version = "0.3.3"
 authors = [
     { name="Agung Pratama", email="workwithagung@gmail.com"}
 ]
