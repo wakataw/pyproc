@@ -33,6 +33,7 @@ DEFAULT_INDEX_MAX_PACKAGES = 0
 DEFAULT_INDEX_SEARCH_LIMIT = 20
 MAX_INDEX_SEARCH_LIMIT = 100
 MAX_BULK_DETAIL_PACKAGE_IDS = 20
+VALID_OUTPUT_MODES = {"local_index", "file", "inline"}
 
 VALID_CATEGORIES = {e.name for e in JenisPengadaan}
 
@@ -408,6 +409,7 @@ def validate_search_index_create_params(params: dict) -> dict:
         "keyword_seed": str(params.get("keyword_seed") or "").strip() or None,
         "max_packages": max(0, max_packages),
         "confirm_download": True,
+        "force_refresh": bool(params.get("force_refresh", False)),
     }
 
 
@@ -444,6 +446,29 @@ def validate_search_index_delete_params(params: dict) -> dict:
     return {"index_id": index_id}
 
 
+def validate_isb_index_search_params(params: dict) -> dict:
+    """Validate ISB index search parameters."""
+    index_id = str(params.get("index_id") or "").strip()
+    query = str(params.get("query") or "").strip()
+    if not index_id:
+        raise ValueError("index_id must not be empty")
+    if not re.match(r"^[a-zA-Z0-9_.-]+$", index_id):
+        raise ValueError("index_id contains invalid characters")
+    if not query:
+        raise ValueError("query must not be empty")
+
+    try:
+        limit = int(params.get("limit", 20))
+    except (ValueError, TypeError):
+        raise ValueError(f"Invalid limit value: {params.get('limit')}")
+
+    return {
+        "index_id": index_id,
+        "query": query,
+        "limit": max(1, min(limit, 100)),
+    }
+
+
 def validate_master_klpd_params(params: dict) -> dict:
     """Validate master KLPD lookup parameters."""
     query = str(params.get("query") or "").strip()
@@ -457,11 +482,16 @@ def validate_master_klpd_params(params: dict) -> dict:
     except (ValueError, TypeError):
         raise ValueError(f"Invalid limit value: {params.get('limit')}")
 
+    save_to_file = params.get("save_to_file", True)
+    if isinstance(save_to_file, str):
+        save_to_file = save_to_file.strip().lower() in ("1", "true", "yes", "y")
+
     return {
         "query": query,
         "kd_klpd": kd_klpd or None,
         "jenis_klpd": jenis_klpd or None,
         "limit": max(1, min(limit, 500)),
+        "save_to_file": bool(save_to_file),
     }
 
 
@@ -484,10 +514,15 @@ def validate_master_lpse_params(params: dict) -> dict:
     except (ValueError, TypeError):
         raise ValueError(f"Invalid limit value: {params.get('limit')}")
 
+    save_to_file = params.get("save_to_file", True)
+    if isinstance(save_to_file, str):
+        save_to_file = save_to_file.strip().lower() in ("1", "true", "yes", "y")
+
     return {
         "query": query,
         "kd_lpse": kd_lpse,
         "limit": max(1, min(limit, 500)),
+        "save_to_file": bool(save_to_file),
     }
 
 
@@ -519,9 +554,27 @@ def validate_tender_umum_publik_params(params: dict) -> dict:
             f"kd_lpse must be a positive integer, got {kd_lpse}."
         )
 
+    return_full_data = params.get("return_full_data", False)
+    if isinstance(return_full_data, str):
+        return_full_data = return_full_data.strip().lower() in ("1", "true", "yes", "y")
+
+    output_mode = str(params.get("output_mode") or "").strip().lower()
+    if output_mode and output_mode not in VALID_OUTPUT_MODES:
+        raise ValueError(
+            f"Invalid output_mode: '{output_mode}'. "
+            f"Must be one of: {', '.join(sorted(VALID_OUTPUT_MODES))}"
+        )
+
+    force_refresh = params.get("force_refresh", False)
+    if isinstance(force_refresh, str):
+        force_refresh = force_refresh.strip().lower() in ("1", "true", "yes", "y")
+
     return {
         "tahun_anggaran": tahun_anggaran,
         "kd_lpse": kd_lpse,
+        "return_full_data": bool(return_full_data),
+        "output_mode": output_mode or None,
+        "force_refresh": bool(force_refresh),
     }
 
 
@@ -875,6 +928,15 @@ MASTER_KLPD_SCHEMA = {
             "minimum": 1,
             "maximum": 500,
         },
+        "save_to_file": {
+            "type": "boolean",
+            "description": (
+                "Save results to a JSON file instead of returning inline. "
+                "Default true. Set to false only when you are certain the "
+                "filtered result is small enough for your context window."
+            ),
+            "default": True,
+        },
     },
 }
 
@@ -896,6 +958,15 @@ MASTER_LPSE_SCHEMA = {
             "minimum": 1,
             "maximum": 500,
         },
+        "save_to_file": {
+            "type": "boolean",
+            "description": (
+                "Save results to a JSON file instead of returning inline. "
+                "Default true. Set to false only when you are certain the "
+                "filtered result is small enough for your context window."
+            ),
+            "default": True,
+        },
     },
 }
 
@@ -912,6 +983,27 @@ TENDER_UMUM_PUBLIK_SCHEMA = {
                 "LPSE code from get_master_lpse, e.g. 119 for "
                 "LPSE Kota Surabaya."
             ),
+        },
+        "output_mode": {
+            "type": "string",
+            "enum": sorted(VALID_OUTPUT_MODES),
+            "description": (
+                "How to return the data. Omit on first call to get a "
+                "choice prompt with record count and preview. Then call "
+                "again with one of: "
+                "'local_index' (create SQLite FTS index, recommended), "
+                "'file' (save to JSON file), "
+                "'inline' (return full JSON, NOT recommended for large datasets)."
+            ),
+        },
+        "force_refresh": {
+            "type": "boolean",
+            "description": (
+                "If true, skip existing index check and fetch fresh data "
+                "from the API. Default false — if a matching local index "
+                "already exists, you will be asked whether to reuse or refresh."
+            ),
+            "default": False,
         },
     },
     "required": ["tahun_anggaran", "kd_lpse"],
@@ -1090,6 +1182,15 @@ CREATE_SEARCH_INDEX_SCHEMA = {
                 "SPSE requests when max_packages is 0 or large."
             ),
         },
+        "force_refresh": {
+            "type": "boolean",
+            "description": (
+                "If true, skip existing index check and create a fresh index. "
+                "Default false — if a matching local index already exists, "
+                "you will be asked whether to reuse or refresh."
+            ),
+            "default": False,
+        },
     },
     "required": ["lpse_host", "confirm_download"],
 }
@@ -1131,6 +1232,30 @@ DELETE_SEARCH_INDEX_SCHEMA = {
     "required": ["index_id"],
 }
 
+SEARCH_ISB_INDEX_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "index_id": {
+            "type": "string",
+            "description": (
+                "ISB index ID returned by get_tender_umum_publik with "
+                "output_mode='local_index'."
+            ),
+        },
+        "query": {
+            "type": "string",
+            "description": "SQLite FTS5 query to search tender names and details.",
+        },
+        "limit": {
+            "type": "integer",
+            "description": "Maximum matches to return.",
+            "default": 20,
+            "maximum": 100,
+        },
+    },
+    "required": ["index_id", "query"],
+}
+
 SSL_VERIFY_SCHEMA = {
     "type": "object",
     "properties": {
@@ -1146,4 +1271,18 @@ SSL_VERIFY_SCHEMA = {
         },
     },
     "required": ["enable"],
+}
+
+CLEAR_ALL_DATA_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "confirm": {
+            "type": "boolean",
+            "description": (
+                "Must be true to confirm deletion of all local indexes "
+                "and downloaded data files. This action cannot be undone."
+            ),
+        },
+    },
+    "required": ["confirm"],
 }
