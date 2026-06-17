@@ -3,6 +3,7 @@
 import os
 import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 
@@ -208,6 +209,211 @@ class TestSearchIndex(unittest.TestCase):
                 # Single request with length=50
                 call_kwargs = mock_lpse.get_paket_tender.call_args[1]
                 self.assertEqual(call_kwargs["length"], 50)
+
+
+class TestIsbIndex(unittest.TestCase):
+
+    def test_create_search_and_delete(self):
+        from pyproc.mcp import search_index
+
+        test_data = [
+            {"Kode Tender": "100", "Nama Paket": "Pengadaan Laptop", "Pagu": 5000000000},
+            {"Kode Tender": "101", "Nama Paket": "Pengadaan Notebook", "Pagu": 3000000000},
+            {"Kode Tender": "102", "Nama Paket": "Jasa Konsultansi IT", "Pagu": 1000000000},
+        ]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch.dict(os.environ, {"PYPROC_MCP_INDEX_DIR": tmpdir}):
+                # Create
+                created = search_index.create_isb_data_index(
+                    data=test_data, kd_lpse=119, tahun_anggaran=2026,
+                )
+                self.assertEqual(created["indexed_records"], 3)
+                self.assertIn("isb-119-2026-", created["index_id"])
+                self.assertEqual(created["source"], "isb_satudata")
+
+                # Search
+                result = search_index.search_isb_index(
+                    created["index_id"], "laptop",
+                )
+                self.assertEqual(result["count"], 1)
+                self.assertEqual(result["matches"][0]["kode_tender"], "100")
+
+                # Search broader
+                result2 = search_index.search_isb_index(
+                    created["index_id"], "pengadaan",
+                )
+                self.assertEqual(result2["count"], 2)
+
+                # List (should include ISB index)
+                listed = search_index.list_procurement_indexes()
+                self.assertEqual(listed["count"], 1)
+
+                # Delete
+                deleted = search_index.delete_procurement_index(created["index_id"])
+                self.assertTrue(deleted["deleted"])
+
+                # Verify gone
+                listed2 = search_index.list_procurement_indexes()
+                self.assertEqual(listed2["count"], 0)
+
+    def test_search_missing_index(self):
+        from pyproc.mcp import search_index
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch.dict(os.environ, {"PYPROC_MCP_INDEX_DIR": tmpdir}):
+                with self.assertRaises(ValueError):
+                    search_index.search_isb_index("nonexistent", "laptop")
+
+    def test_create_empty_data(self):
+        from pyproc.mcp import search_index
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch.dict(os.environ, {"PYPROC_MCP_INDEX_DIR": tmpdir}):
+                created = search_index.create_isb_data_index(
+                    data=[], kd_lpse=999, tahun_anggaran=2026,
+                )
+                self.assertEqual(created["indexed_records"], 0)
+
+    def test_create_with_malformed_records(self):
+        from pyproc.mcp import search_index
+
+        test_data = [
+            {"Kode Tender": "100", "Nama Paket": "Valid Record"},
+            {"some_field": "no kode_tender"},  # no kode_tender -> skipped
+            {"Kode Tender": "", "Nama Paket": "Empty Kode"},  # empty kode -> skipped
+        ]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch.dict(os.environ, {"PYPROC_MCP_INDEX_DIR": tmpdir}):
+                created = search_index.create_isb_data_index(
+                    data=test_data, kd_lpse=119, tahun_anggaran=2026,
+                )
+                # Only 1 valid record (the one with non-empty kode_tender)
+                self.assertEqual(created["indexed_records"], 1)
+
+
+class TestFindExistingIndex(unittest.TestCase):
+
+    def test_find_existing_isb_index(self):
+        from pyproc.mcp import search_index
+
+        test_data = [
+            {"Kode Tender": "100", "Nama Paket": "Test"},
+        ]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch.dict(os.environ, {"PYPROC_MCP_INDEX_DIR": tmpdir}):
+                created = search_index.create_isb_data_index(
+                    data=test_data, kd_lpse=119, tahun_anggaran=2026,
+                )
+
+                found = search_index.find_existing_isb_index(
+                    kd_lpse=119, tahun_anggaran=2026,
+                )
+                self.assertIsNotNone(found)
+                self.assertEqual(found["index_id"], created["index_id"])
+                self.assertEqual(found["source"], "isb_satudata")
+
+                # Different params should not match
+                not_found = search_index.find_existing_isb_index(
+                    kd_lpse=999, tahun_anggaran=2026,
+                )
+                self.assertIsNone(not_found)
+
+    def test_find_existing_spse_index(self):
+        from pyproc.mcp import search_index
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch.dict(os.environ, {"PYPROC_MCP_INDEX_DIR": tmpdir}):
+                # Create a mock SPSE index by inserting metadata directly
+                index_id = "kemenkeu-tender-9999-test1234"
+                path = search_index.get_index_root() / index_id / "index.sqlite"
+                db = search_index._isb_init_db(path, {
+                    "index_id": index_id,
+                    "lpse_host": "kemenkeu",
+                    "package_type": "tender",
+                    "tahun_anggaran": 2025,
+                    "kategori": None,
+                    "keyword_seed": "laptop",
+                    "indexed_packages": 50,
+                })
+                db.close()
+
+                found = search_index.find_existing_spse_index(
+                    lpse_host="kemenkeu",
+                    package_type="tender",
+                    tahun_anggaran=2025,
+                    kategori=None,
+                    keyword_seed="laptop",
+                )
+                self.assertIsNotNone(found)
+                self.assertEqual(found["index_id"], index_id)
+
+                # Different host should not match
+                not_found = search_index.find_existing_spse_index(
+                    lpse_host="jakarta",
+                    package_type="tender",
+                    tahun_anggaran=2025,
+                )
+                self.assertIsNone(not_found)
+
+    def test_find_existing_returns_none_when_empty(self):
+        from pyproc.mcp import search_index
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch.dict(os.environ, {"PYPROC_MCP_INDEX_DIR": tmpdir}):
+                self.assertIsNone(
+                    search_index.find_existing_isb_index(119, 2026)
+                )
+                self.assertIsNone(
+                    search_index.find_existing_spse_index("kemenkeu")
+                )
+
+
+class TestCleanupAllData(unittest.TestCase):
+
+    def test_cleanup_deletes_everything(self):
+        from pyproc.mcp import search_index
+
+        with tempfile.TemporaryDirectory() as index_tmpdir, \
+             tempfile.TemporaryDirectory() as data_tmpdir:
+
+            # Create some index dirs
+            (Path(index_tmpdir) / "idx1").mkdir()
+            (Path(index_tmpdir) / "idx1" / "index.sqlite").touch()
+            (Path(index_tmpdir) / "idx2").mkdir()
+            (Path(index_tmpdir) / "idx2" / "index.sqlite").touch()
+
+            # Create some data files
+            (Path(data_tmpdir) / "file1.json").touch()
+            (Path(data_tmpdir) / ".isb_temp_file.json").touch()
+
+            with patch.dict(os.environ, {
+                "PYPROC_MCP_INDEX_DIR": index_tmpdir,
+                "PYPROC_MCP_DATA_DIR": data_tmpdir,
+            }):
+                result = search_index.cleanup_all_data()
+
+            self.assertEqual(result["indexes_deleted"], 2)
+            self.assertEqual(result["files_deleted"], 2)
+            # Directories should be empty
+            self.assertEqual(len(list(Path(index_tmpdir).iterdir())), 0)
+            self.assertEqual(len(list(Path(data_tmpdir).iterdir())), 0)
+
+    def test_cleanup_empty_dirs(self):
+        from pyproc.mcp import search_index
+
+        with tempfile.TemporaryDirectory() as index_tmpdir, \
+             tempfile.TemporaryDirectory() as data_tmpdir:
+            with patch.dict(os.environ, {
+                "PYPROC_MCP_INDEX_DIR": index_tmpdir,
+                "PYPROC_MCP_DATA_DIR": data_tmpdir,
+            }):
+                result = search_index.cleanup_all_data()
+
+            self.assertEqual(result["indexes_deleted"], 0)
+            self.assertEqual(result["files_deleted"], 0)
 
 
 if __name__ == "__main__":
