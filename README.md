@@ -61,24 +61,60 @@ PyProc can be used in three ways. Choose the one that fits your workflow:
 
 Give your LLM direct access to Indonesian procurement data through MCP tools.
 
+PyProc MCP supports two transport interfaces: **stdio** (default, for local MCP clients like Claude Desktop and Cursor) and **HTTP** (Streamable HTTP, for network/containerized deployments).
+
 ```bash
 pip install pyproc[mcp]
-pyproc-mcp
+
+# Start MCP server (stdio, default)
+pyproc mcp
+
+# Start MCP server (HTTP)
+pyproc mcp --interface http
+pyproc mcp --interface http --port 9090
 ```
 
-**MCP Client Configuration:**
+**Generate MCP client configuration:**
 
-Add to your MCP client's configuration file (e.g., `claude_desktop_config.json`):
+The quickest way to connect your MCP client is to generate a ready-to-use config:
+
+```bash
+# Print config to stdout (stdio interface)
+pyproc mcp --generate-config
+
+# Print config to stdout (HTTP interface)
+pyproc mcp --interface http --generate-config
+
+# Write config to a file
+pyproc mcp --generate-config mcp-config.json
+pyproc mcp --interface http --port 9090 --generate-config mcp-config.json
+```
+
+**Adding to your MCP client:**
+
+Copy the output into your client's config file (e.g. `claude_desktop_config.json` for Claude Desktop, or `.cursor/mcp.json` for Cursor). For stdio:
 
 ```json
 {
   "mcpServers": {
     "pyproc": {
       "command": "pyproc-mcp",
-      "args": [],
       "env": {
         "PYPROC_TIMEOUT": "30"
       }
+    }
+  }
+}
+```
+
+For HTTP (clients that support Streamable HTTP):
+
+```json
+{
+  "mcpServers": {
+    "pyproc": {
+      "type": "streamableHttp",
+      "url": "http://localhost:8080/"
     }
   }
 }
@@ -300,7 +336,9 @@ pip uninstall pyproc
 
 ## Configuration
 
-The MCP server is configured via environment variables:
+The MCP server is configured via environment variables.
+
+**Common (all interfaces):**
 
 | Variable | Default | Description |
 |---|---|---|
@@ -308,6 +346,17 @@ The MCP server is configured via environment variables:
 | `PYPROC_RATE_LIMIT_DELAY` | `1.0` | Minimum seconds between requests |
 | `PYPROC_LOG_LEVEL` | `INFO` | Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL) |
 | `PYPROC_SSL_VERIFY` | `0` | Enable SSL/TLS certificate verification (`1`, `true`, `yes`, `on` to enable) |
+| `PYPROC_MCP_WORKERS` | `4` | Worker count for parallel detail fetching |
+
+**HTTP interface only:**
+
+| Variable | Default | Description |
+|---|---|---|
+| `PYPROC_MCP_HOST` | `0.0.0.0` | HTTP bind address |
+| `PYPROC_MCP_PORT` | `8080` | HTTP listen port |
+| `PYPROC_MCP_STATELESS` | `0` | Enable stateless mode (no session tracking) |
+| `PYPROC_MCP_JSON_RESPONSE` | `1` | Use JSON responses instead of SSE streams |
+| `PYPROC_MCP_SESSION_IDLE_TIMEOUT` | `1800` | Session idle timeout in seconds (stateful only) |
 
 ---
 

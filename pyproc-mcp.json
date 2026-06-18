@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "pyproc": {
+      "type": "stdio",
+      "command": "/home/agung/PycharmProjects/pyproc/.venv/bin/pyproc-mcp",
+      "env": {
+        "PYPROC_TIMEOUT": "30",
+        "PYPROC_RATE_LIMIT_DELAY": "1.0",
+        "PYPROC_LOG_LEVEL": "INFO",
+        "PYPROC_SSL_VERIFY": "0",
+        "PYPROC_MCP_WORKERS": "4"
+      }
+    }
+  }
+}

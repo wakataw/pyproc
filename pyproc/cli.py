@@ -807,13 +807,64 @@ class Downloader(object):
             del exporter
 
 
+def _generate_mcp_config(interface='stdio', host=None, port=None):
+    """Generate an MCP client configuration JSON block for the given interface.
+
+    Returns a pretty-printed JSON string suitable for copying into an MCP
+    client config file (e.g. ``claude_desktop_config.json``) or for use as a
+    standalone config file.
+    """
+    import os as _os
+    import json as _json
+    import shutil as _shutil
+
+    if interface == 'http':
+        from pyproc.mcp.http_server import HTTP_HOST, HTTP_PORT
+        bind_host = host if host is not None else HTTP_HOST
+        bind_port = port if port is not None else HTTP_PORT
+        # 0.0.0.0 is a server bind address; use localhost in client configs
+        url_host = 'localhost' if bind_host in ('0.0.0.0', '::') else bind_host
+        server_config = {
+            "type": "streamableHttp",
+            "url": f"http://{url_host}:{bind_port}/",
+        }
+    else:
+        # stdio: find the pyproc-mcp binary
+        bin_path = _shutil.which('pyproc-mcp')
+        if bin_path is None:
+            # Fallback: look next to the current Python interpreter
+            bin_dir = _os.path.dirname(_os.path.abspath(sys.executable))
+            candidate = _os.path.join(bin_dir, 'pyproc-mcp')
+            if _os.path.isfile(candidate):
+                bin_path = candidate
+            else:
+                bin_path = 'pyproc-mcp'  # hope it's on PATH at runtime
+
+        server_config = {
+            "command": bin_path,
+            "env": {
+                "PYPROC_TIMEOUT": "30",
+                "PYPROC_RATE_LIMIT_DELAY": "1.0",
+                "PYPROC_LOG_LEVEL": "INFO",
+                "PYPROC_SSL_VERIFY": "0",
+                "PYPROC_MCP_WORKERS": "4",
+            },
+        }
+
+    config = {"mcpServers": {"pyproc": server_config}}
+    return _json.dumps(config, indent=2) + "\n"
+
+
 def main():
     IWillFindYouAndIWillKillYou()
 
-    print(text.INFO)
+    # Detect subcommands by checking if first arg is a known subcommand.
+    # Do this before printing the banner so stdio MCP transport is not corrupted.
+    known_subcommands = {'daftarlpse', 'daftarhost', 'masterklpd', 'satudata', 'spse', 'mcp'}
 
-    # Check for top-level --help / -h before subcommand dispatch
     if len(sys.argv) > 1 and sys.argv[1] in {'-h', '--help'}:
+        # Print banner first for help display
+        print(text.INFO)
         print("Usage: pyproc [subcommand] [options]")
         print()
         print("Subcommands:")
@@ -824,6 +875,8 @@ def main():
         print("  satudata       Akses data dari LKPP ISB Satu Data API (alternatif)")
         print("    masterlpse   Cari LPSE secara interaktif dan unduh data tender")
         print("    tenderumum   Unduh data tender umum publik berdasarkan kode LPSE")
+        print("  mcp            Jalankan MCP server (--interface stdio|http)")
+        print("                 --generate-config untuk membuat file konfigurasi client")
         print()
         print(
             "Gunakan 'pyproc <subcommand> --help' "
@@ -831,16 +884,17 @@ def main():
         )
         sys.exit(0)
 
-    # Detect subcommands by checking if first arg is a known subcommand
-    # For backward compatibility, treat non-subcommand args as download args
-    known_subcommands = {'daftarlpse', 'daftarhost', 'masterklpd', 'satudata', 'spse'}
-
     if len(sys.argv) > 1 and sys.argv[1] in known_subcommands:
         subcommand = sys.argv[1]
         remaining_args = sys.argv[2:]
     else:
         subcommand = 'spse'
         remaining_args = sys.argv[1:]
+
+    # Only print the ASCII banner for non-MCP subcommands.
+    # MCP stdio transport uses stdout for protocol messages.
+    if subcommand != 'mcp':
+        print(text.INFO)
 
     if subcommand == 'daftarlpse':
         if remaining_args and remaining_args[0] in {'-h', '--help'}:
@@ -1117,6 +1171,61 @@ def main():
                 f"Berhasil menyimpan {len(rows)} tender ke {output_path}"
             )
             sys.exit(0)
+
+    if subcommand == 'mcp':
+        parser = argparse.ArgumentParser(
+            description="Jalankan PyProc MCP server."
+        )
+        parser.add_argument(
+            '--interface', '-i',
+            type=str, default='stdio',
+            choices=['stdio', 'http'],
+            help='Transport interface: stdio (default) atau http.',
+        )
+        parser.add_argument(
+            '--host',
+            type=str, default=None,
+            help='HTTP bind address (override PYPROC_MCP_HOST, default 0.0.0.0).',
+        )
+        parser.add_argument(
+            '--port', '-p',
+            type=int, default=None,
+            help='HTTP listen port (override PYPROC_MCP_PORT, default 8080).',
+        )
+        parser.add_argument(
+            '--generate-config',
+            type=str, nargs='?', const='-', default=None,
+            dest='generate_config',
+            metavar='FILE',
+            help='Generate MCP client config JSON for the chosen interface '
+                 'and exit. If FILE is omitted or "-", prints to stdout.',
+        )
+        args = parser.parse_args(remaining_args)
+
+        # --generate-config: write config and exit (before starting server)
+        if args.generate_config is not None:
+            config_json = _generate_mcp_config(
+                interface=args.interface,
+                host=args.host,
+                port=args.port,
+            )
+            if args.generate_config == '-':
+                print(config_json)
+            else:
+                with open(args.generate_config, 'w', encoding='utf-8') as f:
+                    f.write(config_json)
+                print(f"MCP client config written to {args.generate_config}",
+                      file=sys.stderr)
+            sys.exit(0)
+
+        from pyproc.mcp.server import main as mcp_stdio_main
+        from pyproc.mcp.http_server import run_http_server
+
+        if args.interface == 'http':
+            run_http_server(host=args.host, port=args.port)
+        else:
+            mcp_stdio_main()
+        sys.exit(0)
 
     # Default: spse
     downloader = Downloader()
