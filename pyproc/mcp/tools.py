@@ -9,8 +9,11 @@ This module auto-registers all tools with the server on import.
 import anyio
 import json
 import logging
+import os
 import queue
 import time
+from datetime import datetime
+from pathlib import Path
 
 from mcp import types as mcp_types
 
@@ -26,6 +29,7 @@ from pyproc.mcp.schemas import (
     validate_search_index_create_params,
     validate_search_index_query_params,
     validate_search_index_delete_params,
+    validate_isb_index_search_params,
     validate_master_klpd_params,
     validate_master_lpse_params,
     validate_tender_umum_publik_params,
@@ -50,6 +54,8 @@ from pyproc.mcp.schemas import (
     SEARCH_INDEX_SCHEMA,
     LIST_SEARCH_INDEXES_SCHEMA,
     DELETE_SEARCH_INDEX_SCHEMA,
+    SEARCH_ISB_INDEX_SCHEMA,
+    CLEAR_ALL_DATA_SCHEMA,
 )
 from pyproc.mcp.server import register_tool, server, TIMEOUT, RATE_LIMIT_DELAY, MCP_WORKERS
 import pyproc.mcp.server as mcp_server_cfg  # for mutable SSL_VERIFY
@@ -72,6 +78,12 @@ from pyproc.mcp.search_index import (
     search_procurement_index,
     list_procurement_indexes,
     delete_procurement_index,
+    create_isb_data_index,
+    search_isb_index,
+    find_existing_isb_index,
+    find_existing_spse_index,
+    cleanup_isb_temp_files,
+    cleanup_all_data,
 )
 
 logger = logging.getLogger(__name__)
@@ -96,6 +108,79 @@ def _make_json_response(data: dict | list) -> list[mcp_types.TextContent]:
         type="text",
         text=json.dumps(data, ensure_ascii=False, indent=2, default=str),
     )]
+
+
+def _get_api_data_dir() -> Path:
+    """Return the directory for API data output files."""
+    configured = os.environ.get("PYPROC_MCP_DATA_DIR")
+    if configured:
+        return Path(configured).expanduser()
+    return Path.home() / ".cache" / "pyproc" / "api-data"
+
+
+def _save_json_to_file(data: list | dict, prefix: str,
+                        tool_name: str = "",
+                        extra_params: dict | None = None) -> dict:
+    """Save JSON data to a file and return a compact summary.
+
+    Args:
+        data: The data to save (list or dict).
+        prefix: Filename prefix (e.g. 'tender_umum_kd119_2026').
+        tool_name: Name of the tool that produced this data (for the
+            confirmation hint).
+        extra_params: Additional parameters to include in the
+            confirmation hint (e.g. tahun_anggaran, kd_lpse).
+
+    Returns:
+        Summary dict with file_path, record_count, preview, and
+        processing_hints.
+    """
+    data_dir = _get_api_data_dir()
+    data_dir.mkdir(parents=True, exist_ok=True)
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"{prefix}_{timestamp}.json"
+    file_path = data_dir / filename
+
+    with open(file_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2, default=str)
+
+    record_count = len(data) if isinstance(data, list) else 1
+    preview = data[:3] if isinstance(data, list) else data
+
+    # Build confirmation hint for returning full data inline
+    confirmation_hint = ""
+    if tool_name:
+        params_parts = []
+        if extra_params:
+            for k, v in extra_params.items():
+                params_parts.append(f'"{k}": {json.dumps(v)}')
+        params_parts.append('"return_full_data": true')
+        params_str = ", ".join(params_parts)
+        confirmation_hint = (
+            f"If the user explicitly confirms they want the full "
+            f"{record_count}-record JSON in context, call "
+            f"{tool_name} again with return_full_data=true. "
+            f"Example: {{{params_str}}}"
+        )
+
+    return {
+        "status": "saved_to_file",
+        "file_path": str(file_path),
+        "record_count": record_count,
+        "preview": preview,
+        "processing_hints": (
+            f"Full data ({record_count} records) saved to: {file_path}\n"
+            "Do NOT load the full JSON into your context. "
+            "Process the file locally instead:\n"
+            f"  - jq: jq '.[] | .NamaPaket' {file_path}\n"
+            f"  - Python: import json; data = json.load(open('{file_path}'))\n"
+            f"  - Count: jq 'length' {file_path}\n"
+            "For full-text search across procurement data, consider "
+            "create_procurement_search_index instead."
+        ),
+        "confirmation_hint": confirmation_hint,
+    }
 
 
 def _merge_keyword_results(
@@ -528,12 +613,23 @@ async def handle_get_master_klpd(
     output = {
         "count": min(len(rows), params["limit"]),
         "total_matches": len(rows),
-        "klpd": rows[:params["limit"]],
         "usage": (
             "Use kd_klpd as instansi_id in search_tender_packages or "
             "search_non_tender_packages."
         ),
     }
+
+    limited_rows = rows[:params["limit"]]
+
+    if params.get("save_to_file") and limited_rows:
+        prefix = "master_klpd"
+        if params["query"]:
+            prefix = f"master_klpd_{params['query'][:30]}"
+        summary = _save_json_to_file(limited_rows, prefix, tool_name="get_master_klpd")
+        summary.update(output)
+        return _make_json_response(summary)
+
+    output["klpd"] = limited_rows
     return _make_json_response(output)
 
 
@@ -570,51 +666,285 @@ async def handle_get_master_lpse(
     output = {
         "count": min(len(rows), params["limit"]),
         "total_matches": len(rows),
-        "lpse": rows[:params["limit"]],
         "usage": (
             "Use kd_lpse from this tool as the kd_lpse parameter in "
             "get_tender_umum_publik."
         ),
     }
+
+    limited_rows = rows[:params["limit"]]
+
+    if params.get("save_to_file") and limited_rows:
+        prefix = "master_lpse"
+        if params["query"]:
+            prefix = f"master_lpse_{params['query'][:30]}"
+        summary = _save_json_to_file(limited_rows, prefix, tool_name="get_master_lpse")
+        summary.update(output)
+        return _make_json_response(summary)
+
+    output["lpse"] = limited_rows
     return _make_json_response(output)
 
 
 async def handle_get_tender_umum_publik(
     name: str, arguments: dict
 ) -> list[mcp_types.TextContent]:
-    """Return tender data from LKPP ISB Satu Data as alternative source."""
+    """Return tender data from LKPP ISB Satu Data as alternative source.
+
+    Multi-step interaction:
+    1. Call without output_mode → checks for existing index, fetches data,
+       returns choice prompt with record count and preview.
+    2. If existing index found, asks reuse or refresh.
+    3. Call with output_mode='local_index'|'file'|'inline' → processes
+       data according to chosen mode.
+    """
     try:
         params = validate_tender_umum_publik_params(arguments)
     except ValueError as exc:
         return [mcp_types.TextContent(type="text",
                      text=f"Error: Invalid parameter: {exc}")]
 
+    kd_lpse = params["kd_lpse"]
+    tahun = params["tahun_anggaran"]
+    output_mode = params.get("output_mode")
+    force_refresh = params.get("force_refresh", False)
+
     logger.info(
-        "Get tender umum publik: tahun=%s kd_lpse=%s",
-        params["tahun_anggaran"], params["kd_lpse"],
+        "Get tender umum publik: tahun=%s kd_lpse=%s output_mode=%s force_refresh=%s",
+        tahun, kd_lpse, output_mode, force_refresh,
     )
 
+    # ── Step 2: process with chosen output_mode ──────────────────────
+    if output_mode:
+        return await _handle_isb_output_mode(kd_lpse, tahun, output_mode)
+
+    # ── Check for existing index ─────────────────────────────────────
+    if not force_refresh:
+        existing = find_existing_isb_index(kd_lpse, tahun)
+        if existing:
+            output = {
+                "status": "existing_index_found",
+                "index_id": existing.get("index_id"),
+                "indexed_records": existing.get("indexed_records", "unknown"),
+                "kd_lpse": kd_lpse,
+                "tahun_anggaran": tahun,
+                "created_at": existing.get("created_at"),
+                "source": "LKPP ISB Satu Data (alternative data source)",
+                "choices": {
+                    "reuse": (
+                        "Use the existing index as-is. Call "
+                        f"search_isb_index with index_id='{existing.get('index_id')}' "
+                        "to query it."
+                    ),
+                    "refresh": (
+                        "Delete the existing index and fetch fresh data "
+                        "from the API. Call get_tender_umum_publik again "
+                        "with force_refresh=true."
+                    ),
+                },
+            }
+            return _make_json_response(output)
+
+    # ── Fetch fresh data from API ────────────────────────────────────
     _rate_limit()
     rows = Lpse.get_tender_umum_publik(
-        tahun_anggaran=params["tahun_anggaran"],
-        kd_lpse=params["kd_lpse"],
+        tahun_anggaran=tahun,
+        kd_lpse=kd_lpse,
         timeout=TIMEOUT,
     )
 
+    if not rows:
+        output = {
+            "count": 0,
+            "source": "LKPP ISB Satu Data (alternative data source)",
+            "kd_lpse": kd_lpse,
+            "tahun_anggaran": tahun,
+            "tenders": [],
+            "notes": (
+                "No tender data found for the given parameters. "
+                "Data from ISB Satu Data. Field names may contain spaces "
+                "(e.g., 'Kode Tender', 'Nama Paket'). This is an alternative "
+                "data source. Use as fallback when realtime SPSE/Inaproc "
+                "search returns no results or errors."
+            ),
+        }
+        return _make_json_response(output)
+
+    # Save to temp file for step 2
+    import hashlib
+    data_dir = _get_api_data_dir()
+    data_dir.mkdir(parents=True, exist_ok=True)
+    params_hash = hashlib.md5(f"{kd_lpse}_{tahun}".encode()).hexdigest()[:8]
+    temp_filename = f".isb_temp_kd{kd_lpse}_{tahun}_{params_hash}.json"
+    temp_path = data_dir / temp_filename
+    with open(temp_path, "w", encoding="utf-8") as f:
+        json.dump(rows, f, ensure_ascii=False, indent=2, default=str)
+
+    preview = rows[:3]
+
     output = {
-        "count": len(rows),
+        "status": "choose_output_mode",
+        "record_count": len(rows),
+        "preview": preview,
+        "temp_file": str(temp_path),
         "source": "LKPP ISB Satu Data (alternative data source)",
-        "kd_lpse": params["kd_lpse"],
-        "tahun_anggaran": params["tahun_anggaran"],
-        "tenders": rows,
-        "notes": (
-            "Data from ISB Satu Data. Field names may contain spaces "
-            "(e.g., 'Kode Tender', 'Nama Paket'). This is an alternative "
-            "data source. Use as fallback when realtime SPSE/Inaproc "
-            "search returns no results or errors."
+        "kd_lpse": kd_lpse,
+        "tahun_anggaran": tahun,
+        "output_options": {
+            "local_index": {
+                "description": (
+                    "Create a local SQLite FTS index for full-text search. "
+                    "Recommended — fast, queryable with search_isb_index."
+                ),
+                "recommended": True,
+            },
+            "file": {
+                "description": (
+                    "Save to JSON file. Process with jq, Python, or local tools."
+                ),
+            },
+            "inline": {
+                "description": (
+                    f"Return all {len(rows)} records as JSON directly into "
+                    f"context. WARNING: will consume significant tokens. "
+                    f"NOT recommended."
+                ),
+                "warning": True,
+            },
+        },
+        "next_step": (
+            "Call get_tender_umum_publik again with the same tahun_anggaran "
+            "and kd_lpse, plus output_mode='local_index', 'file', or 'inline'."
         ),
     }
     return _make_json_response(output)
+
+
+async def _handle_isb_output_mode(
+    kd_lpse: int, tahun: int, output_mode: str,
+) -> list[mcp_types.TextContent]:
+    """Process ISB data from temp file using the chosen output_mode."""
+    import hashlib
+    data_dir = _get_api_data_dir()
+    params_hash = hashlib.md5(f"{kd_lpse}_{tahun}".encode()).hexdigest()[:8]
+    temp_filename = f".isb_temp_kd{kd_lpse}_{tahun}_{params_hash}.json"
+    temp_path = data_dir / temp_filename
+
+    if not temp_path.exists():
+        return [mcp_types.TextContent(
+            type="text",
+            text=(
+                f"Error: Temp data file not found: {temp_path}. "
+                "Call get_tender_umum_publik without output_mode first to "
+                "fetch the data."
+            ),
+        )]
+
+    with open(temp_path, encoding="utf-8") as f:
+        rows = json.load(f)
+
+    # ── local_index ──────────────────────────────────────────────────
+    if output_mode == "local_index":
+        result = create_isb_data_index(
+            data=rows, kd_lpse=kd_lpse, tahun_anggaran=tahun,
+        )
+        # Cleanup temp file after indexing
+        try:
+            temp_path.unlink()
+        except OSError:
+            pass
+        result["source"] = "LKPP ISB Satu Data (alternative data source)"
+        return _make_json_response(result)
+
+    # ── file ─────────────────────────────────────────────────────────
+    if output_mode == "file":
+        prefix = f"tender_umum_kd{kd_lpse}_{tahun}"
+        summary = _save_json_to_file(rows, prefix)
+        # Cleanup temp file
+        try:
+            temp_path.unlink()
+        except OSError:
+            pass
+        summary["source"] = "LKPP ISB Satu Data (alternative data source)"
+        summary["kd_lpse"] = kd_lpse
+        summary["tahun_anggaran"] = tahun
+        return _make_json_response(summary)
+
+    # ── inline ───────────────────────────────────────────────────────
+    if output_mode == "inline":
+        # Cleanup temp file
+        try:
+            temp_path.unlink()
+        except OSError:
+            pass
+        output = {
+            "status": "inline_with_warning",
+            "warning": (
+                f"⚠️ {len(rows)} records returned inline. This will consume "
+                f"significant context tokens. Consider using "
+                f"output_mode='local_index' or 'file' instead."
+            ),
+            "record_count": len(rows),
+            "source": "LKPP ISB Satu Data (alternative data source)",
+            "kd_lpse": kd_lpse,
+            "tahun_anggaran": tahun,
+            "tenders": rows,
+        }
+        return _make_json_response(output)
+
+    return [mcp_types.TextContent(
+        type="text",
+        text=f"Error: Unknown output_mode: {output_mode}",
+    )]
+
+
+async def handle_search_isb_index(
+    name: str, arguments: dict
+) -> list[mcp_types.TextContent]:
+    """Search a local ISB Satu Data SQLite FTS index."""
+    try:
+        params = validate_isb_index_search_params(arguments)
+    except ValueError as exc:
+        return [mcp_types.TextContent(type="text",
+                     text=f"Error: Invalid parameter: {exc}")]
+
+    logger.info(
+        "Search ISB index: index_id=%s query=%s limit=%s",
+        params["index_id"], params["query"], params["limit"],
+    )
+
+    try:
+        output = search_isb_index(**params)
+    except ValueError as exc:
+        return [mcp_types.TextContent(type="text",
+                     text=f"Error: {exc}")]
+    return _make_json_response(output)
+
+
+async def handle_clear_all_data(
+    name: str, arguments: dict
+) -> list[mcp_types.TextContent]:
+    """Delete all local MCP indexes and downloaded data files."""
+    confirm = arguments.get("confirm", False)
+    if isinstance(confirm, str):
+        confirm = confirm.strip().lower() in ("1", "true", "yes", "y")
+
+    if not confirm:
+        return [mcp_types.TextContent(
+            type="text",
+            text=(
+                "Error: confirm must be true. This will delete all local "
+                "indexes and downloaded data files. This action cannot be undone."
+            ),
+        )]
+
+    logger.info("Clearing all local MCP data")
+    result = cleanup_all_data()
+    result["message"] = (
+        f"Deleted {result['indexes_deleted']} indexes and "
+        f"{result['files_deleted']} data files."
+    )
+    return _make_json_response(result)
 
 
 async def handle_set_ssl_verify(
@@ -808,6 +1138,40 @@ async def handle_create_procurement_search_index(
     )
     params = dict(params)
     params.pop("confirm_download", None)
+    force_refresh = params.pop("force_refresh", False)
+
+    # ── Check for existing index ─────────────────────────────────────
+    if not force_refresh:
+        existing = find_existing_spse_index(
+            lpse_host=params["lpse_host"],
+            package_type=params["package_type"],
+            tahun_anggaran=params.get("tahun_anggaran"),
+            kategori=params.get("kategori"),
+            keyword_seed=params.get("keyword_seed"),
+        )
+        if existing:
+            output = {
+                "status": "existing_index_found",
+                "index_id": existing.get("index_id"),
+                "indexed_packages": existing.get("indexed_packages", "unknown"),
+                "lpse_host": params["lpse_host"],
+                "package_type": params["package_type"],
+                "tahun_anggaran": params.get("tahun_anggaran"),
+                "created_at": existing.get("created_at"),
+                "choices": {
+                    "reuse": (
+                        "Use the existing index as-is. Call "
+                        f"search_procurement_index with index_id="
+                        f"'{existing.get('index_id')}' to query it."
+                    ),
+                    "refresh": (
+                        "Delete the existing index and create a fresh one. "
+                        "Call create_procurement_search_index again with "
+                        "force_refresh=true."
+                    ),
+                },
+            }
+            return _make_json_response(output)
 
     # ── check for MCP progress token ──────────────────────────────────────
     progress_token = None
@@ -1018,12 +1382,18 @@ TOOL_DESCRIPTIONS = {
     "get_master_klpd": (
         "Get LKPP Satu Data master K/L/PD references. Use kd_klpd from this "
         "tool as instansi_id when filtering search_tender_packages or "
-        "search_non_tender_packages by institution."
+        "search_non_tender_packages by institution. "
+        "By default, results are saved to a JSON file to avoid overwhelming "
+        "the LLM context. Set save_to_file=false only when the filtered "
+        "result is small enough for inline consumption."
     ),
     "get_master_lpse": (
         "Get LKPP Satu Data master LPSE references. Use kd_lpse from this "
         "tool as the kd_lpse parameter in get_tender_umum_publik. This is "
-        "reference data for valid LPSE codes."
+        "reference data for valid LPSE codes. "
+        "By default, results are saved to a JSON file to avoid overwhelming "
+        "the LLM context. Set save_to_file=false only when the filtered "
+        "result is small enough for inline consumption."
     ),
     "get_tender_umum_publik": (
         "Get tender procurement data from LKPP ISB Satu Data (alternative "
@@ -1031,7 +1401,19 @@ TOOL_DESCRIPTIONS = {
         "search tools (search_tender_packages) return no results or errors. "
         "Also use when the user explicitly asks for ISB Satu Data. Requires "
         "kd_lpse from get_master_lpse and tahun_anggaran. Field names in "
-        "results may contain spaces (e.g., 'Kode Tender', 'Nama Paket')."
+        "results may contain spaces (e.g., 'Kode Tender', 'Nama Paket'). "
+        "TWO-STEP INTERACTION: On first call (without output_mode), the tool "
+        "fetches data and returns a choice prompt with record count, preview, "
+        "and 3 output options. Call again with output_mode to process: "
+        "'local_index' creates a SQLite FTS index (recommended), "
+        "'file' saves to JSON file, "
+        "'inline' returns full JSON (NOT recommended, will warn)."
+    ),
+    "search_isb_index": (
+        "Search a local ISB Satu Data SQLite FTS index created by "
+        "get_tender_umum_publik with output_mode='local_index'. "
+        "Searches tender names and details locally without network requests. "
+        "Use this to find specific tenders within a large ISB dataset."
     ),
     "set_ssl_verify": (
         "Enable or disable TLS/SSL certificate verification for all SPSE/Inaproc "
@@ -1102,6 +1484,11 @@ TOOL_DESCRIPTIONS = {
     "delete_procurement_index": (
         "Delete a local disposable SQLite full-text procurement index. This "
         "only removes local MCP cache data."
+    ),
+    "clear_all_data": (
+        "Delete ALL local MCP indexes (SPSE and ISB) and downloaded data "
+        "files. Requires confirm=true. This frees disk space but cannot "
+        "be undone — all indexes must be recreated after clearing."
     ),
 }
 
@@ -1254,6 +1641,16 @@ register_tool(
     "delete_procurement_index",
     handle_delete_procurement_index,
     {**DELETE_SEARCH_INDEX_SCHEMA, "_description": TOOL_DESCRIPTIONS["delete_procurement_index"]},
+)
+register_tool(
+    "search_isb_index",
+    handle_search_isb_index,
+    {**SEARCH_ISB_INDEX_SCHEMA, "_description": TOOL_DESCRIPTIONS["search_isb_index"]},
+)
+register_tool(
+    "clear_all_data",
+    handle_clear_all_data,
+    {**CLEAR_ALL_DATA_SCHEMA, "_description": TOOL_DESCRIPTIONS["clear_all_data"]},
 )
 
 logger.info("Registered %d MCP tools", len(TOOL_DESCRIPTIONS))

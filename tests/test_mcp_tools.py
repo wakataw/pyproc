@@ -2,6 +2,7 @@
 import asyncio
 import json
 import unittest
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from mcp import types as mcp_types
@@ -44,6 +45,48 @@ class TestToolHelpers(unittest.TestCase):
         _rate_limit()
         elapsed = time.monotonic() - start
         self.assertAlmostEqual(elapsed, 1.0, delta=0.2)
+
+    def test_save_json_to_file(self):
+        import tempfile
+        from pyproc.mcp.tools import _save_json_to_file
+
+        test_data = [{"id": i, "name": f"item_{i}"} for i in range(10)]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch('pyproc.mcp.tools._get_api_data_dir', return_value=Path(tmpdir)):
+                summary = _save_json_to_file(
+                    test_data, "test_prefix",
+                    tool_name="test_tool",
+                    extra_params={"tahun": 2026, "kd": 119},
+                )
+
+            self.assertEqual(summary["status"], "saved_to_file")
+            self.assertEqual(summary["record_count"], 10)
+            self.assertEqual(len(summary["preview"]), 3)
+            self.assertIn("file_path", summary)
+            self.assertIn("processing_hints", summary)
+            self.assertIn("confirmation_hint", summary)
+            self.assertIn("test_tool", summary["confirmation_hint"])
+            self.assertIn("return_full_data", summary["confirmation_hint"])
+
+            # Verify file was created and contains valid JSON
+            file_path = Path(summary["file_path"])
+            self.assertTrue(file_path.exists())
+            with open(file_path) as f:
+                loaded = json.load(f)
+            self.assertEqual(len(loaded), 10)
+
+    def test_save_json_to_file_empty_data(self):
+        import tempfile
+        from pyproc.mcp.tools import _save_json_to_file
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch('pyproc.mcp.tools._get_api_data_dir', return_value=Path(tmpdir)):
+                summary = _save_json_to_file([], "empty_test")
+
+        self.assertEqual(summary["status"], "saved_to_file")
+        self.assertEqual(summary["record_count"], 0)
+        self.assertEqual(summary["preview"], [])
 
 
 class TestHandleGetProcurementCategories(unittest.TestCase):
@@ -651,7 +694,7 @@ class TestHandleGetMasterLpse(unittest.TestCase):
         ):
             result = await handle_get_master_lpse(
                 "get_master_lpse",
-                {"query": "surabaya"},
+                {"query": "surabaya", "save_to_file": False},
             )
 
         data = json.loads(result[0].text)
@@ -678,7 +721,7 @@ class TestHandleGetMasterLpse(unittest.TestCase):
         ):
             result = await handle_get_master_lpse(
                 "get_master_lpse",
-                {"kd_lpse": "119"},
+                {"kd_lpse": "119", "save_to_file": False},
             )
 
         data = json.loads(result[0].text)
@@ -700,21 +743,20 @@ class TestHandleGetMasterLpse(unittest.TestCase):
 class TestHandleGetTenderUmumPublik(unittest.TestCase):
 
     @async_test
-    async def test_mocked(self):
+    async def test_step1_discovery_returns_choice_prompt(self):
         from pyproc.mcp.tools import handle_get_tender_umum_publik
 
         mock_tender_data = [
-            {
-                "Kode Tender": 10109010000,
-                "LPSE": "LPSE LKPP",
-                "Nama Paket": "Pekerjaan Jasa Sewa",
-                "Pagu": 20000000000,
-            }
+            {"Kode Tender": 10109010000, "Nama Paket": "Pekerjaan Jasa Sewa", "Pagu": 20000000000},
+            {"Kode Tender": 10109010001, "Nama Paket": "Pengadaan Alat", "Pagu": 5000000000},
         ]
 
         with patch(
             'pyproc.mcp.tools.Lpse.get_tender_umum_publik',
             return_value=mock_tender_data,
+        ), patch(
+            'pyproc.mcp.tools._get_api_data_dir',
+            return_value=Path(self._tmp_dir()),
         ):
             result = await handle_get_tender_umum_publik(
                 "get_tender_umum_publik",
@@ -722,13 +764,159 @@ class TestHandleGetTenderUmumPublik(unittest.TestCase):
             )
 
         data = json.loads(result[0].text)
-        self.assertEqual(data["count"], 1)
+        self.assertEqual(data["status"], "choose_output_mode")
+        self.assertEqual(data["record_count"], 2)
         self.assertEqual(data["kd_lpse"], 119)
         self.assertEqual(data["tahun_anggaran"], 2026)
-        self.assertEqual(data["source"], "LKPP ISB Satu Data (alternative data source)")
+        self.assertIn("preview", data)
+        self.assertIn("output_options", data)
+        self.assertIn("local_index", data["output_options"])
+        self.assertIn("file", data["output_options"])
+        self.assertIn("inline", data["output_options"])
+        self.assertIn("next_step", data)
+        self.assertNotIn("tenders", data)
+
+    @async_test
+    async def test_step2_local_index(self):
+        import tempfile
+        from pyproc.mcp.tools import handle_get_tender_umum_publik
+
+        mock_tender_data = [
+            {"Kode Tender": "100", "Nama Paket": "Test Paket", "Pagu": 1000},
+        ]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Pre-create temp file as if step 1 already ran
+            import hashlib
+            params_hash = hashlib.md5(f"119_2026".encode()).hexdigest()[:8]
+            temp_file = Path(tmpdir) / f".isb_temp_kd119_2026_{params_hash}.json"
+            with open(temp_file, "w") as f:
+                json.dump(mock_tender_data, f)
+
+            with patch(
+                'pyproc.mcp.tools._get_api_data_dir',
+                return_value=Path(tmpdir),
+            ), patch(
+                'pyproc.mcp.tools.create_isb_data_index',
+                return_value={
+                    "index_id": "isb-119-2026-test123",
+                    "indexed_records": 1,
+                    "usage_hint": "test",
+                },
+            ) as mock_create:
+                result = await handle_get_tender_umum_publik(
+                    "get_tender_umum_publik",
+                    {
+                        "tahun_anggaran": "2026",
+                        "kd_lpse": "119",
+                        "output_mode": "local_index",
+                    },
+                )
+
+        data = json.loads(result[0].text)
+        self.assertEqual(data["index_id"], "isb-119-2026-test123")
+        self.assertEqual(data["indexed_records"], 1)
+        mock_create.assert_called_once()
+
+    @async_test
+    async def test_step2_file(self):
+        import tempfile
+        from pyproc.mcp.tools import handle_get_tender_umum_publik
+
+        mock_tender_data = [
+            {"Kode Tender": "100", "Nama Paket": "Test", "Pagu": 1000},
+        ]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            import hashlib
+            params_hash = hashlib.md5(f"119_2026".encode()).hexdigest()[:8]
+            temp_file = Path(tmpdir) / f".isb_temp_kd119_2026_{params_hash}.json"
+            with open(temp_file, "w") as f:
+                json.dump(mock_tender_data, f)
+
+            with patch(
+                'pyproc.mcp.tools._get_api_data_dir',
+                return_value=Path(tmpdir),
+            ), patch(
+                'pyproc.mcp.tools._save_json_to_file',
+                return_value={
+                    "status": "saved_to_file",
+                    "file_path": "/tmp/test.json",
+                    "record_count": 1,
+                    "preview": [],
+                    "processing_hints": "hints",
+                    "confirmation_hint": "",
+                },
+            ) as mock_save:
+                result = await handle_get_tender_umum_publik(
+                    "get_tender_umum_publik",
+                    {
+                        "tahun_anggaran": "2026",
+                        "kd_lpse": "119",
+                        "output_mode": "file",
+                    },
+                )
+
+        data = json.loads(result[0].text)
+        self.assertEqual(data["status"], "saved_to_file")
+        mock_save.assert_called_once()
+
+    @async_test
+    async def test_step2_inline(self):
+        import tempfile
+        from pyproc.mcp.tools import handle_get_tender_umum_publik
+
+        mock_tender_data = [
+            {"Kode Tender": "100", "Nama Paket": "Test", "Pagu": 1000},
+        ]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            import hashlib
+            params_hash = hashlib.md5(f"119_2026".encode()).hexdigest()[:8]
+            temp_file = Path(tmpdir) / f".isb_temp_kd119_2026_{params_hash}.json"
+            with open(temp_file, "w") as f:
+                json.dump(mock_tender_data, f)
+
+            with patch(
+                'pyproc.mcp.tools._get_api_data_dir',
+                return_value=Path(tmpdir),
+            ):
+                result = await handle_get_tender_umum_publik(
+                    "get_tender_umum_publik",
+                    {
+                        "tahun_anggaran": "2026",
+                        "kd_lpse": "119",
+                        "output_mode": "inline",
+                    },
+                )
+
+        data = json.loads(result[0].text)
+        self.assertEqual(data["status"], "inline_with_warning")
+        self.assertIn("warning", data)
+        self.assertEqual(data["record_count"], 1)
         self.assertEqual(len(data["tenders"]), 1)
-        self.assertEqual(data["tenders"][0]["Kode Tender"], 10109010000)
-        self.assertIn("notes", data)
+
+    @async_test
+    async def test_step2_missing_temp_file(self):
+        import tempfile
+        from pyproc.mcp.tools import handle_get_tender_umum_publik
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch(
+                'pyproc.mcp.tools._get_api_data_dir',
+                return_value=Path(tmpdir),
+            ):
+                result = await handle_get_tender_umum_publik(
+                    "get_tender_umum_publik",
+                    {
+                        "tahun_anggaran": "2026",
+                        "kd_lpse": "119",
+                        "output_mode": "local_index",
+                    },
+                )
+
+        self.assertIn("Error", result[0].text)
+        self.assertIn("not found", result[0].text)
 
     @async_test
     async def test_validation_error(self):
@@ -757,6 +945,350 @@ class TestHandleGetTenderUmumPublik(unittest.TestCase):
         data = json.loads(result[0].text)
         self.assertEqual(data["count"], 0)
         self.assertEqual(data["tenders"], [])
+        self.assertNotIn("status", data)
+
+    @staticmethod
+    def _tmp_dir():
+        import tempfile
+        return tempfile.mkdtemp()
+
+    @async_test
+    async def test_existing_index_found_returns_choice(self):
+        from pyproc.mcp.tools import handle_get_tender_umum_publik
+
+        existing_metadata = {
+            "index_id": "isb-119-2026-existing",
+            "source": "isb_satudata",
+            "kd_lpse": 119,
+            "tahun_anggaran": 2026,
+            "indexed_records": 450,
+            "created_at": 1700000000,
+        }
+
+        with patch(
+            'pyproc.mcp.tools.find_existing_isb_index',
+            return_value=existing_metadata,
+        ):
+            result = await handle_get_tender_umum_publik(
+                "get_tender_umum_publik",
+                {"tahun_anggaran": "2026", "kd_lpse": "119"},
+            )
+
+        data = json.loads(result[0].text)
+        self.assertEqual(data["status"], "existing_index_found")
+        self.assertEqual(data["index_id"], "isb-119-2026-existing")
+        self.assertIn("choices", data)
+        self.assertIn("reuse", data["choices"])
+        self.assertIn("refresh", data["choices"])
+
+    @async_test
+    async def test_force_refresh_skips_existing_check(self):
+        from pyproc.mcp.tools import handle_get_tender_umum_publik
+
+        mock_tender_data = [
+            {"Kode Tender": "100", "Nama Paket": "Test", "Pagu": 1000},
+        ]
+
+        with patch(
+            'pyproc.mcp.tools.find_existing_isb_index',
+            return_value={"index_id": "old-index"},
+        ), patch(
+            'pyproc.mcp.tools.Lpse.get_tender_umum_publik',
+            return_value=mock_tender_data,
+        ), patch(
+            'pyproc.mcp.tools._get_api_data_dir',
+            return_value=Path(self._tmp_dir()),
+        ):
+            result = await handle_get_tender_umum_publik(
+                "get_tender_umum_publik",
+                {
+                    "tahun_anggaran": "2026",
+                    "kd_lpse": "119",
+                    "force_refresh": True,
+                },
+            )
+
+        data = json.loads(result[0].text)
+        self.assertEqual(data["status"], "choose_output_mode")
+        self.assertEqual(data["record_count"], 1)
+
+    @async_test
+    async def test_no_existing_index_fetches_data(self):
+        from pyproc.mcp.tools import handle_get_tender_umum_publik
+
+        mock_tender_data = [
+            {"Kode Tender": "100", "Nama Paket": "Test", "Pagu": 1000},
+        ]
+
+        with patch(
+            'pyproc.mcp.tools.find_existing_isb_index',
+            return_value=None,
+        ), patch(
+            'pyproc.mcp.tools.Lpse.get_tender_umum_publik',
+            return_value=mock_tender_data,
+        ), patch(
+            'pyproc.mcp.tools._get_api_data_dir',
+            return_value=Path(self._tmp_dir()),
+        ):
+            result = await handle_get_tender_umum_publik(
+                "get_tender_umum_publik",
+                {"tahun_anggaran": "2026", "kd_lpse": "119"},
+            )
+
+        data = json.loads(result[0].text)
+        self.assertEqual(data["status"], "choose_output_mode")
+
+
+class TestHandleClearAllData(unittest.TestCase):
+
+    @async_test
+    async def test_clear_confirmed(self):
+        from pyproc.mcp.tools import handle_clear_all_data
+
+        with patch(
+            'pyproc.mcp.tools.cleanup_all_data',
+            return_value={
+                "indexes_deleted": 3,
+                "files_deleted": 5,
+                "index_dir": "/tmp/indexes",
+                "data_dir": "/tmp/data",
+            },
+        ) as mock_cleanup:
+            result = await handle_clear_all_data(
+                "clear_all_data",
+                {"confirm": True},
+            )
+
+        data = json.loads(result[0].text)
+        self.assertEqual(data["indexes_deleted"], 3)
+        self.assertEqual(data["files_deleted"], 5)
+        self.assertIn("message", data)
+        mock_cleanup.assert_called_once()
+
+    @async_test
+    async def test_clear_not_confirmed(self):
+        from pyproc.mcp.tools import handle_clear_all_data
+
+        result = await handle_clear_all_data(
+            "clear_all_data",
+            {"confirm": False},
+        )
+
+        self.assertIn("Error", result[0].text)
+        self.assertIn("confirm", result[0].text)
+
+    @async_test
+    async def test_clear_missing_confirm(self):
+        from pyproc.mcp.tools import handle_clear_all_data
+
+        result = await handle_clear_all_data(
+            "clear_all_data",
+            {},
+        )
+
+        self.assertIn("Error", result[0].text)
+
+
+class TestHandleSearchIsbIndex(unittest.TestCase):
+
+    @async_test
+    async def test_search_mocked(self):
+        from pyproc.mcp.tools import handle_search_isb_index
+
+        mock_result = {
+            "index_id": "isb-119-2026-test",
+            "query": "laptop",
+            "count": 1,
+            "matches": [{"kode_tender": "100", "nama_paket": "Pengadaan Laptop", "snippet": "...", "rank": -1.0}],
+        }
+
+        with patch(
+            'pyproc.mcp.tools.search_isb_index',
+            return_value=mock_result,
+        ):
+            result = await handle_search_isb_index(
+                "search_isb_index",
+                {"index_id": "isb-119-2026-test", "query": "laptop"},
+            )
+
+        data = json.loads(result[0].text)
+        self.assertEqual(data["count"], 1)
+        self.assertEqual(data["matches"][0]["kode_tender"], "100")
+
+    @async_test
+    async def test_search_validation_error(self):
+        from pyproc.mcp.tools import handle_search_isb_index
+
+        result = await handle_search_isb_index(
+            "search_isb_index",
+            {},
+        )
+
+        self.assertIn("Error", result[0].text)
+
+    @async_test
+    async def test_search_index_not_found(self):
+        from pyproc.mcp.tools import handle_search_isb_index
+
+        with patch(
+            'pyproc.mcp.tools.search_isb_index',
+            side_effect=ValueError("ISB index 'nonexistent' was not found"),
+        ):
+            result = await handle_search_isb_index(
+                "search_isb_index",
+                {"index_id": "nonexistent", "query": "test"},
+            )
+
+        self.assertIn("Error", result[0].text)
+        self.assertIn("not found", result[0].text)
+
+
+class TestHandleGetMasterKlpdFileOutput(unittest.TestCase):
+
+    @async_test
+    async def test_save_to_file_true(self):
+        from pyproc.mcp.tools import handle_get_master_klpd
+
+        mock_klpd_data = [
+            {"kd_klpd": "K66", "nama_klpd": "KEMENTERIAN KEUANGAN", "jenis_klpd": "KEMENTERIAN"},
+            {"kd_klpd": "K01", "nama_klpd": "KEMENTERIAN DALAM NEGERI", "jenis_klpd": "KEMENTERIAN"},
+        ]
+
+        with patch(
+            'pyproc.mcp.tools.Lpse.get_master_klpd',
+            return_value=mock_klpd_data,
+        ), patch(
+            'pyproc.mcp.tools._save_json_to_file',
+            return_value={
+                "status": "saved_to_file",
+                "file_path": "/tmp/test_klpd.json",
+                "record_count": 2,
+                "preview": mock_klpd_data[:3],
+                "processing_hints": "test hints",
+                "confirmation_hint": "test confirmation",
+            },
+        ) as mock_save:
+            result = await handle_get_master_klpd(
+                "get_master_klpd",
+                {"query": "keuangan", "save_to_file": True},
+            )
+
+        data = json.loads(result[0].text)
+        self.assertEqual(data["status"], "saved_to_file")
+        self.assertEqual(data["record_count"], 2)
+        self.assertNotIn("klpd", data)
+        mock_save.assert_called_once()
+
+    @async_test
+    async def test_save_to_file_false(self):
+        from pyproc.mcp.tools import handle_get_master_klpd
+
+        mock_klpd_data = [
+            {"kd_klpd": "K66", "nama_klpd": "KEMENTERIAN KEUANGAN", "jenis_klpd": "KEMENTERIAN"},
+        ]
+
+        with patch(
+            'pyproc.mcp.tools.Lpse.get_master_klpd',
+            return_value=mock_klpd_data,
+        ):
+            result = await handle_get_master_klpd(
+                "get_master_klpd",
+                {"query": "keuangan", "save_to_file": False},
+            )
+
+        data = json.loads(result[0].text)
+        self.assertNotIn("status", data)
+        self.assertIn("klpd", data)
+        self.assertEqual(len(data["klpd"]), 1)
+
+    @async_test
+    async def test_default_save_to_file(self):
+        from pyproc.mcp.tools import handle_get_master_klpd
+
+        mock_klpd_data = [
+            {"kd_klpd": "K66", "nama_klpd": "KEMENTERIAN KEUANGAN"},
+        ]
+
+        with patch(
+            'pyproc.mcp.tools.Lpse.get_master_klpd',
+            return_value=mock_klpd_data,
+        ), patch(
+            'pyproc.mcp.tools._save_json_to_file',
+            return_value={
+                "status": "saved_to_file",
+                "file_path": "/tmp/test.json",
+                "record_count": 1,
+                "preview": [],
+                "processing_hints": "hints",
+                "confirmation_hint": "",
+            },
+        ):
+            result = await handle_get_master_klpd(
+                "get_master_klpd",
+                {"query": "keuangan"},
+            )
+
+        data = json.loads(result[0].text)
+        self.assertEqual(data["status"], "saved_to_file")
+
+
+class TestHandleGetMasterLpseFileOutput(unittest.TestCase):
+
+    @async_test
+    async def test_save_to_file_true(self):
+        from pyproc.mcp.tools import handle_get_master_lpse
+
+        mock_lpse_data = [
+            {"kd_lpse": 119, "nama_lpse": "LPSE LKPP"},
+            {"kd_lpse": 10, "nama_lpse": "LPSE Kota Surabaya"},
+        ]
+
+        with patch(
+            'pyproc.mcp.tools.Lpse.get_master_lpse',
+            return_value=mock_lpse_data,
+        ), patch(
+            'pyproc.mcp.tools._save_json_to_file',
+            return_value={
+                "status": "saved_to_file",
+                "file_path": "/tmp/test_lpse.json",
+                "record_count": 2,
+                "preview": mock_lpse_data[:3],
+                "processing_hints": "test hints",
+                "confirmation_hint": "test confirmation",
+            },
+        ) as mock_save:
+            result = await handle_get_master_lpse(
+                "get_master_lpse",
+                {"query": "surabaya", "save_to_file": True},
+            )
+
+        data = json.loads(result[0].text)
+        self.assertEqual(data["status"], "saved_to_file")
+        self.assertEqual(data["record_count"], 2)
+        self.assertNotIn("lpse", data)
+        mock_save.assert_called_once()
+
+    @async_test
+    async def test_save_to_file_false(self):
+        from pyproc.mcp.tools import handle_get_master_lpse
+
+        mock_lpse_data = [
+            {"kd_lpse": 10, "nama_lpse": "LPSE Kota Surabaya"},
+        ]
+
+        with patch(
+            'pyproc.mcp.tools.Lpse.get_master_lpse',
+            return_value=mock_lpse_data,
+        ):
+            result = await handle_get_master_lpse(
+                "get_master_lpse",
+                {"query": "surabaya", "save_to_file": False},
+            )
+
+        data = json.loads(result[0].text)
+        self.assertNotIn("status", data)
+        self.assertIn("lpse", data)
+        self.assertEqual(len(data["lpse"]), 1)
 
 
 class TestResourceHandlers(unittest.TestCase):

@@ -398,3 +398,325 @@ def delete_procurement_index(index_id: str) -> dict:
         "index_id": index_id,
         "deleted": existed,
     }
+
+
+def _load_index_metadata(index_path: Path) -> dict | None:
+    """Load metadata from an index.sqlite file. Returns None on error."""
+    try:
+        db = sqlite3.connect(str(index_path))
+        try:
+            metadata_rows = db.execute("SELECT key, value FROM metadata").fetchall()
+        finally:
+            db.close()
+        metadata = {}
+        for key, value in metadata_rows:
+            try:
+                metadata[key] = json.loads(value)
+            except json.JSONDecodeError:
+                metadata[key] = value
+        return metadata
+    except Exception:
+        return None
+
+
+def find_existing_isb_index(kd_lpse: int, tahun_anggaran: int) -> dict | None:
+    """Find an existing ISB index matching the given parameters.
+
+    Returns:
+        Metadata dict with index_id, record count, and path if found,
+        None otherwise.
+    """
+    root = get_index_root()
+    if not root.exists():
+        return None
+
+    for path in sorted(root.glob("*/index.sqlite")):
+        metadata = _load_index_metadata(path)
+        if not metadata:
+            continue
+        if (
+            metadata.get("source") == "isb_satudata"
+            and metadata.get("kd_lpse") == kd_lpse
+            and metadata.get("tahun_anggaran") == tahun_anggaran
+        ):
+            metadata["path"] = str(path)
+            return metadata
+    return None
+
+
+def find_existing_spse_index(
+    lpse_host: str,
+    package_type: str = "tender",
+    tahun_anggaran: int | None = None,
+    kategori: str | None = None,
+    keyword_seed: str | None = None,
+) -> dict | None:
+    """Find an existing SPSE index matching the given parameters.
+
+    Returns:
+        Metadata dict with index_id and path if found, None otherwise.
+    """
+    root = get_index_root()
+    if not root.exists():
+        return None
+
+    for path in sorted(root.glob("*/index.sqlite")):
+        metadata = _load_index_metadata(path)
+        if not metadata:
+            continue
+        if (
+            metadata.get("source") != "isb_satudata"
+            and metadata.get("lpse_host") == lpse_host
+            and metadata.get("package_type") == package_type
+            and metadata.get("tahun_anggaran") == tahun_anggaran
+            and metadata.get("kategori") == kategori
+            and metadata.get("keyword_seed") == keyword_seed
+        ):
+            metadata["path"] = str(path)
+            return metadata
+    return None
+
+
+# ── ISB Satu Data lightweight indexes ─────────────────────────────────────
+
+ISB_INDEX_SCHEMA_SQL = """
+CREATE TABLE IF NOT EXISTS metadata (
+    key TEXT PRIMARY KEY,
+    value TEXT
+);
+
+CREATE TABLE IF NOT EXISTS isb_tenders (
+    kode_tender TEXT PRIMARY KEY,
+    nama_paket TEXT,
+    raw_json TEXT
+);
+
+CREATE VIRTUAL TABLE IF NOT EXISTS isb_tenders_fts
+USING fts5(kode_tender UNINDEXED, nama_paket, body);
+"""
+
+
+def _isb_init_db(path: Path, metadata: dict) -> sqlite3.Connection:
+    """Create an ISB index SQLite database."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    db = sqlite3.connect(str(path))
+    db.executescript(ISB_INDEX_SCHEMA_SQL)
+    for key, value in metadata.items():
+        db.execute(
+            "INSERT OR REPLACE INTO metadata(key, value) VALUES(?, ?)",
+            (key, json.dumps(value, ensure_ascii=False, default=str)),
+        )
+    db.commit()
+    return db
+
+
+def _extract_isb_fields(record: dict) -> tuple[str, str]:
+    """Extract kode_tender and nama_paket from an ISB record dict.
+
+    ISB field names may contain spaces (e.g., 'Kode Tender', 'Nama Paket').
+    """
+    kode = str(
+        record.get("Kode Tender")
+        or record.get("kode_tender")
+        or record.get("kode tender")
+        or ""
+    ).strip()
+    nama = str(
+        record.get("Nama Paket")
+        or record.get("nama_paket")
+        or record.get("nama paket")
+        or ""
+    ).strip()
+    return kode, nama
+
+
+def create_isb_data_index(
+    data: list[dict],
+    kd_lpse: int,
+    tahun_anggaran: int,
+) -> dict:
+    """Create a lightweight SQLite FTS index from ISB Satu Data records.
+
+    This is a fast, single-pass index — no additional HTTP requests.
+    The data list is indexed directly into SQLite FTS.
+
+    Args:
+        data: List of tender record dicts from ISB Satu Data API.
+        kd_lpse: LPSE code.
+        tahun_anggaran: Budget year.
+
+    Returns:
+        Dict with index_id, record count, and usage hint.
+    """
+    index_id = f"isb-{kd_lpse}-{tahun_anggaran}-{uuid4().hex[:8]}"
+    path = _index_path(index_id)
+    metadata = {
+        "index_id": index_id,
+        "source": "isb_satudata",
+        "kd_lpse": kd_lpse,
+        "tahun_anggaran": tahun_anggaran,
+        "created_at": int(time.time()),
+    }
+    db = _isb_init_db(path, metadata)
+
+    indexed = 0
+    for record in data:
+        kode, nama = _extract_isb_fields(record)
+        if not kode:
+            continue
+        body = json.dumps(record, ensure_ascii=False, sort_keys=True, default=str)
+        db.execute(
+            "INSERT OR REPLACE INTO isb_tenders VALUES(?, ?, ?)",
+            (kode, nama, body),
+        )
+        db.execute(
+            "INSERT INTO isb_tenders_fts(kode_tender, nama_paket, body) VALUES(?, ?, ?)",
+            (kode, nama, body),
+        )
+        indexed += 1
+
+    db.commit()
+    db.close()
+
+    logger.info("ISB index created: %s (%d records)", index_id, indexed)
+
+    return {
+        **metadata,
+        "path": str(path),
+        "indexed_records": indexed,
+        "usage_hint": (
+            f"Use search_isb_index with index_id='{index_id}' to query. "
+            "Delete when no longer needed."
+        ),
+    }
+
+
+def search_isb_index(
+    index_id: str, query: str, limit: int = 20,
+) -> dict:
+    """Search a local ISB Satu Data SQLite FTS index.
+
+    Args:
+        index_id: Index ID returned by create_isb_data_index.
+        query: FTS5 search query.
+        limit: Maximum matches to return.
+
+    Returns:
+        Dict with matches and metadata.
+    """
+    index_id = _safe_index_id(index_id)
+    path = _index_path(index_id)
+    if not path.exists():
+        raise ValueError(f"ISB index '{index_id}' was not found")
+
+    db = sqlite3.connect(str(path))
+    db.row_factory = sqlite3.Row
+    try:
+        rows = db.execute(
+            """
+            SELECT kode_tender, nama_paket,
+                   snippet(isb_tenders_fts, 2, '[', ']', '...', 20) AS snippet,
+                   bm25(isb_tenders_fts) AS rank
+            FROM isb_tenders_fts
+            WHERE isb_tenders_fts MATCH ?
+            ORDER BY rank
+            LIMIT ?
+            """,
+            (query, limit),
+        ).fetchall()
+    except sqlite3.OperationalError as exc:
+        raise ValueError(f"Invalid full-text query: {exc}") from exc
+    finally:
+        db.close()
+
+    matches = [
+        {
+            "kode_tender": row["kode_tender"],
+            "nama_paket": row["nama_paket"],
+            "snippet": row["snippet"],
+            "rank": row["rank"],
+        }
+        for row in rows
+    ]
+    return {
+        "index_id": index_id,
+        "query": query,
+        "count": len(matches),
+        "matches": matches,
+    }
+
+
+def cleanup_isb_temp_files(max_age_seconds: int = 3600) -> int:
+    """Delete orphaned ISB temp files older than max_age_seconds.
+
+    Returns the number of files deleted.
+    """
+    data_dir = Path.home() / ".cache" / "pyproc" / "api-data"
+    if not data_dir.exists():
+        return 0
+
+    now = time.time()
+    deleted = 0
+    for f in data_dir.glob(".isb_temp_*.json"):
+        try:
+            if now - f.stat().st_mtime > max_age_seconds:
+                f.unlink()
+                deleted += 1
+        except OSError:
+            pass
+    return deleted
+
+
+def get_data_dir() -> Path:
+    """Return the API data output directory (same as tools._get_api_data_dir)."""
+    configured = os.environ.get("PYPROC_MCP_DATA_DIR")
+    if configured:
+        return Path(configured).expanduser()
+    return Path.home() / ".cache" / "pyproc" / "api-data"
+
+
+def cleanup_all_data() -> dict:
+    """Delete all local MCP indexes and downloaded data files.
+
+    Removes:
+    - All index directories under the index root (SPSE + ISB indexes)
+    - All files under the API data directory (JSON exports + temp files)
+
+    Returns:
+        Summary dict with counts of deleted items.
+    """
+    # ── Delete all indexes ────────────────────────────────────────────
+    index_root = get_index_root()
+    indexes_deleted = 0
+    if index_root.exists():
+        for entry in sorted(index_root.iterdir()):
+            if entry.is_dir():
+                try:
+                    shutil.rmtree(entry)
+                    indexes_deleted += 1
+                except OSError:
+                    pass
+
+    # ── Delete all data files ─────────────────────────────────────────
+    data_dir = get_data_dir()
+    files_deleted = 0
+    if data_dir.exists():
+        for entry in sorted(data_dir.iterdir()):
+            if entry.is_file():
+                try:
+                    entry.unlink()
+                    files_deleted += 1
+                except OSError:
+                    pass
+
+    logger.info(
+        "Cleanup complete: %d indexes, %d data files deleted",
+        indexes_deleted, files_deleted,
+    )
+
+    return {
+        "indexes_deleted": indexes_deleted,
+        "files_deleted": files_deleted,
+        "index_dir": str(index_root),
+        "data_dir": str(data_dir),
+    }
