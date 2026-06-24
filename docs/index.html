@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PyProc MCP — Real-time Indonesian Procurement Data for LLM Agents</title>
+  <meta name="description" content="Turn public SPSE/Inaproc procurement data into standard MCP tools, Python library functions, and CLI subcommands. Bring bidding intelligence to AI agents.">
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="icon" type="image/png" href="assets/logo.png">
+</head>
+<body>
+
+  <!-- Floating Glassmorphic Navbar -->
+  <header class="navbar">
+    <div class="navbar-container">
+      <a href="index.html" class="logo-link">
+        <img src="assets/logo.png" alt="PyProc Logo" class="logo-img">
+        <span>PyProc</span>
+        <span class="logo-badge">v0.3.3</span>
+      </a>
+      <nav>
+        <ul class="nav-links">
+          <li><a href="index.html" class="nav-link active">Home</a></li>
+          <li><a href="documentation.html" class="nav-link">Documentation</a></li>
+          <li><a href="api.html" class="nav-link">API Reference</a></li>
+          <li>
+            <a href="https://github.com/wakataw/pyproc" target="_blank" rel="noopener noreferrer" class="btn-github">
+              <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+              </svg>
+              GitHub
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Fullscreen Hero Section with Animated Background -->
+  <section class="hero">
+    <div class="ai-glow-background">
+      <div class="glow-mesh"></div>
+    </div>
+    <div class="container">
+      <div class="hero-tag">
+        <span></span> MCP SERVER FOR LLM CLIENTS
+      </div>
+      <h1 class="hero-title">
+        Real-Time Indonesian Procurement Data for <span class="glow-text">AI Agents</span>
+      </h1>
+      <p class="hero-subtitle">
+        PyProc MCP turns public SPSE/Inaproc procurement data into standard MCP tools, libraries, and CLI subcommands. Bring real-time bidding intelligence straight to Claude, Cursor, and custom agents.
+      </p>
+      
+      <div class="hero-ctas">
+        <a href="documentation.html" class="btn btn-primary">
+          Get Started
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+        </a>
+        <a href="api.html" class="btn btn-secondary">Explore API Docs</a>
+      </div>
+
+      <!-- Animated Terminal Mimicking Prompting & LLM Thinking -->
+      <div class="terminal-container">
+        <div class="terminal-header">
+          <div class="terminal-buttons">
+            <span class="terminal-btn close"></span>
+            <span class="terminal-btn minimize"></span>
+            <span class="terminal-btn maximize"></span>
+          </div>
+          <div class="terminal-title">mcp-client --server pyproc-mcp</div>
+          <div style="width: 40px;"></div> <!-- Spacer -->
+        </div>
+        <div class="terminal-body" id="terminal-screen">
+          <!-- Animation inserts lines here -->
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Use Case Catalog (Etalase Catalog) -->
+  <section id="use-cases" class="section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Etalase Catalog</span>
+        <h2 class="section-title">Enable Procurement Intelligence</h2>
+        <p>Harness real-time API bindings and tools to discover opportunities, optimize competition, and automate data retrieval.</p>
+      </div>
+
+      <div class="use-case-grid">
+        <div class="use-case-card">
+          <div class="card-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+          </div>
+          <h3 class="card-title">Opportunities Discovery</h3>
+          <p class="card-desc">Search active tender and non-tender packages across hundreds of LPSE hosts. Filter by keyword, category, budget year, and instansi instantly.</p>
+        </div>
+
+        <div class="use-case-card">
+          <div class="card-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20v-6M6 20V10M18 20V4M4 4h16v16H4z"/></svg>
+          </div>
+          <h3 class="card-title">Competitive Intelligence</h3>
+          <p class="card-desc">Inspect bidders lists, read participant details, and evaluate winners prices to uncover competitor pricing margins and winning strategies.</p>
+        </div>
+
+        <div class="use-case-card">
+          <div class="card-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          </div>
+          <h3 class="card-title">Vendor & Contractor Research</h3>
+          <p class="card-desc">Look up specific vendor names to find their historical government wins, target location values, and tender qualification achievements.</p>
+        </div>
+
+        <div class="use-case-card">
+          <div class="card-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          </div>
+          <h3 class="card-title">Timeline & Schedule Tracking</h3>
+          <p class="card-desc">Track real-time bidding schedule phases from initial announcement to contract signature. Monitor timeline changes and deadlines automatically.</p>
+        </div>
+
+        <div class="use-case-card">
+          <div class="card-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+          </div>
+          <h3 class="card-title">Automated Bulk Export</h3>
+          <p class="card-desc">Download whole SPSE listings for reporting and databases. The CLI features automated resuming and writes clean CSV or JSON structures.</p>
+        </div>
+
+        <div class="use-case-card">
+          <div class="card-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+          </div>
+          <h3 class="card-title">AI Agent Integration</h3>
+          <p class="card-desc">Directly connect your Cursor, Continue, or Claude Desktop environments. Enable LLMs to run complex checks, matching queries on the fly.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Explore More Section -->
+  <section class="section">
+    <div class="container">
+      <div class="explore-cta">
+        <h2 class="explore-title">Explore Advanced Functions</h2>
+        <p class="explore-desc">
+          PyProc provides robust fallback mechanics like the LKPP ISB Satu Data API, SQLite full-text index synchronization, custom rate-limiting, and TLS certificate bypass controls.
+        </p>
+        <div style="margin-bottom: 2.5rem; text-align: left; max-width: 600px; margin-left: auto; margin-right: auto;">
+          <div class="code-block-wrapper">
+            <div class="code-header">
+              <span class="code-lang">python</span>
+              <span class="btn-copy">Python SDK</span>
+            </div>
+            <pre><code>from pyproc import Lpse
+
+# Context manager handles connections cleanly
+with Lpse('kemenkeu') as lpse:
+    detail = lpse.detil_paket_tender('10080116000')
+    detail.get_all_detil()
+    print("Winner:", detail.get_pemenang())</code></pre>
+          </div>
+        </div>
+        <a href="documentation.html" class="btn btn-primary">
+          Read Full Documentation
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-info">
+          <h4>
+            <img src="assets/logo.png" alt="Logo" style="height: 24px;">
+            PyProc MCP
+          </h4>
+          <p>Real-time Indonesian procurement data interfaces designed for LLMs, developers, and data operations.</p>
+        </div>
+        <div class="footer-links">
+          <h5>Resources</h5>
+          <ul>
+            <li><a href="documentation.html">Getting Started</a></li>
+            <li><a href="documentation.html#cli-usage">CLI Reference</a></li>
+            <li><a href="api.html">Python SDK API</a></li>
+          </ul>
+        </div>
+        <div class="footer-links">
+          <h5>Community</h5>
+          <ul>
+            <li><a href="https://github.com/wakataw/pyproc" target="_blank" rel="noopener noreferrer">GitHub Repository</a></li>
+            <li><a href="https://pypi.org/project/pyproc/" target="_blank" rel="noopener noreferrer">PyPI Package</a></li>
+            <li><a href="https://modelcontextprotocol.io" target="_blank" rel="noopener noreferrer">Model Context Protocol</a></li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="footer-bottom">
+        <p>&copy; 2026 Agung Pratama and PyProc Contributors. Released under the MIT License.</p>
+        <div class="footer-disclaimer">
+          <strong>Disclaimer:</strong> This project is not affiliated with, sponsored by, or endorsed by LKPP, LPSE, SPSE, Inaproc, or any Indonesian government institution. All public data accessed belongs to their respective entities. Use responsibly within server guidelines.
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Script for Terminal Simulation -->
+  <script>
+    const terminalScreen = document.getElementById('terminal-screen');
+
+    const steps = [
+      { 
+        type: 'prompt', 
+        text: 'User: cari data lelang pengadaan laptop pada kementerian keuangan' 
+      },
+      { 
+        type: 'thinking', 
+        text: 'Resolving LPSE host for "kementerian keuangan"...' 
+      },
+      { 
+        type: 'tool-call', 
+        title: 'tools/call search_lpse_hosts', 
+        args: { query: 'kementerian keuangan' } 
+      },
+      { 
+        type: 'tool-result', 
+        data: [{ slug: 'kemenkeu', name: 'Kementerian Keuangan', url: 'https://spse.inaproc.id/kemenkeu' }] 
+      },
+      { 
+        type: 'thinking', 
+        text: 'Host resolved to "kemenkeu". Searching tender packages with keyword "laptop"...' 
+      },
+      { 
+        type: 'tool-call', 
+        title: 'tools/call search_tender_packages', 
+        args: { lpse_host: 'kemenkeu', keyword: 'laptop' } 
+      },
+      { 
+        type: 'tool-result', 
+        data: [{ 
+          id: '10080116000', 
+          nama: 'Pengadaan Laptop dan Perangkat Pendukung Kerja', 
+          instansi: 'Kementerian Keuangan', 
+          hps: 1250000000.0, 
+          status: 'Pengumuman Pascakualifikasi' 
+        }] 
+      },
+      { 
+        type: 'response', 
+        html: `<strong>Claude:</strong><br>Saya menemukan 1 paket tender aktif di LPSE Kementerian Keuangan:<br><br>• <strong>Nama:</strong> Pengadaan Laptop dan Perangkat Pendukung Kerja<br>• <strong>ID Paket:</strong> 10080116000<br>• <strong>Nilai HPS:</strong> Rp 1.250.000.000<br>• <strong>Tahapan:</strong> Pengumuman Pascakualifikasi` 
+      }
+    ];
+
+    let currentStep = 0;
+
+    function appendLine(element) {
+      terminalScreen.appendChild(element);
+      terminalScreen.scrollTop = terminalScreen.scrollHeight;
+    }
+
+    function typeText(element, text, index, speed, callback) {
+      if (index < text.length) {
+        element.innerHTML += text.charAt(index);
+        setTimeout(() => typeText(element, text, index + 1, speed, callback), speed);
+      } else {
+        if (callback) callback();
+      }
+    }
+
+    function runAnimation() {
+      if (currentStep >= steps.length) {
+        // Reset animation after a delay
+        setTimeout(() => {
+          terminalScreen.innerHTML = '';
+          currentStep = 0;
+          runAnimation();
+        }, 8000);
+        return;
+      }
+
+      const step = steps[currentStep];
+      
+      if (step.type === 'prompt') {
+        const line = document.createElement('div');
+        line.className = 'terminal-line';
+        
+        const promptSpan = document.createElement('span');
+        promptSpan.className = 'terminal-prompt';
+        promptSpan.textContent = '$';
+        line.appendChild(promptSpan);
+        
+        const inputSpan = document.createElement('span');
+        inputSpan.className = 'terminal-input';
+        line.appendChild(inputSpan);
+        
+        const cursor = document.createElement('span');
+        cursor.className = 'cursor-blink';
+        line.appendChild(cursor);
+        
+        appendLine(line);
+
+        typeText(inputSpan, step.text, 0, 40, () => {
+          cursor.remove();
+          currentStep++;
+          setTimeout(runAnimation, 600);
+        });
+      } 
+      
+      else if (step.type === 'thinking') {
+        const line = document.createElement('div');
+        line.className = 'terminal-line terminal-thinking';
+        
+        const spinner = document.createElement('span');
+        spinner.className = 'spinner';
+        line.appendChild(spinner);
+        
+        const textSpan = document.createElement('span');
+        textSpan.textContent = step.text;
+        line.appendChild(textSpan);
+        
+        appendLine(line);
+
+        currentStep++;
+        setTimeout(runAnimation, 1200);
+      } 
+      
+      else if (step.type === 'tool-call') {
+        const line = document.createElement('div');
+        line.className = 'terminal-line terminal-tool-call';
+        line.innerHTML = `<span style="color: var(--accent-violet); font-weight: bold;">[Call] ${step.title}</span><pre style="margin-top: 0.25rem; font-size: 0.85rem; color: var(--text-secondary);">${JSON.stringify(step.args, null, 2)}</pre>`;
+        
+        appendLine(line);
+        currentStep++;
+        setTimeout(runAnimation, 800);
+      } 
+      
+      else if (step.type === 'tool-result') {
+        const line = document.createElement('div');
+        line.className = 'terminal-line terminal-tool-result';
+        line.innerHTML = `<span style="color: var(--accent-emerald); font-weight: bold;">[Result]</span><pre style="margin-top: 0.25rem; font-size: 0.85rem; color: var(--text-secondary);">${JSON.stringify(step.data, null, 2)}</pre>`;
+        
+        appendLine(line);
+        currentStep++;
+        setTimeout(runAnimation, 800);
+      } 
+      
+      else if (step.type === 'response') {
+        const line = document.createElement('div');
+        line.className = 'terminal-line terminal-response';
+        line.innerHTML = step.html;
+        
+        appendLine(line);
+        currentStep++;
+        setTimeout(runAnimation, 1500);
+      }
+    }
+
+    // Start on load
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(runAnimation, 500);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Reference — PyProc MCP</title>
+  <meta name="description" content="Low-level Python API reference documentation for PyProc LPSE modules, classes, and method signatures.">
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="icon" type="image/png" href="assets/logo.png">
+</head>
+<body>
+
+  <!-- Floating Glassmorphic Navbar -->
+  <header class="navbar">
+    <div class="navbar-container">
+      <a href="index.html" class="logo-link">
+        <img src="assets/logo.png" alt="PyProc Logo" class="logo-img">
+        <span>PyProc</span>
+        <span class="logo-badge">v0.3.3</span>
+      </a>
+      <nav>
+        <ul class="nav-links">
+          <li><a href="index.html" class="nav-link">Home</a></li>
+          <li><a href="documentation.html" class="nav-link">Documentation</a></li>
+          <li><a href="api.html" class="nav-link active">API Reference</a></li>
+          <li>
+            <a href="https://github.com/wakataw/pyproc" target="_blank" rel="noopener noreferrer" class="btn-github">
+              <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+              </svg>
+              GitHub
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="doc-layout">
+      <!-- Sidebar Navigation -->
+      <aside class="doc-sidebar">
+        <h4 class="sidebar-title">Client Wrapper</h4>
+        <ul class="sidebar-menu">
+          <li><a href="#class-lpse" class="sidebar-link active">Lpse Class</a></li>
+        </ul>
+
+        <h4 class="sidebar-title">Enums</h4>
+        <ul class="sidebar-menu">
+          <li><a href="#enum-jenis-pengadaan" class="sidebar-link">JenisPengadaan</a></li>
+          <li><a href="#enum-by" class="sidebar-link">By (Sort Order)</a></li>
+          <li><a href="#enum-kontrak-status" class="sidebar-link">KontrakStatus</a></li>
+        </ul>
+
+        <h4 class="sidebar-title">Detail Classes</h4>
+        <ul class="sidebar-menu">
+          <li><a href="#class-lpse-detil" class="sidebar-link">BaseLpseDetil</a></li>
+          <li><a href="#subclasses-detil" class="sidebar-link">Detil Subclasses</a></li>
+        </ul>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="doc-content">
+        
+        <!-- Section: Lpse Class -->
+        <section id="class-lpse" class="doc-section">
+          <h1>Python API Reference</h1>
+          <p>
+            This section documents the low-level classes and object definitions exported by the <code class="inline-code">pyproc</code> package. The primary class is <code class="inline-code">Lpse</code>, which acts as the HTTP client wrapper for public SPSE portals.
+          </p>
+
+          <!-- Class: Lpse -->
+          <div class="api-member">
+            <div class="api-member-header">
+              <div class="api-signature">
+                <span class="api-type">class</span> 
+                <span class="api-name">Lpse</span>(instansi: str, timeout: int = 10, verify: bool = False, user_agent: str = None)
+              </div>
+            </div>
+            <div class="api-desc">
+              <p>Creates an LPSE client instance targeting a specific government SPSE instance endpoint.</p>
+              
+              <table class="param-table">
+                <thead>
+                  <tr>
+                    <th>Parameter</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="param-name">instansi</td>
+                    <td class="param-type">str</td>
+                    <td>Slug name of the LPSE host. E.g. <code class="inline-code">"kemenkeu"</code>, <code class="inline-code">"jakarta"</code>, <code class="inline-code">"pu"</code>, or <code class="inline-code">"nasional"</code>.</td>
+                  </tr>
+                  <tr>
+                    <td class="param-name">timeout</td>
+                    <td class="param-type">int</td>
+                    <td>HTTP request timeout in seconds (default: 10).</td>
+                  </tr>
+                  <tr>
+                    <td class="param-name">verify</td>
+                    <td class="param-type">bool</td>
+                    <td>Whether to verify SSL/TLS certificates (default: False). Recommended to leave False.</td>
+                  </tr>
+                  <tr>
+                    <td class="param-name">user_agent</td>
+                    <td class="param-type">str</td>
+                    <td>Custom HTTP User-Agent string. If None, defaults to a standard modern browser headers template.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Method: get_paket_tender -->
+            <div class="api-member" style="margin-top: 1.5rem; margin-bottom: 0;">
+              <div class="api-member-header">
+                <div class="api-signature">
+                  <span class="api-name">get_paket_tender</span>(start: int = 0, length: int = 0, data_only: bool = False, kategori: JenisPengadaan = None, search_keyword: str = None, order: By = By.KODE, tahun: int = None, ascending: bool = False, instansi_id: str = None, kontrak_status: KontrakStatus = None) &rarr; dict | list
+                </div>
+              </div>
+              <div class="api-desc">
+                <p>Retrieves tender (lelang) package listings from the LPSE database.</p>
+                <table class="param-table">
+                  <thead>
+                    <tr>
+                      <th>Parameter</th>
+                      <th>Type</th>
+                      <th>Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="param-name">start</td>
+                      <td class="param-type">int</td>
+                      <td>Start record index (offset) for server-side pagination.</td>
+                    </tr>
+                    <tr>
+                      <td class="param-name">length</td>
+                      <td class="param-type">int</td>
+                      <td>Page size limit (e.g. 10, 50, 100). Use 0 for server maximum.</td>
+                    </tr>
+                    <tr>
+                      <td class="param-name">data_only</td>
+                      <td class="param-type">bool</td>
+                      <td>If True, returns a clean Python <code class="inline-code">list</code> containing rows. If False, returns the raw SPSE DataTables dictionary with keys <code class="inline-code">"draw"</code>, <code class="inline-code">"recordsTotal"</code>, and <code class="inline-code">"data"</code>.</td>
+                    </tr>
+                    <tr>
+                      <td class="param-name">kategori</td>
+                      <td class="param-type">JenisPengadaan</td>
+                      <td>Enum filter for the procurement type.</td>
+                    </tr>
+                    <tr>
+                      <td class="param-name">search_keyword</td>
+                      <td class="param-type">str</td>
+                      <td>String filter matches inside title or codes.</td>
+                    </tr>
+                    <tr>
+                      <td class="param-name">order</td>
+                      <td class="param-type">By</td>
+                      <td>Sorting column option (default: By.KODE).</td>
+                    </tr>
+                    <tr>
+                      <td class="param-name">tahun</td>
+                      <td class="param-type">int</td>
+                      <td>Budget year limit (e.g. 2025).</td>
+                    </tr>
+                    <tr>
+                      <td class="param-name">ascending</td>
+                      <td class="param-type">bool</td>
+                      <td>Sort order logic. Set True for ASC, False (default) for DESC.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Method: get_paket_non_tender -->
+            <div class="api-member" style="margin-top: 1.5rem; margin-bottom: 0;">
+              <div class="api-member-header">
+                <div class="api-signature">
+                  <span class="api-name">get_paket_non_tender</span>(...) &rarr; dict | list
+                </div>
+              </div>
+              <div class="api-desc">
+                <p>Retrieves non-tender listings (Direct selection/appointment). Arguments are identical to <code class="inline-code">get_paket_tender</code>.</p>
+              </div>
+            </div>
+
+            <!-- Method: get_paket_pencatatan_non_tender -->
+            <div class="api-member" style="margin-top: 1.5rem; margin-bottom: 0;">
+              <div class="api-member-header">
+                <div class="api-signature">
+                  <span class="api-name">get_paket_pencatatan_non_tender</span>(...) &rarr; dict | list
+                </div>
+              </div>
+              <div class="api-desc">
+                <p>Retrieves logged pencatatan non-tender items (distinct dataset under SPSE <code class="inline-code">/dt/nonspk</code>).</p>
+              </div>
+            </div>
+
+            <!-- Method: detil_paket_tender -->
+            <div class="api-member" style="margin-top: 1.5rem; margin-bottom: 0;">
+              <div class="api-member-header">
+                <div class="api-signature">
+                  <span class="api-name">detil_paket_tender</span>(id_paket: str | int) &rarr; LpseDetil
+                </div>
+              </div>
+              <div class="api-desc">
+                <p>Initializes and returns an <code class="inline-code">LpseDetil</code> parser object containing methods to parse nested pages of a specific tender.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section: Enums -->
+        <section id="enum-jenis-pengadaan" class="doc-section">
+          <h2>Enum: JenisPengadaan</h2>
+          <p>
+            An Enum representing general procurement categories in the SPSE portal system. Defined in module <code class="inline-code">pyproc.lpse</code>.
+          </p>
+
+          <table class="doc-table">
+            <thead>
+              <tr>
+                <th>Enum Attribute</th>
+                <th>Value</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code class="inline-code">JenisPengadaan.PENGADAAN_BARANG</code></td>
+                <td><code class="inline-code">"1"</code></td>
+                <td>Goods/Equipment Procurement (Pengadaan Barang)</td>
+              </tr>
+              <tr>
+                <td><code class="inline-code">JenisPengadaan.PEKERJAAN_KONSTRUKSI</code></td>
+                <td><code class="inline-code">"2"</code></td>
+                <td>Civil/Construction Works (Pekerjaan Konstruksi)</td>
+              </tr>
+              <tr>
+                <td><code class="inline-code">JenisPengadaan.JASA_KONSULTASI</code></td>
+                <td><code class="inline-code">"3"</code></td>
+                <td>Consulting Services (Jasa Konsultansi Badan Usaha / Perorangan)</td>
+              </tr>
+              <tr>
+                <td><code class="inline-code">JenisPengadaan.JASA_LAINNYA</code></td>
+                <td><code class="inline-code">"4"</code></td>
+                <td>Other Auxiliary Services (Jasa Lainnya)</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="enum-by" class="doc-section">
+          <h2>Enum: By</h2>
+          <p>
+            An Enum representing sorting parameters targeting SPSE query columns.
+          </p>
+
+          <table class="doc-table">
+            <thead>
+              <tr>
+                <th>Enum Attribute</th>
+                <th>Value</th>
+                <th>Target Column</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code class="inline-code">By.KODE</code></td>
+                <td><code class="inline-code">0</code></td>
+                <td>Tender ID / Code</td>
+              </tr>
+              <tr>
+                <td><code class="inline-code">By.NAMA</code></td>
+                <td><code class="inline-code">1</code></td>
+                <td>Tender Title / Name</td>
+              </tr>
+              <tr>
+                <td><code class="inline-code">By.KATEGORI</code></td>
+                <td><code class="inline-code">2</code></td>
+                <td>Procurement Category</td>
+              </tr>
+              <tr>
+                <td><code class="inline-code">By.INSTANSI</code></td>
+                <td><code class="inline-code">3</code></td>
+                <td>Government Institution</td>
+              </tr>
+              <tr>
+                <td><code class="inline-code">By.HPS</code></td>
+                <td><code class="inline-code">4</code></td>
+                <td>HPS (Self-estimated contract price)</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="enum-kontrak-status" class="doc-section">
+          <h2>Enum: KontrakStatus</h2>
+          <p>
+            An Enum representing procurement contract states.
+          </p>
+
+          <table class="doc-table">
+            <thead>
+              <tr>
+                <th>Enum Attribute</th>
+                <th>Value</th>
+                <th>Meaning</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code class="inline-code">KontrakStatus.SELESAI</code></td>
+                <td><code class="inline-code">0</code></td>
+                <td>Tender complete / executed successfully.</td>
+              </tr>
+              <tr>
+                <td><code class="inline-code">KontrakStatus.PEMUTUSAN</code></td>
+                <td><code class="inline-code">1</code></td>
+                <td>Contract terminated (Pemutusan Kontrak).</td>
+              </tr>
+              <tr>
+                <td><code class="inline-code">KontrakStatus.PENGHENTIAN</code></td>
+                <td><code class="inline-code">2</code></td>
+                <td>Contract suspended (Penghentian Kontrak).</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- Section: Detail Classes -->
+        <section id="class-lpse-detil" class="doc-section">
+          <h2>Class: BaseLpseDetil</h2>
+          <p>
+            Acts as the base manager for executing sub-page scraping on a specific tender. Sub-pages are evaluated dynamically based on availability.
+          </p>
+
+          <div class="api-member">
+            <div class="api-member-header">
+              <div class="api-signature">
+                <span class="api-type">class</span> 
+                <span class="api-name">BaseLpseDetil</span>(id_paket: str | int, lpse: Lpse)
+              </div>
+            </div>
+            <div class="api-desc">
+              <p>Instantiated by the parent client. Stores package ID metadata and connection hooks.</p>
+
+              <!-- Method: get_all_detil -->
+              <div class="api-member" style="margin-top: 1.5rem; margin-bottom: 0;">
+                <div class="api-member-header">
+                  <div class="api-signature">
+                    <span class="api-name">get_all_detil</span>() &rarr; None
+                  </div>
+                </div>
+                <div class="api-desc">
+                  <p>Fetches and runs parsing threads for all available section sub-pages (Announcement, Participants, Evaluations, Winners, Schedule) concurrently using the client worker threads configuration.</p>
+                </div>
+              </div>
+
+              <!-- Method: todict -->
+              <div class="api-member" style="margin-top: 1.5rem; margin-bottom: 0;">
+                <div class="api-member-header">
+                  <div class="api-signature">
+                    <span class="api-name">todict</span>() &rarr; dict
+                  </div>
+                </div>
+                <div class="api-desc">
+                  <p>Aggregates all parsed details into a nested Python dictionary containing keys like <code class="inline-code">"pengumuman"</code>, <code class="inline-code">"peserta"</code>, <code class="inline-code">"pemenang"</code>, etc.</p>
+                </div>
+              </div>
+
+              <!-- Method: get_pengumuman -->
+              <div class="api-member" style="margin-top: 1.5rem; margin-bottom: 0;">
+                <div class="api-member-header">
+                  <div class="api-signature">
+                    <span class="api-name">get_pengumuman</span>() &rarr; dict
+                  </div>
+                </div>
+                <div class="api-desc">
+                  <p>Scrapes specific fields inside the announcement page: budget values, location coordinates, requirements, qualifications, and LPSE code IDs.</p>
+                </div>
+              </div>
+
+              <!-- Method: get_peserta -->
+              <div class="api-member" style="margin-top: 1.5rem; margin-bottom: 0;">
+                <div class="api-member-header">
+                  <div class="api-signature">
+                    <span class="api-name">get_peserta</span>() &rarr; list
+                  </div>
+                </div>
+                <div class="api-desc">
+                  <p>Returns the complete list of participating bidder companies registered for this tender package.</p>
+                </div>
+              </div>
+
+              <!-- Method: get_pemenang -->
+              <div class="api-member" style="margin-top: 1.5rem; margin-bottom: 0;">
+                <div class="api-member-header">
+                  <div class="api-signature">
+                    <span class="api-name">get_pemenang</span>() &rarr; list
+                  </div>
+                </div>
+                <div class="api-desc">
+                  <p>Parses and lists the final winner(s) details, including NPWP identifier, name, address, and final bid pricing values.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section: Detail Subclasses -->
+        <section id="subclasses-detil" class="doc-section">
+          <h2>Subclasses: Specialized Detail Managers</h2>
+          <p>
+            Different kinds of SPSE procurements structure detail grids slightly differently. PyProc resolves this transparency using sub-classes inheriting from <code class="inline-code">BaseLpseDetil</code>:
+          </p>
+
+          <table class="doc-table">
+            <thead>
+              <tr>
+                <th>Class Name</th>
+                <th>Instantiated By</th>
+                <th>Target SPSE Endpoint</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code class="inline-code">LpseDetil</code></td>
+                <td><code class="inline-code">detil_paket_tender(id)</code></td>
+                <td>Standard competitive bidding tenders (<code class="inline-code">lelang</code>).</td>
+              </tr>
+              <tr>
+                <td><code class="inline-code">LpseDetilNonTender</code></td>
+                <td><code class="inline-code">detil_paket_non_tender(id)</code></td>
+                <td>Direct selections and appointments (<code class="inline-code">pl</code>).</td>
+              </tr>
+              <tr>
+                <td><code class="inline-code">LpseDetilPencatatanNonTender</code></td>
+                <td><code class="inline-code">detil_paket_pencatatan_non_tender(id)</code></td>
+                <td>Pencatatan Non-Tender log rows.</td>
+              </tr>
+              <tr>
+                <td><code class="inline-code">LpseDetilSwakelola</code></td>
+                <td><code class="inline-code">detil_paket_swakelola(id)</code></td>
+                <td>Community/In-house executed tasks (Swakelola).</td>
+              </tr>
+              <tr>
+                <td><code class="inline-code">LpseDetilPengadaanDarurat</code></td>
+                <td><code class="inline-code">detil_paket_pengadaan_darurat(id)</code></td>
+                <td>Emergency government procurement (Pengadaan Darurat).</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-bottom" style="border-top: none; padding-top: 0;">
+        <p>&copy; 2026 Agung Pratama and PyProc Contributors. Released under the MIT License.</p>
+        <div class="footer-disclaimer">
+          <strong>Disclaimer:</strong> This project is not affiliated with LKPP/LPSE/SPSE. Use responsibly.
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Script for Sidebar & Code Copy -->
+  <script>
+    // Smooth scrolling & active link highlighting
+    const links = document.querySelectorAll('.sidebar-link');
+    const sections = document.querySelectorAll('.doc-section');
+
+    function changeActiveLink() {
+      let index = sections.length;
+      while(--index && window.scrollY + 120 < sections[index].offsetTop) {}
+      links.forEach((link) => link.classList.remove('active'));
+      if (links[index]) {
+        links[index].classList.add('active');
+      }
+    }
+
+    window.addEventListener('scroll', changeActiveLink);
+    changeActiveLink();
+
+    // Copy to clipboard helper
+    document.querySelectorAll('.btn-copy').forEach(button => {
+      button.addEventListener('click', () => {
+        const code = button.closest('.code-block-wrapper').querySelector('code').innerText;
+        navigator.clipboard.writeText(code).then(() => {
+          const original = button.innerText;
+          button.innerText = 'Copied!';
+          button.style.color = 'var(--accent-emerald)';
+          setTimeout(() => {
+            button.innerText = original;
+            button.style.color = '';
+          }, 2000);
+        });
+      });
+    });
+  </script>
+</body>
+</html>

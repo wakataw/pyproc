@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Documentation — PyProc MCP</title>
+  <meta name="description" content="Learn how to install, configure, and use PyProc as an MCP server, Python library, or command-line downloader.">
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="icon" type="image/png" href="assets/logo.png">
+</head>
+<body>
+
+  <!-- Floating Glassmorphic Navbar -->
+  <header class="navbar">
+    <div class="navbar-container">
+      <a href="index.html" class="logo-link">
+        <img src="assets/logo.png" alt="PyProc Logo" class="logo-img">
+        <span>PyProc</span>
+        <span class="logo-badge">v0.3.3</span>
+      </a>
+      <nav>
+        <ul class="nav-links">
+          <li><a href="index.html" class="nav-link">Home</a></li>
+          <li><a href="documentation.html" class="nav-link active">Documentation</a></li>
+          <li><a href="api.html" class="nav-link">API Reference</a></li>
+          <li>
+            <a href="https://github.com/wakataw/pyproc" target="_blank" rel="noopener noreferrer" class="btn-github">
+              <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+              </svg>
+              GitHub
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="doc-layout">
+      <!-- Sidebar Navigation -->
+      <aside class="doc-sidebar">
+        <h4 class="sidebar-title">Getting Started</h4>
+        <ul class="sidebar-menu">
+          <li><a href="#intro" class="sidebar-link active">Introduction</a></li>
+          <li><a href="#installation" class="sidebar-link">Installation</a></li>
+        </ul>
+
+        <h4 class="sidebar-title">Usage Modes</h4>
+        <ul class="sidebar-menu">
+          <li><a href="#mcp-server" class="sidebar-link">MCP Server Setup</a></li>
+          <li><a href="#cli" class="sidebar-link">CLI Reference</a></li>
+          <li><a href="#satudata-api" class="sidebar-link">ISB Satu Data API</a></li>
+        </ul>
+
+        <h4 class="sidebar-title">Configuration</h4>
+        <ul class="sidebar-menu">
+          <li><a href="#env-vars" class="sidebar-link">Environment Variables</a></li>
+          <li><a href="#disclaimer" class="sidebar-link">Responsible Use</a></li>
+        </ul>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="doc-content">
+        
+        <!-- Section: Introduction -->
+        <section id="intro" class="doc-section">
+          <h1>Documentation</h1>
+          <p>
+            Welcome to the PyProc documentation. PyProc MCP is an interface designed to turn public Indonesian procurement data (from SPSE/Inaproc system portals) into structured, easily queryable resources. It bridges the gap between raw web forms and automation tools, scripts, and Large Language Model (LLM) agents.
+          </p>
+          <div class="callout callout-info">
+            <div class="callout-title">Key Feature: Model Context Protocol (MCP)</div>
+            <p>PyProc natively exports standard MCP tools, making it instantly compatible with Cursor, Claude Desktop, Continue, and custom AI agents.</p>
+          </div>
+        </section>
+
+        <!-- Section: Installation -->
+        <section id="installation" class="doc-section">
+          <h2>Installation</h2>
+          <p>PyProc requires Python &ge; 3.9. You can install it with pip depending on your usage mode.</p>
+          
+          <h3>Standard Release (Library & CLI only)</h3>
+          <div class="code-block-wrapper">
+            <div class="code-header">
+              <span class="code-lang">bash</span>
+              <button class="btn-copy">Copy</button>
+            </div>
+            <pre><code>pip install pyproc</code></pre>
+          </div>
+
+          <h3>With MCP Support (Recommended)</h3>
+          <p>Installs additional dependencies like <code class="inline-code">mcp</code> and <code class="inline-code">uvicorn</code> for hosting the server:</p>
+          <div class="code-block-wrapper">
+            <div class="code-header">
+              <span class="code-lang">bash</span>
+              <button class="btn-copy">Copy</button>
+            </div>
+            <pre><code>pip install pyproc[mcp]</code></pre>
+          </div>
+
+          <h3>Development Version</h3>
+          <div class="code-block-wrapper">
+            <div class="code-header">
+              <span class="code-lang">bash</span>
+              <button class="btn-copy">Copy</button>
+            </div>
+            <pre><code>pip install git+https://github.com/wakataw/pyproc.git</code></pre>
+          </div>
+        </section>
+
+        <!-- Section: MCP Server Setup -->
+        <section id="mcp-server" class="doc-section">
+          <h2>Usage Mode: MCP Server</h2>
+          <p>
+            The MCP server allows LLM clients (such as Claude Desktop or Cursor) to call PyProc tools.
+            It supports two transportation protocols: <strong>stdio</strong> (local processes) and <strong>HTTP</strong> (SSE stream servers).
+          </p>
+          
+          <h3>1. Generating Configuration</h3>
+          <p>To easily get configuration lines for your clients, use the built-in generator:</p>
+          <div class="code-block-wrapper">
+            <div class="code-header">
+              <span class="code-lang">bash</span>
+              <button class="btn-copy">Copy</button>
+            </div>
+            <pre><code># Output stdio client config to stdout
+pyproc mcp --generate-config
+
+# Output HTTP client config to stdout
+pyproc mcp --interface http --port 9090 --generate-config
+
+# Write to file directly
+pyproc mcp --generate-config mcp-config.json</code></pre>
+          </div>
+
+          <h3>2. Claude Desktop Integration</h3>
+          <p>Add the configuration blocks below to your Claude Desktop config file (located at <code class="inline-code">~/Library/Application Support/Claude/claude_desktop_config.json</code> on macOS or <code class="inline-code">%APPDATA%\Claude\claude_desktop_config.json</code> on Windows):</p>
+          
+          <div class="code-block-wrapper">
+            <div class="code-header">
+              <span class="code-lang">json</span>
+              <button class="btn-copy">Copy</button>
+            </div>
+            <pre><code>{
+  "mcpServers": {
+    "pyproc": {
+      "command": "pyproc-mcp",
+      "env": {
+        "PYPROC_TIMEOUT": "30"
+      }
+    }
+  }
+}</code></pre>
+          </div>
+
+          <h3>3. Cursor Integration</h3>
+          <p>In Cursor Settings &rarr; Features &rarr; MCP:</p>
+          <ol>
+            <li>Click <strong>+ Add New MCP Server</strong>.</li>
+            <li>Set <strong>Name</strong> to <code class="inline-code">pyproc</code>.</li>
+            <li>Set <strong>Type</strong> to <code class="inline-code">command</code>.</li>
+            <li>Set <strong>Command</strong> to: <code class="inline-code">pyproc-mcp</code>.</li>
+          </ol>
+        </section>
+
+        <!-- Section: CLI Reference -->
+        <section id="cli" class="doc-section">
+          <h2>Usage Mode: Command-Line Interface</h2>
+          <p>
+            The CLI tool allows you to perform fast downloads of tender indexes and details directly to disk. The main entry command is <code class="inline-code">pyproc</code>.
+          </p>
+
+          <h3>Common Subcommands</h3>
+          <table class="doc-table">
+            <thead>
+              <tr>
+                <th>Command</th>
+                <th>Shorthand</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code class="inline-code">pyproc spse &lt;host&gt;</code></td>
+                <td><code class="inline-code">pyproc &lt;host&gt;</code></td>
+                <td>Download tender lists from an LPSE host (e.g. <code class="inline-code">kemenkeu</code>) and save as CSV.</td>
+              </tr>
+              <tr>
+                <td><code class="inline-code">pyproc daftarlpse</code></td>
+                <td>-</td>
+                <td>Export the complete list of available LPSE units gathered from Gist metadata.</td>
+              </tr>
+              <tr>
+                <td><code class="inline-code">pyproc masterklpd</code></td>
+                <td>-</td>
+                <td>Query Ministry/Institution/Regional Appointed Agency (K/L/PD) codes.</td>
+              </tr>
+              <tr>
+                <td><code class="inline-code">pyproc satudata</code></td>
+                <td>-</td>
+                <td>Access fallback/curated government API endpoints from LKPP ISB Satu Data.</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h3>Argument Details (for <code class="inline-code">pyproc spse</code> / LPSE commands)</h3>
+          <table class="doc-table">
+            <thead>
+              <tr>
+                <th>Argument</th>
+                <th>Default</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code class="inline-code">-k, --keyword</code></td>
+                <td><code class="inline-code">""</code></td>
+                <td>Filter tenders by a specific keyword.</td>
+              </tr>
+              <tr>
+                <td><code class="inline-code">-t, --tahun-anggaran</code></td>
+                <td>Current Year</td>
+                <td>Budget year (comma-separated or range e.g. <code class="inline-code">2024,2025</code>).</td>
+              </tr>
+              <tr>
+                <td><code class="inline-code">--jenis-paket</code></td>
+                <td><code class="inline-code">tender</code></td>
+                <td>Type of packet: <code class="inline-code">tender</code>, <code class="inline-code">non_tender</code>, <code class="inline-code">pencatatan_non_tender</code>, <code class="inline-code">swakelola</code>, <code class="inline-code">darurat</code>.</td>
+              </tr>
+              <tr>
+                <td><code class="inline-code">-o, --output-format</code></td>
+                <td><code class="inline-code">csv</code></td>
+                <td>Output format: <code class="inline-code">csv</code> or <code class="inline-code">json</code>.</td>
+              </tr>
+              <tr>
+                <td><code class="inline-code">-r, --resume</code></td>
+                <td><code class="inline-code">False</code></td>
+                <td>Resume downloads that previously failed.</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="callout callout-tip">
+            <div class="callout-title">Multi-Host Download</div>
+            <p>You can comma-separate hosts to download concurrently: <code class="inline-code">pyproc spse jakarta,kemenkeu,sumbarprov</code></p>
+          </div>
+        </section>
+
+        <!-- Section: Satu Data API -->
+        <section id="satudata-api" class="doc-section">
+          <h2>LKPP ISB Satu Data API Reference</h2>
+          <p>
+            In addition to direct SPSE scraper calls, PyProc offers fallback support using the government-maintained <strong>Satu Data LKPP API</strong>. This endpoint is optimal for fetching regional reference tables and structured public aggregates.
+          </p>
+          
+          <h3>Usage Examples</h3>
+          <div class="code-block-wrapper">
+            <div class="code-header">
+              <span class="code-lang">bash</span>
+              <button class="btn-copy">Copy</button>
+            </div>
+            <pre><code># Search K/L/PD reference directories by keyword
+pyproc masterklpd --query "keuangan"
+
+# Launch the interactive terminal console listing LPSE codes
+pyproc satudata masterlpse
+
+# Direct download of public tenders for a specific LPSE ID and budget year
+pyproc satudata tenderumum --kode-lpse 119 --tahun-anggaran 2026 --output json</code></pre>
+          </div>
+        </section>
+
+        <!-- Section: Env variables -->
+        <section id="env-vars" class="doc-section">
+          <h2>Configuration: Environment Variables</h2>
+          <p>You can adjust the behavior of both PyProc CLI and the MCP Server using environment variables.</p>
+          
+          <table class="doc-table">
+            <thead>
+              <tr>
+                <th>Variable</th>
+                <th>Default</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code class="inline-code">PYPROC_TIMEOUT</code></td>
+                <td><code class="inline-code">30</code></td>
+                <td>HTTP connection and request timeouts in seconds.</td>
+              </tr>
+              <tr>
+                <td><code class="inline-code">PYPROC_RATE_LIMIT_DELAY</code></td>
+                <td><code class="inline-code">1.0</code></td>
+                <td>Minimum delay seconds between consecutive server requests.</td>
+              </tr>
+              <tr>
+                <td><code class="inline-code">PYPROC_SSL_VERIFY</code></td>
+                <td><code class="inline-code">0</code></td>
+                <td>Set to <code class="inline-code">1</code>, <code class="inline-code">true</code>, or <code class="inline-code">yes</code> to enable TLS/SSL certificate checks. Recommended to keep <code class="inline-code">0</code> as many LPSE hosts use self-signed certs.</td>
+              </tr>
+              <tr>
+                <td><code class="inline-code">PYPROC_MCP_PORT</code></td>
+                <td><code class="inline-code">8080</code></td>
+                <td>Listening port when starting the HTTP/SSE interface.</td>
+              </tr>
+              <tr>
+                <td><code class="inline-code">PYPROC_MCP_WORKERS</code></td>
+                <td><code class="inline-code">4</code></td>
+                <td>Worker thread count for fetching tender schedules and bidder data concurrently.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- Section: Disclaimer -->
+        <section id="disclaimer" class="doc-section">
+          <h2>Responsible Use & Disclaimer</h2>
+          <div class="callout callout-warning">
+            <div class="callout-title">Disclaimer</div>
+            <p>
+              This project is not affiliated with, sponsored by, or endorsed by LKPP, LPSE, SPSE, Inaproc, or any Indonesian government institution.
+            </p>
+          </div>
+          <p>
+            Users are required to utilize PyProc responsibly. Ensure that automatic index downloads do not saturate the target portals. The built-in 1.0-second delay is configured to prevent accidental rate-limit blocks; reducing it may trigger server rejections or temporary IP blocks.
+          </p>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-bottom" style="border-top: none; padding-top: 0;">
+        <p>&copy; 2026 Agung Pratama and PyProc Contributors. Released under the MIT License.</p>
+        <div class="footer-disclaimer">
+          <strong>Disclaimer:</strong> This project is not affiliated with LKPP/LPSE/SPSE. Use responsibly.
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Script for Sidebar and Copy Buttons -->
+  <script>
+    // Smooth scrolling & active link highlighting
+    const links = document.querySelectorAll('.sidebar-link');
+    const sections = document.querySelectorAll('.doc-section');
+
+    function changeActiveLink() {
+      let index = sections.length;
+      while(--index && window.scrollY + 120 < sections[index].offsetTop) {}
+      links.forEach((link) => link.classList.remove('active'));
+      if (links[index]) {
+        links[index].classList.add('active');
+      }
+    }
+
+    window.addEventListener('scroll', changeActiveLink);
+    changeActiveLink();
+
+    // Copy to clipboard helper
+    document.querySelectorAll('.btn-copy').forEach(button => {
+      button.addEventListener('click', () => {
+        const code = button.closest('.code-block-wrapper').querySelector('code').innerText;
+        navigator.clipboard.writeText(code).then(() => {
+          const original = button.innerText;
+          button.innerText = 'Copied!';
+          button.style.color = 'var(--accent-emerald)';
+          setTimeout(() => {
+            button.innerText = original;
+            button.style.color = '';
+          }, 2000);
+        });
+      });
+    });
+  </script>
+</body>
+</html>
