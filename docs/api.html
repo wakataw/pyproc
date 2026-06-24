@@ -13,12 +13,6 @@
   <!-- Floating Glassmorphic Navbar -->
   <header class="navbar">
     <div class="navbar-container">
-      <a href="index.html" class="logo-link">
-        <img src="assets/logo.png" alt="PyProc Logo" class="logo-img">
-        <span>PyProc</span>
-        <span class="logo-badge">v0.3.3</span>
-      </a>
-      
       <!-- Sidebar Toggle (Mobile Only) -->
       <button id="sidebar-toggle" class="sidebar-toggle-btn" aria-label="Toggle API Menu">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -26,8 +20,13 @@
           <line x1="3" y1="6" x2="21" y2="6"></line>
           <line x1="3" y1="18" x2="21" y2="18"></line>
         </svg>
-        <span>API Menu</span>
       </button>
+
+      <a href="index.html" class="logo-link">
+        <img src="assets/logo.png" alt="PyProc Logo" class="logo-img">
+        <span>PyProc</span>
+        <span class="logo-badge">v0.3.3</span>
+      </a>
 
       <nav>
         <ul class="nav-links">
@@ -67,15 +66,15 @@
           <li><a href="documentation.html#installation" class="sidebar-link" id="side-installation">Installation</a></li>
         </ul>
 
-        <h4 class="sidebar-title">Usage Modes</h4>
+        <h4 class="sidebar-title">MCP Setup</h4>
         <ul class="sidebar-menu">
-          <li><a href="mcp-server.html" class="sidebar-link" id="side-mcp-server">MCP Server Setup</a></li>
-          <li><a href="cli.html" class="sidebar-link" id="side-cli">CLI Reference</a></li>
-          <li><a href="satudata.html" class="sidebar-link" id="side-satudata-api">ISB Satu Data API</a></li>
+          <li><a href="mcp-setup.html" class="sidebar-link" id="side-mcp-setup">Server Configuration</a></li>
         </ul>
 
-        <h4 class="sidebar-title">AI Client Setup</h4>
+        <h4 class="sidebar-title">AI Client Integration</h4>
         <ul class="sidebar-menu font-small">
+          <li><a href="client-setup.html#client-claude-desktop" class="sidebar-link" id="side-client-claude-desktop">Claude Desktop</a></li>
+          <li><a href="client-setup.html#client-cursor" class="sidebar-link" id="side-client-cursor">Cursor</a></li>
           <li><a href="client-setup.html#client-claude" class="sidebar-link" id="side-client-claude">Claude Code</a></li>
           <li><a href="client-setup.html#client-antigravity" class="sidebar-link" id="side-client-antigravity">Antigravity</a></li>
           <li><a href="client-setup.html#client-codex" class="sidebar-link" id="side-client-codex">Codex</a></li>
@@ -83,6 +82,12 @@
           <li><a href="client-setup.html#client-openclaw" class="sidebar-link" id="side-client-openclaw">OpenClaw</a></li>
           <li><a href="client-setup.html#client-hermes" class="sidebar-link" id="side-client-hermes">Hermes Agent</a></li>
           <li><a href="client-setup.html#client-generic" class="sidebar-link" id="side-client-generic">Generic Tutorial</a></li>
+        </ul>
+
+        <h4 class="sidebar-title">Other Usage Modes</h4>
+        <ul class="sidebar-menu">
+          <li><a href="cli.html" class="sidebar-link" id="side-cli">CLI Reference</a></li>
+          <li><a href="satudata.html" class="sidebar-link" id="side-satudata-api">ISB Satu Data API</a></li>
         </ul>
 
         <h4 class="sidebar-title">Configuration</h4>
@@ -100,6 +105,7 @@
           <li><a href="api.html#enum-tipe-swakelola" class="sidebar-link" id="side-enum-tipe-swakelola">TipeSwakelola</a></li>
           <li><a href="api.html#class-lpse-detil" class="sidebar-link" id="side-class-lpse-detil">BaseLpseDetil</a></li>
           <li><a href="api.html#subclasses-detil" class="sidebar-link" id="side-subclasses-detil">Subclasses</a></li>
+          <li><a href="api.html#parsers-detil" class="sidebar-link" id="side-parsers-detil">HTML Parsers</a></li>
         </ul>
       </aside>
 
@@ -830,18 +836,6 @@
                 </div>
               </div>
 
-              <!-- Method: get_pelaksana -->
-              <div class="api-member" style="margin-top: 1.5rem; margin-bottom: 0;">
-                <div class="api-member-header">
-                  <div class="api-signature">
-                    <span class="api-name">get_pelaksana</span>() &rarr; list
-                  </div>
-                  <a href="https://github.com/wakataw/pyproc/blob/master/pyproc/lpse.py#L617" target="_blank" class="api-source-link">Source Code &rarr;</a>
-                </div>
-                <div class="api-desc">
-                  <p><strong>Swakelola Subclass Only:</strong> Scrapes pelaksana (implementing officer/team) details for swakelola packages.</p>
-                </div>
-              </div>
             </div>
           </div>
         </section>
@@ -891,6 +885,276 @@
               </tbody>
             </table>
           </div>
+
+          <!-- LpseDetil Documentation -->
+          <div class="api-member" style="margin-top: 2rem;">
+            <div class="api-member-header">
+              <div class="api-signature">
+                <span class="api-type">class</span> 
+                <span class="api-name">LpseDetil</span>(lpse: Lpse, id_paket: str | int)
+              </div>
+              <a href="https://github.com/wakataw/pyproc/blob/master/pyproc/lpse.py#L473" target="_blank" class="api-source-link">Source Code &rarr;</a>
+            </div>
+            <div class="api-desc">
+              <p>Manager for standard tender procurement details. Instantiated via <code class="inline-code">Lpse.detil_paket_tender(id)</code>.</p>
+              <p><strong>Supported detail_methods:</strong></p>
+              <ul>
+                <li><code class="inline-code">get_pengumuman()</code>: Scrapes tender announcement details.</li>
+                <li><code class="inline-code">get_peserta()</code>: Scrapes participating bidder companies.</li>
+                <li><code class="inline-code">get_hasil_evaluasi()</code>: Scrapes evaluation matrix page.</li>
+                <li><code class="inline-code">get_pemenang(all=False, key='hasil_negosiasi')</code>: Scrapes winners list.</li>
+                <li><code class="inline-code">get_pemenang_berkontrak()</code>: Scrapes contract-awarded winners list.</li>
+                <li><code class="inline-code">get_jadwal()</code>: Scrapes schedule steps.</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- LpseDetilNonTender Documentation -->
+          <div class="api-member" style="margin-top: 2rem;">
+            <div class="api-member-header">
+              <div class="api-signature">
+                <span class="api-type">class</span> 
+                <span class="api-name">LpseDetilNonTender</span>(lpse: Lpse, id_paket: str | int)
+              </div>
+              <a href="https://github.com/wakataw/pyproc/blob/master/pyproc/lpse.py#L535" target="_blank" class="api-source-link">Source Code &rarr;</a>
+            </div>
+            <div class="api-desc">
+              <p>Manager for standard non-tender (direct procurement/selection) details. Instantiated via <code class="inline-code">Lpse.detil_paket_non_tender(id)</code>.</p>
+              <p><strong>Supported detail_methods:</strong></p>
+              <ul>
+                <li><code class="inline-code">get_pengumuman()</code>: Scrapes non-tender announcement details.</li>
+                <li><code class="inline-code">get_peserta()</code>: Scrapes participating bidders.</li>
+                <li><code class="inline-code">get_hasil_evaluasi()</code>: Scrapes non-tender evaluation details.</li>
+                <li><code class="inline-code">get_pemenang()</code>: Scrapes winner list.</li>
+                <li><code class="inline-code">get_pemenang_berkontrak()</code>: Scrapes contract-awarded winners.</li>
+                <li><code class="inline-code">get_jadwal()</code>: Scrapes non-tender schedules.</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- LpseDetilPencatatanNonTender Documentation -->
+          <div class="api-member" style="margin-top: 2rem;">
+            <div class="api-member-header">
+              <div class="api-signature">
+                <span class="api-type">class</span> 
+                <span class="api-name">LpseDetilPencatatanNonTender</span>(lpse: Lpse, id_paket: str | int)
+              </div>
+              <a href="https://github.com/wakataw/pyproc/blob/master/pyproc/lpse.py#L592" target="_blank" class="api-source-link">Source Code &rarr;</a>
+            </div>
+            <div class="api-desc">
+              <p>Manager for recorded non-tender (pencatatan non-tender) procurement details. Instantiated via <code class="inline-code">Lpse.detil_paket_pencatatan_non_tender(id)</code>.</p>
+              <p><strong>Supported detail_methods:</strong></p>
+              <ul>
+                <li><code class="inline-code">get_pengumuman()</code>: Scrapes recorded announcement details.</li>
+                <li><code class="inline-code">get_pemenang_berkontrak()</code>: Scrapes contracted winners.</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- LpseDetilSwakelola Documentation -->
+          <div class="api-member" style="margin-top: 2rem;">
+            <div class="api-member-header">
+              <div class="api-signature">
+                <span class="api-type">class</span> 
+                <span class="api-name">LpseDetilSwakelola</span>(lpse: Lpse, id_paket: str | int)
+              </div>
+              <a href="https://github.com/wakataw/pyproc/blob/master/pyproc/lpse.py#L606" target="_blank" class="api-source-link">Source Code &rarr;</a>
+            </div>
+            <div class="api-desc">
+              <p>Manager for self-managed (swakelola) procurement details. Instantiated via <code class="inline-code">Lpse.detil_paket_swakelola(id)</code>.</p>
+              <p><strong>Supported detail_methods:</strong></p>
+              <ul>
+                <li><code class="inline-code">get_pengumuman()</code>: Scrapes swakelola announcement details.</li>
+                <li><code class="inline-code">get_pelaksana()</code>: Scrapes swakelola implementing officer/team (cached in <code>self.pelaksana</code>).</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- LpseDetilPengadaanDarurat Documentation -->
+          <div class="api-member" style="margin-top: 2rem;">
+            <div class="api-member-header">
+              <div class="api-signature">
+                <span class="api-type">class</span> 
+                <span class="api-name">LpseDetilPengadaanDarurat</span>(lpse: Lpse, id_paket: str | int)
+              </div>
+              <a href="https://github.com/wakataw/pyproc/blob/master/pyproc/lpse.py#L622" target="_blank" class="api-source-link">Source Code &rarr;</a>
+            </div>
+            <div class="api-desc">
+              <p>Manager for emergency procurement (pengadaan darurat) details. Instantiated via <code class="inline-code">Lpse.detil_paket_pengadaan_darurat(id)</code>.</p>
+              <p><strong>Supported detail_methods:</strong></p>
+              <ul>
+                <li><code class="inline-code">get_pengumuman()</code>: Scrapes emergency announcement details.</li>
+                <li><code class="inline-code">get_pemenang_berkontrak()</code>: Scrapes contracted emergency winners.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section: Detail Parsers -->
+        <section id="parsers-detil" class="doc-section">
+          <h2>HTML Parsers: Low-Level Parser API</h2>
+          <p>
+            PyProc resolves raw HTML detail pages into structured data matrices using a set of purpose-built parsers derived from <code class="inline-code">BaseLpseDetilParser</code>.
+          </p>
+
+          <div class="api-member">
+            <div class="api-member-header">
+              <div class="api-signature">
+                <span class="api-type">class</span> 
+                <span class="api-name">BaseLpseDetilParser</span>(lpse: Lpse, id_paket: str | int)
+              </div>
+              <a href="https://github.com/wakataw/pyproc/blob/master/pyproc/lpse.py#L636" target="_blank" class="api-source-link">Source Code &rarr;</a>
+            </div>
+            <div class="api-desc">
+              <p>Abstract base parser representing a page scraper context. Downloads page content and triggers subclass parsers.</p>
+
+              <!-- Method: get_detil -->
+              <div class="api-member" style="margin-top: 1.5rem; margin-bottom: 0;">
+                <div class="api-member-header">
+                  <div class="api-signature">
+                    <span class="api-name">get_detil</span>() &rarr; any
+                  </div>
+                  <a href="https://github.com/wakataw/pyproc/blob/master/pyproc/lpse.py#L644" target="_blank" class="api-source-link">Source Code &rarr;</a>
+                </div>
+                <div class="api-desc">
+                  <p>Fetches the detail sub-page url (combining LPSE host address and formatted target paths) and passes raw bytes to <code class="inline-code">parse_detil</code>. Employs backoff fibonacci retry routines on server/network failures.</p>
+                </div>
+              </div>
+
+              <!-- Method: parse_detil -->
+              <div class="api-member" style="margin-top: 1.5rem; margin-bottom: 0;">
+                <div class="api-member-header">
+                  <div class="api-signature">
+                    <span class="api-name">parse_detil</span>(content: bytes) &rarr; abstract
+                  </div>
+                  <a href="https://github.com/wakataw/pyproc/blob/master/pyproc/lpse.py#L662" target="_blank" class="api-source-link">Source Code &rarr;</a>
+                </div>
+                <div class="api-desc">
+                  <p>Abstract parsing method overridden by specialized parsers to extract table rows, forms, and grid fields from raw HTML string bytes.</p>
+                </div>
+              </div>
+
+              <!-- Method: parse_currency -->
+              <div class="api-member" style="margin-top: 1.5rem; margin-bottom: 0;">
+                <div class="api-member-header">
+                  <div class="api-signature">
+                    <span class="api-type">static</span>
+                    <span class="api-name">parse_currency</span>(nilai: str) &rarr; float
+                  </div>
+                  <a href="https://github.com/wakataw/pyproc/blob/master/pyproc/lpse.py#L666" target="_blank" class="api-source-link">Source Code &rarr;</a>
+                </div>
+                <div class="api-desc">
+                  <p>Helper static utility method. Sanitizes and normalizes Indonesian Rupiah (IDR) raw strings containing decimals and thousands separators (e.g. converting <code>Rp. 150.000.000,00</code> to float <code>150000000.0</code>).</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Specialized Parsers Breakdown -->
+          <div class="api-member" style="margin-top: 2rem;">
+            <h3>Specialized Parser Implementations</h3>
+            <p>
+              PyProc registers 21 specialized parser subclasses mapped to the different SPSE procurement types. They parse target HTML layouts dynamically using BeautifulSoup, transforming tabular data keys (headers/labels) into unified snake_case dictionaries.
+            </p>
+
+            <!-- Group 1: Tender Parsers -->
+            <div class="api-member" style="margin-top: 1.5rem; margin-bottom: 0; padding-left: 1rem; border-left: 2px solid var(--accent-cyan);">
+              <h4>1. Standard Tender Parsers (Tender SPSE)</h4>
+              <p>These parsers inherit directly from <code class="inline-code">BaseLpseDetilParser</code> and target the standard tender pages:</p>
+              <ul>
+                <li>
+                  <code class="inline-code">LpseDetilPengumumanParser</code> (Path: <code class="inline-code">/lelang/{id}/pengumumanlelang</code>): 
+                  Parses tender announcement tables. Extracts metadata like tender name, description, owner agency (K/L/PD), structural budgets (HPS, ceiling values), location data, and technical/qualification requirement criteria.
+                </li>
+                <li>
+                  <code class="inline-code">LpseDetilPesertaParser</code> (Path: <code class="inline-code">/lelang/{id}/pesertalelang</code>):
+                  Parses the bidder company list containing bidder registered names, NPWP, bidding offers, and prices.
+                </li>
+                <li>
+                  <code class="inline-code">LpseDetilHasilEvaluasiParser</code> (Path: <code class="inline-code">/lelang/{id}/evaluasilelang</code>):
+                  Parses the evaluation grid matrix. Resolves columns for administrative, technical, and price evaluation flags per bidder.
+                </li>
+                <li>
+                  <code class="inline-code">LpseDetilPemenangParser</code> (Path: <code class="inline-code">/lelang/{id}/pemenanglelang</code>):
+                  Parses the final winner table details. Resolves candidates, final bid prices, and negotiated prices.
+                </li>
+                <li>
+                  <code class="inline-code">LpseDetilPemenangBerkontrakParser</code> (Path: <code class="inline-code">/lelang/{id}/pemenangberkontrak</code>):
+                  <em>Inherits from LpseDetilPemenangParser</em>. Extracts contract signing status and values for awarded candidates.
+                </li>
+                <li>
+                  <code class="inline-code">LpseDetilJadwalParser</code> (Path: <code class="inline-code">/lelang/{id}/jadwal</code>):
+                  Parses chronological schedule steps, dates, and active step markers.
+                </li>
+              </ul>
+            </div>
+
+            <!-- Group 2: Non-Tender Parsers -->
+            <div class="api-member" style="margin-top: 1.5rem; margin-bottom: 0; padding-left: 1rem; border-left: 2px solid var(--accent-violet);">
+              <h4>2. Non-Tender / Direct Selection Parsers</h4>
+              <p>These parsers mirror standard tender parsers but target direct selection endpoints (<code class="inline-code">/penunjukan</code> or <code class="inline-code">/pengadaangrow</code> grids). They inherit from their tender parser equivalents to reuse BeautifulSoup parsers:</p>
+              <ul>
+                <li><code class="inline-code">LpseDetilPengumumanNonTenderParser</code> (Announcement parser inheriting from <code class="inline-code">LpseDetilPengumumanParser</code>)</li>
+                <li><code class="inline-code">LpseDetilPesertaNonTenderParser</code> (Bidders parser inheriting from <code class="inline-code">LpseDetilPesertaParser</code>)</li>
+                <li><code class="inline-code">LpseDetilHasilEvaluasiNonTenderParser</code> (Evaluation parser inheriting from <code class="inline-code">LpseDetilHasilEvaluasiParser</code>)</li>
+                <li><code class="inline-code">LpseDetilPemenangNonTenderParser</code> (Winner parser inheriting from <code class="inline-code">LpseDetilPemenangParser</code>)</li>
+                <li><code class="inline-code">LpseDetilPemenangBerkontrakNonTenderParser</code> (Contract parser inheriting from <code class="inline-code">LpseDetilPemenangNonTenderParser</code>)</li>
+                <li><code class="inline-code">LpseDetilJadwalNonTenderParser</code> (Schedule parser inheriting from <code class="inline-code">LpseDetilJadwalParser</code>)</li>
+              </ul>
+            </div>
+
+            <!-- Group 3: Pencatatan (Recorded) Parsers -->
+            <div class="api-member" style="margin-top: 1.5rem; margin-bottom: 0; padding-left: 1rem; border-left: 2px solid var(--accent-emerald);">
+              <h4>3. Recorded (Pencatatan) Parsers</h4>
+              <p>Used to parse recorded transactions. They inherit from <code class="inline-code">BaseLpseDetilParser</code> and include <code class="inline-code">PencatatanTableParserMixin</code> to handle different layout styles:</p>
+              <ul>
+                <li>
+                  <code class="inline-code">LpseDetilPengumumanPencatatanParser</code>: 
+                  Parses general details of recorded transactions (non-tender catalog orders).
+                </li>
+                <li>
+                  <code class="inline-code">LpseDetilRealisasiPencatatanParser</code>: 
+                  Parses real-time procurement execution and payout details.
+                </li>
+                <li>
+                  <code class="inline-code">LpseDetilPemenangBerkontrakPencatatanParser</code>: 
+                  <em>Inherits from LpseDetilRealisasiPencatatanParser</em>. Parses contractor profiles and registration details.
+                </li>
+                <li>
+                  <code class="inline-code">LpseDetilPengumumanPencatatanNonTenderParser</code>: 
+                  <em>Inherits from LpseDetilPengumumanPencatatanParser</em>. Handles recorded non-tender announcements.
+                </li>
+                <li>
+                  <code class="inline-code">LpseDetilPemenangBerkontrakPencatatanNonTenderParser</code>: 
+                  <em>Inherits from LpseDetilPemenangBerkontrakPencatatanParser</em>. Handles recorded non-tender contracts.
+                </li>
+              </ul>
+            </div>
+
+            <!-- Group 4: Swakelola & Emergency Parsers -->
+            <div class="api-member" style="margin-top: 1.5rem; margin-bottom: 0; padding-left: 1rem; border-left: 2px solid var(--accent-orange, #f97316);">
+              <h4>4. Swakelola and Emergency Parsers</h4>
+              <p>Parsers specialized for self-managed (Swakelola) and emergency (Pengadaan Darurat) government transactions:</p>
+              <ul>
+                <li>
+                  <code class="inline-code">LpseDetilPengumumanSwakelolaParser</code> (Swakelola Announcement): 
+                  Inherits from <code class="inline-code">LpseDetilPengumumanPencatatanParser</code>. Parses targets, objectives, and self-managed group scopes.
+                </li>
+                <li>
+                  <code class="inline-code">LpseDetilPelaksanaSwakelolaParser</code> (Swakelola Execution): 
+                  Inherits from <code class="inline-code">LpseDetilRealisasiPencatatanParser</code>. Parses implementing team members and officers.
+                </li>
+                <li>
+                  <code class="inline-code">LpseDetilPengumumanPengadaanDaruratParser</code> (Emergency Announcement): 
+                  Inherits from <code class="inline-code">LpseDetilPengumumanPencatatanParser</code>. Parses disaster relief and emergency response criteria details.
+                </li>
+                <li>
+                  <code class="inline-code">LpseDetilPemenangBerkontrakPengadaanDaruratParser</code> (Emergency Winners): 
+                  Inherits from <code class="inline-code">LpseDetilPemenangBerkontrakPencatatanParser</code>. Parses emergency contract structures.
+                </li>
+              </ul>
+            </div>
+          </div>
         </section>
 
         <!-- Pagination Navigation -->
@@ -904,17 +1168,7 @@
     </div>
   </div>
 
-  <!-- Footer -->
-  <footer class="footer">
-    <div class="container">
-      <div class="footer-bottom" style="border-top: none; padding-top: 0;">
-        <p>&copy; 2026 Agung Pratama and PyProc Contributors. Released under the MIT License.</p>
-        <div class="footer-disclaimer">
-          <strong>Disclaimer:</strong> This project is not affiliated with LKPP/LPSE/SPSE. Use responsibly.
-        </div>
-      </div>
-    </div>
-  </footer>
+
 
   <!-- Script for Sidebar & Code Copy -->
   <script>
