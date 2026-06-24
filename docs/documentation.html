@@ -51,6 +51,16 @@
     <div class="doc-layout">
       <!-- Sidebar Navigation -->
       <aside class="doc-sidebar">
+        <!-- Page Navigation (Mobile Only) -->
+        <div class="mobile-nav-menu" style="display: none; border-bottom: 1px solid var(--border-color); padding-bottom: 1.5rem; margin-bottom: 1.5rem;">
+          <h4 class="sidebar-title">Navigation</h4>
+          <ul class="sidebar-menu">
+            <li><a href="index.html" class="sidebar-link">Home</a></li>
+            <li><a href="documentation.html" class="sidebar-link active">Documentation</a></li>
+            <li><a href="api.html" class="sidebar-link">API Reference</a></li>
+          </ul>
+        </div>
+
         <h4 class="sidebar-title">Getting Started</h4>
         <ul class="sidebar-menu">
           <li><a href="documentation.html#intro" class="sidebar-link" id="side-intro">Introduction</a></li>
@@ -87,6 +97,7 @@
           <li><a href="api.html#enum-jenis-pengadaan" class="sidebar-link" id="side-enum-jenis-pengadaan">JenisPengadaan</a></li>
           <li><a href="api.html#enum-by" class="sidebar-link" id="side-enum-by">By Enum</a></li>
           <li><a href="api.html#enum-kontrak-status" class="sidebar-link" id="side-enum-kontrak-status">KontrakStatus</a></li>
+          <li><a href="api.html#enum-tipe-swakelola" class="sidebar-link" id="side-enum-tipe-swakelola">TipeSwakelola</a></li>
           <li><a href="api.html#class-lpse-detil" class="sidebar-link" id="side-class-lpse-detil">BaseLpseDetil</a></li>
           <li><a href="api.html#subclasses-detil" class="sidebar-link" id="side-subclasses-detil">Subclasses</a></li>
         </ul>
@@ -118,26 +129,26 @@
               <span class="code-lang">bash</span>
               <button class="btn-copy">Copy</button>
             </div>
-            <pre><code>pip install pyproc</code></pre>
+            <pre><code><span class="code-func">pip</span> install pyproc</code></pre>
           </div>
 
           <h3>With MCP Support (Recommended)</h3>
           <p>Installs additional dependencies like <code class="inline-code">mcp</code> and <code class="inline-code">uvicorn</code> for hosting the server:</p>
           <div class="code-block-wrapper">
             <div class="code-header">
-              <span class="code-lang">bash</span>
+              <span class="code-lang">bash (mcp extra)</span>
               <button class="btn-copy">Copy</button>
             </div>
-            <pre><code>pip install pyproc[mcp]</code></pre>
+            <pre><code><span class="code-func">pip</span> install pyproc[mcp]</code></pre>
           </div>
 
           <h3>Development Version</h3>
           <div class="code-block-wrapper">
             <div class="code-header">
-              <span class="code-lang">bash</span>
+              <span class="code-lang">bash (bleeding edge)</span>
               <button class="btn-copy">Copy</button>
             </div>
-            <pre><code>pip install git+https://github.com/wakataw/pyproc.git</code></pre>
+            <pre><code><span class="code-func">pip</span> install git+https://github.com/wakataw/pyproc.git</code></pre>
           </div>
         </section>
 
@@ -156,14 +167,14 @@
               <span class="code-lang">bash</span>
               <button class="btn-copy">Copy</button>
             </div>
-            <pre><code># Output stdio client config to stdout
-pyproc mcp --generate-config
+            <pre><code><span class="code-comment"># Output stdio client config to stdout</span>
+<span class="code-func">pyproc</span> mcp --generate-config
 
-# Output HTTP client config to stdout
-pyproc mcp --interface http --port 9090 --generate-config
+<span class="code-comment"># Output HTTP client config to stdout</span>
+<span class="code-func">pyproc</span> mcp --interface http --port 9090 --generate-config
 
-# Write to file directly
-pyproc mcp --generate-config mcp-config.json</code></pre>
+<span class="code-comment"># Write to file directly</span>
+<span class="code-func">pyproc</span> mcp --generate-config mcp-config.json</code></pre>
           </div>
 
           <h3>2. Claude Desktop Integration</h3>
@@ -322,7 +333,7 @@ pyproc satudata tenderumum --kode-lpse 119 --tahun-anggaran 2026 --output json</
               <span class="code-lang">bash</span>
               <button class="btn-copy">Copy</button>
             </div>
-            <pre><code>claude mcp add pyproc -- pyproc-mcp</code></pre>
+            <pre><code><span class="code-func">claude</span> mcp add pyproc -- pyproc-mcp</code></pre>
           </div>
           <p><strong>Manual Config Scope:</strong></p>
           <p>Alternatively, edit your global user config file at <code class="inline-code">~/.claude.json</code> or project-local config at <code class="inline-code">.claude/mcp.json</code>:</p>
@@ -332,9 +343,9 @@ pyproc satudata tenderumum --kode-lpse 119 --tahun-anggaran 2026 --output json</
               <button class="btn-copy">Copy</button>
             </div>
             <pre><code>{
-  "mcpServers": {
-    "pyproc": {
-      "command": "pyproc-mcp"
+  "<span class="code-kw">mcpServers</span>": {
+    "<span class="code-kw">pyproc</span>": {
+      "<span class="code-kw">command</span>": "<span class="code-str">pyproc-mcp</span>"
     }
   }
 }</code></pre>

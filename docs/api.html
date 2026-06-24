@@ -51,6 +51,16 @@
     <div class="doc-layout">
       <!-- Sidebar Navigation -->
       <aside class="doc-sidebar">
+        <!-- Page Navigation (Mobile Only) -->
+        <div class="mobile-nav-menu" style="display: none; border-bottom: 1px solid var(--border-color); padding-bottom: 1.5rem; margin-bottom: 1.5rem;">
+          <h4 class="sidebar-title">Navigation</h4>
+          <ul class="sidebar-menu">
+            <li><a href="index.html" class="sidebar-link">Home</a></li>
+            <li><a href="documentation.html" class="sidebar-link">Documentation</a></li>
+            <li><a href="api.html" class="sidebar-link active">API Reference</a></li>
+          </ul>
+        </div>
+
         <h4 class="sidebar-title">Getting Started</h4>
         <ul class="sidebar-menu">
           <li><a href="documentation.html#intro" class="sidebar-link" id="side-intro">Introduction</a></li>
@@ -87,6 +97,7 @@
           <li><a href="api.html#enum-jenis-pengadaan" class="sidebar-link" id="side-enum-jenis-pengadaan">JenisPengadaan</a></li>
           <li><a href="api.html#enum-by" class="sidebar-link" id="side-enum-by">By Enum</a></li>
           <li><a href="api.html#enum-kontrak-status" class="sidebar-link" id="side-enum-kontrak-status">KontrakStatus</a></li>
+          <li><a href="api.html#enum-tipe-swakelola" class="sidebar-link" id="side-enum-tipe-swakelola">TipeSwakelola</a></li>
           <li><a href="api.html#class-lpse-detil" class="sidebar-link" id="side-class-lpse-detil">BaseLpseDetil</a></li>
           <li><a href="api.html#subclasses-detil" class="sidebar-link" id="side-subclasses-detil">Subclasses</a></li>
         </ul>
@@ -215,12 +226,63 @@
             <div class="api-member" style="margin-top: 1.5rem; margin-bottom: 0;">
               <div class="api-member-header">
                 <div class="api-signature">
-                  <span class="api-name">get_paket_non_tender</span>(...) &rarr; dict | list
+                  <span class="api-name">get_paket_non_tender</span>(start: int = 0, length: int = 0, data_only: bool = False, kategori: JenisPengadaan = None, search_keyword: str = None, order: By = By.KODE, tahun: int = None, ascending: bool = False, instansi_id: str = None) &rarr; dict | list
                 </div>
                 <a href="https://github.com/wakataw/pyproc/blob/master/pyproc/lpse.py#L279" target="_blank" class="api-source-link">Source Code &rarr;</a>
               </div>
               <div class="api-desc">
-                <p>Retrieves non-tender listings (Direct selection/appointment). Arguments are identical to <code class="inline-code">get_paket_tender</code>.</p>
+                <p>Retrieves non-tender listings (Direct Selection, Direct Purchasing, or Direct Appointment) from the SPSE database.</p>
+                <table class="param-table">
+                  <thead>
+                    <tr>
+                      <th>Parameter</th>
+                      <th>Type</th>
+                      <th>Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="param-name">start</td>
+                      <td class="param-type">int</td>
+                      <td>Start record index (offset) for server-side pagination.</td>
+                    </tr>
+                    <tr>
+                      <td class="param-name">length</td>
+                      <td class="param-type">int</td>
+                      <td>Page size limit (use 0 for maximum).</td>
+                    </tr>
+                    <tr>
+                      <td class="param-name">data_only</td>
+                      <td class="param-type">bool</td>
+                      <td>If True, returns a clean Python <code class="inline-code">list</code> containing rows. If False, returns the raw SPSE DataTables dictionary structure.</td>
+                    </tr>
+                    <tr>
+                      <td class="param-name">kategori</td>
+                      <td class="param-type">JenisPengadaan</td>
+                      <td>Enum filter for the procurement type.</td>
+                    </tr>
+                    <tr>
+                      <td class="param-name">search_keyword</td>
+                      <td class="param-type">str</td>
+                      <td>String filter matches inside title or codes.</td>
+                    </tr>
+                    <tr>
+                      <td class="param-name">order</td>
+                      <td class="param-type">By</td>
+                      <td>Sorting column option (default: By.KODE).</td>
+                    </tr>
+                    <tr>
+                      <td class="param-name">tahun</td>
+                      <td class="param-type">int</td>
+                      <td>Budget year limit (e.g. 2025).</td>
+                    </tr>
+                    <tr>
+                      <td class="param-name">ascending</td>
+                      <td class="param-type">bool</td>
+                      <td>Sort order logic (default: False).</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
 
@@ -228,12 +290,12 @@
             <div class="api-member" style="margin-top: 1.5rem; margin-bottom: 0;">
               <div class="api-member-header">
                 <div class="api-signature">
-                  <span class="api-name">get_paket_pencatatan_non_tender</span>(...) &rarr; dict | list
+                  <span class="api-name">get_paket_pencatatan_non_tender</span>(start: int = 0, length: int = 0, data_only: bool = False, kategori: JenisPengadaan = None, search_keyword: str = None, order: By = By.KODE, tahun: int = None, ascending: bool = False, instansi_id: str = None) &rarr; dict | list
                 </div>
                 <a href="https://github.com/wakataw/pyproc/blob/master/pyproc/lpse.py#L301" target="_blank" class="api-source-link">Source Code &rarr;</a>
               </div>
               <div class="api-desc">
-                <p>Retrieves logged pencatatan non-tender items (distinct dataset under SPSE <code class="inline-code">/dt/nonspk</code>).</p>
+                <p>Retrieves logged pencatatan non-tender items (distinct dataset under SPSE <code class="inline-code">/dt/nonspk</code>). Parameters match <code class="inline-code">get_paket_non_tender</code>.</p>
               </div>
             </div>
 
@@ -241,12 +303,33 @@
             <div class="api-member" style="margin-top: 1.5rem; margin-bottom: 0;">
               <div class="api-member-header">
                 <div class="api-signature">
-                  <span class="api-name">get_paket_swakelola</span>(...) &rarr; dict | list
+                  <span class="api-name">get_paket_swakelola</span>(start: int = 0, length: int = 0, data_only: bool = False, search_keyword: str = None, rekanan: str = None, order: By = By.KODE, tahun: int = None, ascending: bool = False, tipe_swakelola: TipeSwakelola = None) &rarr; dict | list
                 </div>
                 <a href="https://github.com/wakataw/pyproc/blob/master/pyproc/lpse.py#L309" target="_blank" class="api-source-link">Source Code &rarr;</a>
               </div>
               <div class="api-desc">
                 <p>Retrieves logged swakelola items.</p>
+                <table class="param-table">
+                  <thead>
+                    <tr>
+                      <th>Parameter</th>
+                      <th>Type</th>
+                      <th>Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="param-name">rekanan</td>
+                      <td class="param-type">str</td>
+                      <td>Filter swakelola items by executing partner/contractor name query.</td>
+                    </tr>
+                    <tr>
+                      <td class="param-name">tipe_swakelola</td>
+                      <td class="param-type">TipeSwakelola</td>
+                      <td>Enum filter specifying swakelola type (TIPE_I to TIPE_IV).</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
 
@@ -254,12 +337,85 @@
             <div class="api-member" style="margin-top: 1.5rem; margin-bottom: 0;">
               <div class="api-member-header">
                 <div class="api-signature">
-                  <span class="api-name">get_paket_pengadaan_darurat</span>(...) &rarr; dict | list
+                  <span class="api-name">get_paket_pengadaan_darurat</span>(start: int = 0, length: int = 0, data_only: bool = False, kategori: JenisPengadaan = None, search_keyword: str = None, order: By = By.KODE, tahun: int = None, ascending: bool = False) &rarr; dict | list
                 </div>
                 <a href="https://github.com/wakataw/pyproc/blob/master/pyproc/lpse.py#L322" target="_blank" class="api-source-link">Source Code &rarr;</a>
               </div>
               <div class="api-desc">
-                <p>Retrieves logged emergency procurement items.</p>
+                <p>Retrieves logged emergency procurement items. Parameters match <code class="inline-code">get_paket_non_tender</code>.</p>
+              </div>
+            </div>
+
+            <!-- Method: get_auth_token -->
+            <div class="api-member" style="margin-top: 1.5rem; margin-bottom: 0;">
+              <div class="api-member-header">
+                <div class="api-signature">
+                  <span class="api-name">get_auth_token</span>(from_cookies: bool = True) &rarr; str | None
+                </div>
+                <a href="https://github.com/wakataw/pyproc/blob/master/pyproc/lpse.py#L125" target="_blank" class="api-source-link">Source Code &rarr;</a>
+              </div>
+              <div class="api-desc">
+                <p>Extracts CSRF/Auth token values from session headers or cookies to make authenticated requests.</p>
+              </div>
+            </div>
+
+            <!-- Method: get_master_klpd -->
+            <div class="api-member" style="margin-top: 1.5rem; margin-bottom: 0;">
+              <div class="api-member-header">
+                <div class="api-signature">
+                  <span class="api-name">get_master_klpd</span>(timeout: int = 30) &rarr; list[dict]
+                </div>
+                <a href="https://github.com/wakataw/pyproc/blob/master/pyproc/lpse.py#L331" target="_blank" class="api-source-link">Source Code &rarr;</a>
+              </div>
+              <div class="api-desc">
+                <p><strong>Static Method:</strong> Queries LKPP master agency directory. Returns list of dictionaries detailing K/L/PD codes and names.</p>
+              </div>
+            </div>
+
+            <!-- Method: get_master_lpse -->
+            <div class="api-member" style="margin-top: 1.5rem; margin-bottom: 0;">
+              <div class="api-member-header">
+                <div class="api-signature">
+                  <span class="api-name">get_master_lpse</span>(timeout: int = 30) &rarr; list[dict]
+                </div>
+                <a href="https://github.com/wakataw/pyproc/blob/master/pyproc/lpse.py#L348" target="_blank" class="api-source-link">Source Code &rarr;</a>
+              </div>
+              <div class="api-desc">
+                <p><strong>Static Method:</strong> Queries LKPP master LPSE server directory. Returns codes, domain addresses, and slugs of all active LPSE units in Indonesia.</p>
+              </div>
+            </div>
+
+            <!-- Method: get_tender_umum_publik -->
+            <div class="api-member" style="margin-top: 1.5rem; margin-bottom: 0;">
+              <div class="api-member-header">
+                <div class="api-signature">
+                  <span class="api-name">get_tender_umum_publik</span>(timeout: int = 30, tahun: int = None, kode_lpse: int = None) &rarr; list[dict]
+                </div>
+                <a href="https://github.com/wakataw/pyproc/blob/master/pyproc/lpse.py#L371" target="_blank" class="api-source-link">Source Code &rarr;</a>
+              </div>
+              <div class="api-desc">
+                <p><strong>Static Method:</strong> Performs direct public API queries using the LKPP Satu Data ISB service (acts as fallback when target host is down).</p>
+                <table class="param-table">
+                  <thead>
+                    <tr>
+                      <th>Parameter</th>
+                      <th>Type</th>
+                      <th>Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="param-name">tahun</td>
+                      <td class="param-type">int</td>
+                      <td>Fiscal year filter.</td>
+                    </tr>
+                    <tr>
+                      <td class="param-name">kode_lpse</td>
+                      <td class="param-type">int</td>
+                      <td>Numerical identifier of the target LPSE server in the master list.</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
 
@@ -267,12 +423,64 @@
             <div class="api-member" style="margin-top: 1.5rem; margin-bottom: 0;">
               <div class="api-member-header">
                 <div class="api-signature">
-                  <span class="api-name">detil_paket_tender</span>(id_paket: str | int) &rarr; BaseLpseDetil
+                  <span class="api-name">detil_paket_tender</span>(id_paket: str | int) &rarr; LpseDetil
                 </div>
                 <a href="https://github.com/wakataw/pyproc/blob/master/pyproc/lpse.py#L403" target="_blank" class="api-source-link">Source Code &rarr;</a>
               </div>
               <div class="api-desc">
                 <p>Initializes and returns an <code class="inline-code">LpseDetil</code> parser object containing methods to parse nested pages of a specific tender.</p>
+              </div>
+            </div>
+
+            <!-- Method: detil_paket_non_tender -->
+            <div class="api-member" style="margin-top: 1.5rem; margin-bottom: 0;">
+              <div class="api-member-header">
+                <div class="api-signature">
+                  <span class="api-name">detil_paket_non_tender</span>(id_paket: str | int) &rarr; LpseDetilNonTender
+                </div>
+                <a href="https://github.com/wakataw/pyproc/blob/master/pyproc/lpse.py#L411" target="_blank" class="api-source-link">Source Code &rarr;</a>
+              </div>
+              <div class="api-desc">
+                <p>Initializes and returns an <code class="inline-code">LpseDetilNonTender</code> parser object containing methods to parse nested pages of a specific non-tender.</p>
+              </div>
+            </div>
+
+            <!-- Method: detil_paket_pencatatan_non_tender -->
+            <div class="api-member" style="margin-top: 1.5rem; margin-bottom: 0;">
+              <div class="api-member-header">
+                <div class="api-signature">
+                  <span class="api-name">detil_paket_pencatatan_non_tender</span>(id_paket: str | int) &rarr; LpseDetilPencatatanNonTender
+                </div>
+                <a href="https://github.com/wakataw/pyproc/blob/master/pyproc/lpse.py#L419" target="_blank" class="api-source-link">Source Code &rarr;</a>
+              </div>
+              <div class="api-desc">
+                <p>Initializes and returns an <code class="inline-code">LpseDetilPencatatanNonTender</code> parser object containing methods to parse logged non-tender transaction entries.</p>
+              </div>
+            </div>
+
+            <!-- Method: detil_paket_swakelola -->
+            <div class="api-member" style="margin-top: 1.5rem; margin-bottom: 0;">
+              <div class="api-member-header">
+                <div class="api-signature">
+                  <span class="api-name">detil_paket_swakelola</span>(id_paket: str | int) &rarr; LpseDetilSwakelola
+                </div>
+                <a href="https://github.com/wakataw/pyproc/blob/master/pyproc/lpse.py#L422" target="_blank" class="api-source-link">Source Code &rarr;</a>
+              </div>
+              <div class="api-desc">
+                <p>Initializes and returns an <code class="inline-code">LpseDetilSwakelola</code> parser object containing methods to parse swakelola detail entries.</p>
+              </div>
+            </div>
+
+            <!-- Method: detil_paket_pengadaan_darurat -->
+            <div class="api-member" style="margin-top: 1.5rem; margin-bottom: 0;">
+              <div class="api-member-header">
+                <div class="api-signature">
+                  <span class="api-name">detil_paket_pengadaan_darurat</span>(id_paket: str | int) &rarr; LpseDetilPengadaanDarurat
+                </div>
+                <a href="https://github.com/wakataw/pyproc/blob/master/pyproc/lpse.py#L425" target="_blank" class="api-source-link">Source Code &rarr;</a>
+              </div>
+              <div class="api-desc">
+                <p>Initializes and returns an <code class="inline-code">LpseDetilPengadaanDarurat</code> parser object containing methods to parse emergency procurement details.</p>
               </div>
             </div>
           </div>
@@ -429,6 +637,56 @@
           </div>
         </section>
 
+        <section id="enum-tipe-swakelola" class="doc-section">
+          <h2>Enum: TipeSwakelola</h2>
+          <p>
+            An Enum representing swakelola execution categories (Tipe Swakelola).
+          </p>
+
+          <div class="api-member">
+            <div class="api-member-header">
+              <div class="api-signature">
+                <span class="api-type">enum</span> 
+                <span class="api-name">TipeSwakelola</span>(Enum)
+              </div>
+              <a href="https://github.com/wakataw/pyproc/blob/master/pyproc/lpse.py#L46" target="_blank" class="api-source-link">Source Code &rarr;</a>
+            </div>
+            <div class="api-desc">
+              <table class="doc-table">
+                <thead>
+                  <tr>
+                    <th>Enum Attribute</th>
+                    <th>Value</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code class="inline-code">TipeSwakelola.TIPE_I</code></td>
+                    <td><code class="inline-code">"1"</code></td>
+                    <td>Planned, executed, and supervised directly by the bidding state institution.</td>
+                  </tr>
+                  <tr>
+                    <td><code class="inline-code">TipeSwakelola.TIPE_II</code></td>
+                    <td><code class="inline-code">"2"</code></td>
+                    <td>Planned and supervised by the bidding agency, executed by another state institution partner.</td>
+                  </tr>
+                  <tr>
+                    <td><code class="inline-code">TipeSwakelola.TIPE_III</code></td>
+                    <td><code class="inline-code">"3"</code></td>
+                    <td>Planned and supervised by the bidding agency, executed by a community group organization (Ormas).</td>
+                  </tr>
+                  <tr>
+                    <td><code class="inline-code">TipeSwakelola.TIPE_IV</code></td>
+                    <td><code class="inline-code">"4"</code></td>
+                    <td>Planned and supervised by the bidding agency, executed by a local community resident group (Kelompok Masyarakat).</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
         <!-- Section: Detail Classes -->
         <section id="class-lpse-detil" class="doc-section">
           <h2>Class: BaseLpseDetil</h2>
@@ -499,16 +757,89 @@
                 </div>
               </div>
 
+              <!-- Method: get_hasil_evaluasi -->
+              <div class="api-member" style="margin-top: 1.5rem; margin-bottom: 0;">
+                <div class="api-member-header">
+                  <div class="api-signature">
+                    <span class="api-name">get_hasil_evaluasi</span>() &rarr; list
+                  </div>
+                  <a href="https://github.com/wakataw/pyproc/blob/master/pyproc/lpse.py#L497" target="_blank" class="api-source-link">Source Code &rarr;</a>
+                </div>
+                <div class="api-desc">
+                  <p>Parses the detailed evaluation matrix page containing bid evaluation results (administrative, technical, and price evaluation details).</p>
+                </div>
+              </div>
+
               <!-- Method: get_pemenang -->
               <div class="api-member" style="margin-top: 1.5rem; margin-bottom: 0;">
                 <div class="api-member-header">
                   <div class="api-signature">
-                    <span class="api-name">get_pemenang</span>() &rarr; list
+                    <span class="api-name">get_pemenang</span>(all: bool = False, key: str = 'hasil_negosiasi') &rarr; list
                   </div>
-                  <a href="https://github.com/wakataw/pyproc/blob/master/pyproc/lpse.py#L514" target="_blank" class="api-source-link">Source Code &rarr;</a>
+                  <a href="https://github.com/wakataw/pyproc/blob/master/pyproc/lpse.py#L506" target="_blank" class="api-source-link">Source Code &rarr;</a>
                 </div>
                 <div class="api-desc">
-                  <p>Parses and lists the final winner(s) details, including NPWP identifier, name, address, and final bid pricing values.</p>
+                  <p>Parses and lists the final winner(s) details, including NPWP identifier, name, address, bid price, and negotiated price values.</p>
+                  <table class="param-table">
+                    <thead>
+                      <tr>
+                        <th>Parameter</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td class="param-name">all</td>
+                        <td class="param-type">bool</td>
+                        <td>If True, yields detailed results for all candidates. If False, yields only the official primary winners.</td>
+                      </tr>
+                      <tr>
+                        <td class="param-name">key</td>
+                        <td class="param-type">str</td>
+                        <td>Price key target used to sort/validate candidates (default: <code class="inline-code">'hasil_negosiasi'</code>).</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Method: get_pemenang_berkontrak -->
+              <div class="api-member" style="margin-top: 1.5rem; margin-bottom: 0;">
+                <div class="api-member-header">
+                  <div class="api-signature">
+                    <span class="api-name">get_pemenang_berkontrak</span>() &rarr; list
+                  </div>
+                  <a href="https://github.com/wakataw/pyproc/blob/master/pyproc/lpse.py#L520" target="_blank" class="api-source-link">Source Code &rarr;</a>
+                </div>
+                <div class="api-desc">
+                  <p>Scrapes details of the contracted winner, yielding the final contract signing details and execution status.</p>
+                </div>
+              </div>
+
+              <!-- Method: get_jadwal -->
+              <div class="api-member" style="margin-top: 1.5rem; margin-bottom: 0;">
+                <div class="api-member-header">
+                  <div class="api-signature">
+                    <span class="api-name">get_jadwal</span>() &rarr; list
+                  </div>
+                  <a href="https://github.com/wakataw/pyproc/blob/master/pyproc/lpse.py#L529" target="_blank" class="api-source-link">Source Code &rarr;</a>
+                </div>
+                <div class="api-desc">
+                  <p>Retrieves the complete schedule list with dates, step names, and status (past, active, future) for the entire procurement process.</p>
+                </div>
+              </div>
+
+              <!-- Method: get_pelaksana -->
+              <div class="api-member" style="margin-top: 1.5rem; margin-bottom: 0;">
+                <div class="api-member-header">
+                  <div class="api-signature">
+                    <span class="api-name">get_pelaksana</span>() &rarr; list
+                  </div>
+                  <a href="https://github.com/wakataw/pyproc/blob/master/pyproc/lpse.py#L617" target="_blank" class="api-source-link">Source Code &rarr;</a>
+                </div>
+                <div class="api-desc">
+                  <p><strong>Swakelola Subclass Only:</strong> Scrapes pelaksana (implementing officer/team) details for swakelola packages.</p>
                 </div>
               </div>
             </div>

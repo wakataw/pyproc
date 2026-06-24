@@ -79,7 +79,7 @@
             <span class="cursor-blink" id="terminal-sticky-cursor" style="margin-left: 5px;"></span>
           </div>
           <!-- Scrollable Output Content -->
-          <div id="terminal-scroll-content" style="text-align: left; padding: 0 1.5rem 1.5rem 1.5rem;"></div>
+          <div id="terminal-scroll-content" style="text-align: left; padding: 1.25rem 1.5rem 1.5rem 1.5rem;"></div>
         </div>
       </div>
     </div>
@@ -508,10 +508,16 @@
       if (useCaseInterval) clearInterval(useCaseInterval);
       useCaseInterval = setInterval(() => {
         if (window.innerWidth <= 768) {
-          const track = document.getElementById('use-case-track');
-          if (track) {
+          const container = document.querySelector('.use-case-slider-container');
+          const cards = document.querySelectorAll('.use-case-card');
+          if (container && cards.length > 0) {
             useCaseIndex = (useCaseIndex + 1) % useCaseCardsCount;
-            track.style.transform = `translateX(calc(-${useCaseIndex * 100}% - ${useCaseIndex * 1.5}rem))`;
+            const cardWidth = cards[0].offsetWidth;
+            const gap = parseFloat(window.getComputedStyle(document.getElementById('use-case-track')).gap) || 24;
+            container.scrollTo({
+              left: useCaseIndex * (cardWidth + gap),
+              behavior: 'smooth'
+            });
           }
         }
       }, 4000);
