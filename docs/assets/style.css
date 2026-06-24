@@ -219,10 +219,12 @@ a:hover {
   top: 0;
   left: 0;
   right: 0;
-  height: 100vh;
+  bottom: 0;
   z-index: -2;
   overflow: hidden;
   background-color: var(--bg-primary);
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 70%, rgba(0, 0, 0, 0) 100%);
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 70%, rgba(0, 0, 0, 0) 100%);
 }
 
 .glow-mesh {
@@ -263,6 +265,29 @@ a:hover {
   text-align: center;
 }
 
+@media (min-width: 992px) {
+  .hero {
+    padding-top: 110px;
+    padding-bottom: 0;
+    justify-content: flex-start;
+  }
+  .hero .container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    min-height: calc(100vh - 110px);
+  }
+  .hero .terminal-container {
+    margin-bottom: -350px;
+    position: relative;
+    z-index: 10;
+  }
+  #use-cases {
+    padding-top: calc(6rem + 350px);
+  }
+}
+
 .hero-tag {
   display: inline-flex;
   align-items: center;
@@ -294,11 +319,11 @@ a:hover {
 }
 
 .hero-title {
-  font-size: 4rem;
+  font-size: 3.5rem;
   font-weight: 800;
   line-height: 1.1;
   max-width: 900px;
-  margin-bottom: 1.5rem;
+  margin: 0 auto 1.5rem auto;
   background: linear-gradient(135deg, #fff 30%, #a1a1aa 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -311,17 +336,17 @@ a:hover {
 }
 
 .hero-subtitle {
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   color: var(--text-secondary);
-  max-width: 650px;
-  margin: 0 auto 2.5rem auto;
+  max-width: 600px;
+  margin: 0 auto 2rem auto;
 }
 
 .hero-ctas {
   display: flex;
   gap: 1rem;
   justify-content: center;
-  margin-bottom: 4rem;
+  margin-bottom: 2rem;
 }
 
 /* Animated Terminal Component */
@@ -375,6 +400,31 @@ a:hover {
   min-height: 380px;
   color: #e4e4e7;
   overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;  /* IE and Edge */
+}
+
+.terminal-body::-webkit-scrollbar {
+  display: none !important; /* Chrome, Safari, Opera */
+}
+
+.terminal-restart-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all var(--transition-normal);
+}
+
+.terminal-restart-btn:hover {
+  color: var(--accent-cyan);
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 0 8px rgba(6, 182, 212, 0.2);
 }
 
 .terminal-prompt {
@@ -466,6 +516,10 @@ a:hover {
 .section {
   padding: 6rem 0;
   border-top: 1px solid var(--border-color);
+}
+
+#use-cases {
+  border-top: none;
 }
 
 .section-header {
@@ -901,7 +955,6 @@ a:hover {
   display: flex;
   gap: 3rem;
   padding-top: 100px;
-  padding-bottom: 6rem;
 }
 
 .doc-sidebar {
@@ -911,6 +964,26 @@ a:hover {
   height: calc(100vh - 120px);
   overflow-y: auto;
   padding-right: 1rem;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;  /* IE and Edge */
+}
+
+.doc-sidebar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.doc-sidebar:hover {
+  scrollbar-width: auto; /* Firefox */
+}
+
+.doc-sidebar:hover::-webkit-scrollbar {
+  display: block; /* Chrome, Safari, Opera */
+  width: 6px;
+}
+
+.doc-sidebar::-webkit-scrollbar-thumb {
+  background-color: var(--border-color);
+  border-radius: 3px;
 }
 
 .sidebar-title {
@@ -955,6 +1028,7 @@ a:hover {
 .doc-content {
   flex: 1;
   min-width: 0;
+  padding-bottom: 6rem;
 }
 
 .doc-section {
@@ -1307,7 +1381,7 @@ code.inline-code {
 
 /* Responsive Utilities */
 @media (max-width: 991px) {
-  .hero-title { font-size: 3rem; }
+  .hero-title { font-size: 2.75rem; }
   .doc-layout { flex-direction: column; gap: 2rem; }
   
   .logo-link {
@@ -1366,7 +1440,7 @@ code.inline-code {
 }
 
 @media (max-width: 576px) {
-  .hero-title { font-size: 2.25rem; }
+  .hero-title { font-size: 2rem; }
   .hero-ctas {
     flex-direction: column;
     gap: 0.75rem;
