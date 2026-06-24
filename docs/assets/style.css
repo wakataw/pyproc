@@ -314,7 +314,7 @@ a:hover {
   font-size: 1.25rem;
   color: var(--text-secondary);
   max-width: 650px;
-  margin-bottom: 2.5rem;
+  margin: 0 auto 2.5rem auto;
 }
 
 .hero-ctas {
@@ -591,6 +591,146 @@ a:hover {
   margin: 0 auto 2rem auto;
 }
 
+/* Card Stack Slider */
+.card-stack-wrapper {
+  display: flex;
+  gap: 2.5rem;
+  align-items: center;
+  margin: 4rem auto;
+  max-width: 900px;
+  min-height: 380px;
+}
+
+.card-stack-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 280px;
+  flex-shrink: 0;
+}
+
+.stack-nav-btn {
+  background: rgba(255, 255, 255, 0.01);
+  border: 1px solid var(--border-color);
+  padding: 1.1rem;
+  border-radius: 10px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  text-align: left;
+}
+
+.stack-nav-btn:hover {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: var(--border-focus);
+}
+
+.stack-nav-btn.active {
+  background: rgba(6, 182, 212, 0.05);
+  border-color: var(--accent-cyan);
+  color: var(--text-primary);
+  box-shadow: 0 0 15px rgba(6, 182, 212, 0.1);
+}
+
+.stack-nav-title {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 0.2rem;
+}
+
+.stack-nav-desc {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.card-stack-container {
+  flex: 1;
+  position: relative;
+  height: 320px;
+  perspective: 1000px;
+}
+
+.stack-card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+}
+
+.stack-card pre {
+  padding: 1.25rem;
+  margin: 0;
+  overflow-x: auto;
+  flex: 1;
+  background: var(--bg-secondary);
+}
+
+.stack-card code {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+
+/* Card 3D overlapping states */
+.stack-card.active {
+  transform: translate3d(0, 0, 0);
+  opacity: 1;
+  z-index: 10;
+  pointer-events: auto;
+}
+
+.stack-card.next {
+  transform: translate3d(15px, 15px, -50px);
+  opacity: 0.6;
+  z-index: 9;
+  pointer-events: none;
+}
+
+.stack-card.behind {
+  transform: translate3d(30px, 30px, -100px);
+  opacity: 0.3;
+  z-index: 8;
+  pointer-events: none;
+}
+
+.stack-card.hidden {
+  transform: translate3d(45px, 45px, -150px);
+  opacity: 0;
+  z-index: 7;
+  pointer-events: none;
+}
+
+/* Responsive fixes for card stack */
+@media (max-width: 768px) {
+  .card-stack-wrapper {
+    flex-direction: column;
+    min-height: auto;
+  }
+  .card-stack-nav {
+    width: 100%;
+    flex-direction: row;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+  }
+  .stack-nav-btn {
+    flex-shrink: 0;
+    width: 220px;
+  }
+  .card-stack-container {
+    width: 100%;
+    height: 280px;
+  }
+}
+
 /* Documentation Layout */
 .doc-layout {
   display: flex;
@@ -838,6 +978,17 @@ code.inline-code {
   padding: 0.2rem 0.5rem;
   border-radius: 4px;
   border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+.api-source-link {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: color var(--transition-fast);
+}
+
+.api-source-link:hover {
+  color: var(--accent-cyan);
 }
 
 .api-desc {
