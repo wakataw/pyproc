@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Documentation — PyProc MCP</title>
-  <meta name="description" content="Learn how to install, configure, and use PyProc as an MCP server, Python library, or command-line downloader.">
+  <title>CLI Reference — PyProc MCP</title>
+  <meta name="description" content="Reference documentation for the pyproc CLI command and subcommands.">
   <link rel="stylesheet" href="assets/style.css">
   <link rel="icon" type="image/png" href="assets/logo.png">
 </head>
@@ -105,49 +105,87 @@
 
       <!-- Main Content -->
       <main class="doc-content">
-        <!-- Section: Introduction -->
-        <section id="intro" class="doc-section">
-          <h1>Documentation</h1>
+        <!-- Section: CLI Reference -->
+        <section id="cli" class="doc-section">
+          <h1>Usage Mode: Command-Line Interface</h1>
           <p>
-            Welcome to the PyProc documentation. PyProc MCP is an interface designed to turn public Indonesian procurement data (from SPSE/Inaproc system portals) into structured, easily queryable resources. It bridges the gap between raw web forms and automation tools, scripts, and Large Language Model (LLM) agents.
+            The CLI tool allows you to perform fast downloads of tender indexes and details directly to disk. The main entry command is <code class="inline-code">pyproc</code>.
           </p>
-          <div class="callout callout-info">
-            <div class="callout-title">Key Feature: Model Context Protocol (MCP)</div>
-            <p>PyProc natively exports standard MCP tools, making it instantly compatible with Cursor, Claude Desktop, Continue, and custom AI agents.</p>
-          </div>
-        </section>
 
-        <!-- Section: Installation -->
-        <section id="installation" class="doc-section">
-          <h2>Installation</h2>
-          <p>PyProc requires Python &ge; 3.9. You can install it with pip depending on your usage mode.</p>
-          
-          <h3>Standard Release (Library & CLI only)</h3>
-          <div class="code-block-wrapper">
-            <div class="code-header">
-              <span class="code-lang">bash</span>
-              <button class="btn-copy">Copy</button>
-            </div>
-            <pre><code><span class="code-func">pip</span> install pyproc</code></pre>
-          </div>
+          <h3>Common Subcommands</h3>
+          <table class="doc-table">
+            <thead>
+              <tr>
+                <th>Command</th>
+                <th>Shorthand</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code class="inline-code">pyproc spse &lt;host&gt;</code></td>
+                <td><code class="inline-code">pyproc &lt;host&gt;</code></td>
+                <td>Download tender lists from an LPSE host (e.g. <code class="inline-code">kemenkeu</code>) and save as CSV.</td>
+              </tr>
+              <tr>
+                <td><code class="inline-code">pyproc daftarlpse</code></td>
+                <td>-</td>
+                <td>Export the complete list of available LPSE units gathered from Gist metadata.</td>
+              </tr>
+              <tr>
+                <td><code class="inline-code">pyproc masterklpd</code></td>
+                <td>-</td>
+                <td>Query Ministry/Institution/Regional Appointed Agency (K/L/PD) codes.</td>
+              </tr>
+              <tr>
+                <td><code class="inline-code">pyproc satudata</code></td>
+                <td>-</td>
+                <td>Access fallback/curated government API endpoints from LKPP ISB Satu Data.</td>
+              </tr>
+            </tbody>
+          </table>
 
-          <h3>With MCP Support (Recommended)</h3>
-          <p>Installs additional dependencies like <code class="inline-code">mcp</code> and <code class="inline-code">uvicorn</code> for hosting the server:</p>
-          <div class="code-block-wrapper">
-            <div class="code-header">
-              <span class="code-lang">bash (mcp extra)</span>
-              <button class="btn-copy">Copy</button>
-            </div>
-            <pre><code><span class="code-func">pip</span> install pyproc[mcp]</code></pre>
-          </div>
+          <h3>Argument Details (for <code class="inline-code">pyproc spse</code> / LPSE commands)</h3>
+          <table class="doc-table">
+            <thead>
+              <tr>
+                <th>Argument</th>
+                <th>Default</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code class="inline-code">-k, --keyword</code></td>
+                <td><code class="inline-code">""</code></td>
+                <td>Filter tenders by a specific keyword.</td>
+              </tr>
+              <tr>
+                <td><code class="inline-code">-t, --tahun-anggaran</code></td>
+                <td>Current Year</td>
+                <td>Budget year (comma-separated or range e.g. <code class="inline-code">2024,2025</code>).</td>
+              </tr>
+              <tr>
+                <td><code class="inline-code">--jenis-paket</code></td>
+                <td><code class="inline-code">tender</code></td>
+                <td>Type of packet: <code class="inline-code">tender</code>, <code class="inline-code">non_tender</code>, <code class="inline-code">pencatatan_non_tender</code>, <code class="inline-code">swakelola</code>, <code class="inline-code">darurat</code>.</td>
+              </tr>
+              <tr>
+                <td><code class="inline-code">-o, --output-format</code></td>
+                <td><code class="inline-code">csv</code></td>
+                <td>Output format: <code class="inline-code">csv</code> or <code class="inline-code">json</code>.</td>
+              </tr>
+              <tr>
+                <td><code class="inline-code">-r, --resume</code></td>
+                <td><code class="inline-code">False</code></td>
+                <td>Resume downloads that previously failed.</td>
+              </tr>
+            </tbody>
+          </table>
 
-          <h3>Development Version</h3>
-          <div class="code-block-wrapper">
-            <div class="code-header">
-              <span class="code-lang">bash (bleeding edge)</span>
-              <button class="btn-copy">Copy</button>
-            </div>
-            <pre><code><span class="code-func">pip</span> install git+https://github.com/wakataw/pyproc.git</code></pre>
+          <div class="callout callout-tip">
+            <div class="callout-title">Multi-Host Download</div>
+            <p>You can comma-separate hosts to download concurrently: <code class="inline-code">pyproc spse jakarta,kemenkeu,sumbarprov</code></p>
           </div>
         </section>
       </main>
@@ -172,7 +210,6 @@
     const sections = document.querySelectorAll('.doc-section');
 
     function highlightSidebar() {
-      // Highlight during scrolling on this page
       let index = sections.length;
       while(--index && window.scrollY + 140 < sections[index].offsetTop) {}
       
@@ -197,14 +234,12 @@
         docSidebar.classList.toggle('open');
       });
 
-      // Close sidebar when clicking outside
       document.addEventListener('click', (e) => {
         if (docSidebar.classList.contains('open') && !docSidebar.contains(e.target) && e.target !== sidebarToggle) {
           docSidebar.classList.remove('open');
         }
       });
 
-      // Close sidebar when clicking a link
       docSidebar.querySelectorAll('.sidebar-link').forEach(link => {
         link.addEventListener('click', () => {
           docSidebar.classList.remove('open');
@@ -214,15 +249,14 @@
     
     // Initial highlight on load
     window.addEventListener('DOMContentLoaded', () => {
-      const currentPath = window.location.pathname.split('/').pop() || 'documentation.html';
+      const currentPath = window.location.pathname.split('/').pop() || 'cli.html';
       const hash = window.location.hash;
       
       document.querySelectorAll('.sidebar-link').forEach(link => {
         const href = link.getAttribute('href');
         if (href === currentPath + hash || 
             (hash === '' && href === currentPath) ||
-            (currentPath === 'documentation.html' && hash === '' && href === 'documentation.html') ||
-            (currentPath === 'documentation.html' && hash === '' && href === 'documentation.html#intro')) {
+            (currentPath === 'cli.html' && hash === '' && href === 'cli.html')) {
           link.classList.add('active');
         } else {
           if (!href.startsWith(currentPath)) {
@@ -231,9 +265,7 @@
         }
       });
       
-      if (window.location.hash) {
-        highlightSidebar();
-      }
+      highlightSidebar();
     });
 
     // Copy to clipboard helper

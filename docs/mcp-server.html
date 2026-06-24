@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Documentation — PyProc MCP</title>
-  <meta name="description" content="Learn how to install, configure, and use PyProc as an MCP server, Python library, or command-line downloader.">
+  <title>MCP Server Setup — PyProc MCP</title>
+  <meta name="description" content="Learn how to configure and run the PyProc Model Context Protocol server.">
   <link rel="stylesheet" href="assets/style.css">
   <link rel="icon" type="image/png" href="assets/logo.png">
 </head>
@@ -105,50 +105,59 @@
 
       <!-- Main Content -->
       <main class="doc-content">
-        <!-- Section: Introduction -->
-        <section id="intro" class="doc-section">
-          <h1>Documentation</h1>
+        <!-- Section: MCP Server Setup -->
+        <section id="mcp-server" class="doc-section">
+          <h1>Usage Mode: MCP Server</h1>
           <p>
-            Welcome to the PyProc documentation. PyProc MCP is an interface designed to turn public Indonesian procurement data (from SPSE/Inaproc system portals) into structured, easily queryable resources. It bridges the gap between raw web forms and automation tools, scripts, and Large Language Model (LLM) agents.
+            The MCP server allows LLM clients (such as Claude Desktop or Cursor) to call PyProc tools.
+            It supports two transportation protocols: <strong>stdio</strong> (local processes) and <strong>HTTP</strong> (SSE stream servers).
           </p>
-          <div class="callout callout-info">
-            <div class="callout-title">Key Feature: Model Context Protocol (MCP)</div>
-            <p>PyProc natively exports standard MCP tools, making it instantly compatible with Cursor, Claude Desktop, Continue, and custom AI agents.</p>
-          </div>
-        </section>
-
-        <!-- Section: Installation -->
-        <section id="installation" class="doc-section">
-          <h2>Installation</h2>
-          <p>PyProc requires Python &ge; 3.9. You can install it with pip depending on your usage mode.</p>
           
-          <h3>Standard Release (Library & CLI only)</h3>
+          <h3>1. Generating Configuration</h3>
+          <p>To easily get configuration lines for your clients, use the built-in generator:</p>
           <div class="code-block-wrapper">
             <div class="code-header">
               <span class="code-lang">bash</span>
               <button class="btn-copy">Copy</button>
             </div>
-            <pre><code><span class="code-func">pip</span> install pyproc</code></pre>
+            <pre><code><span class="code-comment"># Output stdio client config to stdout</span>
+<span class="code-func">pyproc</span> mcp --generate-config
+
+<span class="code-comment"># Output HTTP client config to stdout</span>
+<span class="code-func">pyproc</span> mcp --interface http --port 9090 --generate-config
+
+<span class="code-comment"># Write to file directly</span>
+<span class="code-func">pyproc</span> mcp --generate-config mcp-config.json</code></pre>
           </div>
 
-          <h3>With MCP Support (Recommended)</h3>
-          <p>Installs additional dependencies like <code class="inline-code">mcp</code> and <code class="inline-code">uvicorn</code> for hosting the server:</p>
+          <h3>2. Claude Desktop Integration</h3>
+          <p>Add the configuration blocks below to your Claude Desktop config file (located at <code class="inline-code">~/Library/Application Support/Claude/claude_desktop_config.json</code> on macOS or <code class="inline-code">%APPDATA%\Claude\claude_desktop_config.json</code> on Windows):</p>
+          
           <div class="code-block-wrapper">
             <div class="code-header">
-              <span class="code-lang">bash (mcp extra)</span>
+              <span class="code-lang">json</span>
               <button class="btn-copy">Copy</button>
             </div>
-            <pre><code><span class="code-func">pip</span> install pyproc[mcp]</code></pre>
+            <pre><code>{
+  "mcpServers": {
+    "pyproc": {
+      "command": "pyproc-mcp",
+      "env": {
+        "PYPROC_TIMEOUT": "30"
+      }
+    }
+  }
+}</code></pre>
           </div>
 
-          <h3>Development Version</h3>
-          <div class="code-block-wrapper">
-            <div class="code-header">
-              <span class="code-lang">bash (bleeding edge)</span>
-              <button class="btn-copy">Copy</button>
-            </div>
-            <pre><code><span class="code-func">pip</span> install git+https://github.com/wakataw/pyproc.git</code></pre>
-          </div>
+          <h3>3. Cursor Integration</h3>
+          <p>In Cursor Settings &rarr; Features &rarr; MCP:</p>
+          <ol>
+            <li>Click <strong>+ Add New MCP Server</strong>.</li>
+            <li>Set <strong>Name</strong> to <code class="inline-code">pyproc</code>.</li>
+            <li>Set <strong>Type</strong> to <code class="inline-code">command</code>.</li>
+            <li>Set <strong>Command</strong> to: <code class="inline-code">pyproc-mcp</code>.</li>
+          </ol>
         </section>
       </main>
     </div>
@@ -172,7 +181,6 @@
     const sections = document.querySelectorAll('.doc-section');
 
     function highlightSidebar() {
-      // Highlight during scrolling on this page
       let index = sections.length;
       while(--index && window.scrollY + 140 < sections[index].offsetTop) {}
       
@@ -197,14 +205,12 @@
         docSidebar.classList.toggle('open');
       });
 
-      // Close sidebar when clicking outside
       document.addEventListener('click', (e) => {
         if (docSidebar.classList.contains('open') && !docSidebar.contains(e.target) && e.target !== sidebarToggle) {
           docSidebar.classList.remove('open');
         }
       });
 
-      // Close sidebar when clicking a link
       docSidebar.querySelectorAll('.sidebar-link').forEach(link => {
         link.addEventListener('click', () => {
           docSidebar.classList.remove('open');
@@ -214,15 +220,14 @@
     
     // Initial highlight on load
     window.addEventListener('DOMContentLoaded', () => {
-      const currentPath = window.location.pathname.split('/').pop() || 'documentation.html';
+      const currentPath = window.location.pathname.split('/').pop() || 'mcp-server.html';
       const hash = window.location.hash;
       
       document.querySelectorAll('.sidebar-link').forEach(link => {
         const href = link.getAttribute('href');
         if (href === currentPath + hash || 
             (hash === '' && href === currentPath) ||
-            (currentPath === 'documentation.html' && hash === '' && href === 'documentation.html') ||
-            (currentPath === 'documentation.html' && hash === '' && href === 'documentation.html#intro')) {
+            (currentPath === 'mcp-server.html' && hash === '' && href === 'mcp-server.html')) {
           link.classList.add('active');
         } else {
           if (!href.startsWith(currentPath)) {
@@ -231,9 +236,7 @@
         }
       });
       
-      if (window.location.hash) {
-        highlightSidebar();
-      }
+      highlightSidebar();
     });
 
     // Copy to clipboard helper

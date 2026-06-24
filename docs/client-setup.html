@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Documentation — PyProc MCP</title>
-  <meta name="description" content="Learn how to install, configure, and use PyProc as an MCP server, Python library, or command-line downloader.">
+  <title>AI Client Setup — PyProc MCP</title>
+  <meta name="description" content="Detailed guide on installing the PyProc MCP server in Claude Code, Google Antigravity, Codex, OpenCode, and OpenClaw.">
   <link rel="stylesheet" href="assets/style.css">
   <link rel="icon" type="image/png" href="assets/logo.png">
 </head>
@@ -105,50 +105,172 @@
 
       <!-- Main Content -->
       <main class="doc-content">
-        <!-- Section: Introduction -->
-        <section id="intro" class="doc-section">
-          <h1>Documentation</h1>
-          <p>
-            Welcome to the PyProc documentation. PyProc MCP is an interface designed to turn public Indonesian procurement data (from SPSE/Inaproc system portals) into structured, easily queryable resources. It bridges the gap between raw web forms and automation tools, scripts, and Large Language Model (LLM) agents.
-          </p>
-          <div class="callout callout-info">
-            <div class="callout-title">Key Feature: Model Context Protocol (MCP)</div>
-            <p>PyProc natively exports standard MCP tools, making it instantly compatible with Cursor, Claude Desktop, Continue, and custom AI agents.</p>
-          </div>
-        </section>
+        <h1>AI Agent Integrations: Client Configurations</h1>
+        <p>
+          You can install and execute the PyProc MCP server inside various developer AI command-line interfaces and autonomous agents.
+        </p>
 
-        <!-- Section: Installation -->
-        <section id="installation" class="doc-section">
-          <h2>Installation</h2>
-          <p>PyProc requires Python &ge; 3.9. You can install it with pip depending on your usage mode.</p>
-          
-          <h3>Standard Release (Library & CLI only)</h3>
+        <!-- Claude Code -->
+        <section id="client-claude" class="doc-section">
+          <h2>1. Claude Code</h2>
+          <p>
+            Claude Code resolves local MCP servers using standard process launching.
+          </p>
+          <p><strong>Installation Command:</strong></p>
           <div class="code-block-wrapper">
             <div class="code-header">
               <span class="code-lang">bash</span>
               <button class="btn-copy">Copy</button>
             </div>
-            <pre><code><span class="code-func">pip</span> install pyproc</code></pre>
+            <pre><code><span class="code-func">claude</span> mcp add pyproc -- pyproc-mcp</code></pre>
           </div>
-
-          <h3>With MCP Support (Recommended)</h3>
-          <p>Installs additional dependencies like <code class="inline-code">mcp</code> and <code class="inline-code">uvicorn</code> for hosting the server:</p>
+          <p><strong>Manual Config Scope:</strong></p>
+          <p>Alternatively, edit your global user config file at <code class="inline-code">~/.claude.json</code> or project-local config at <code class="inline-code">.claude/mcp.json</code>:</p>
           <div class="code-block-wrapper">
             <div class="code-header">
-              <span class="code-lang">bash (mcp extra)</span>
+              <span class="code-lang">json</span>
               <button class="btn-copy">Copy</button>
             </div>
-            <pre><code><span class="code-func">pip</span> install pyproc[mcp]</code></pre>
+            <pre><code>{
+  "<span class="code-kw">mcpServers</span>": {
+    "<span class="code-kw">pyproc</span>": {
+      "<span class="code-kw">command</span>": "<span class="code-str">pyproc-mcp</span>"
+    }
+  }
+}</code></pre>
           </div>
+        </section>
 
-          <h3>Development Version</h3>
+        <!-- Antigravity -->
+        <section id="client-antigravity" class="doc-section">
+          <h2>2. Google Antigravity</h2>
+          <p>
+            Antigravity registers external MCP tooling dynamically inside its modular sidecar engine.
+          </p>
+          <p><strong>Manual Configuration:</strong></p>
+          <p>Add the server configuration payload to your global config file at <code class="inline-code">~/.gemini/config/mcp_config.json</code> or project-local configuration directory at <code class="inline-code">.agents/mcp_config.json</code>:</p>
           <div class="code-block-wrapper">
             <div class="code-header">
-              <span class="code-lang">bash (bleeding edge)</span>
+              <span class="code-lang">json</span>
               <button class="btn-copy">Copy</button>
             </div>
-            <pre><code><span class="code-func">pip</span> install git+https://github.com/wakataw/pyproc.git</code></pre>
+            <pre><code>{
+  "mcpServers": {
+    "pyproc": {
+      "command": "pyproc-mcp"
+    }
+  }
+}</code></pre>
           </div>
+        </section>
+
+        <!-- Codex -->
+        <section id="client-codex" class="doc-section">
+          <h2>3. Codex</h2>
+          <p>
+            Codex manages tool execution lists inside TOML configurations.
+          </p>
+          <p><strong>Installation Command:</strong></p>
+          <div class="code-block-wrapper">
+            <div class="code-header">
+              <span class="code-lang">bash</span>
+              <button class="btn-copy">Copy</button>
+            </div>
+            <pre><code>codex mcp add pyproc -- pyproc-mcp</code></pre>
+          </div>
+          <p><strong>TOML Configuration:</strong></p>
+          <p>Add to your settings at <code class="inline-code">~/.codex/config.toml</code> or local <code class="inline-code">.codex/config.toml</code>:</p>
+          <div class="code-block-wrapper">
+            <div class="code-header">
+              <span class="code-lang">toml</span>
+              <button class="btn-copy">Copy</button>
+            </div>
+            <pre><code>[mcp_servers.pyproc]
+command = "pyproc-mcp"
+args = []</code></pre>
+          </div>
+        </section>
+
+        <!-- OpenCode -->
+        <section id="client-opencode" class="doc-section">
+          <h2>4. OpenCode</h2>
+          <p>
+            OpenCode loads servers using custom configurations referencing local execution blocks.
+          </p>
+          <p><strong>JSON Configuration:</strong></p>
+          <p>Add to your settings file at <code class="inline-code">~/.config/opencode/opencode.json</code> or project root <code class="inline-code">opencode.json</code>:</p>
+          <div class="code-block-wrapper">
+            <div class="code-header">
+              <span class="code-lang">json</span>
+              <button class="btn-copy">Copy</button>
+            </div>
+            <pre><code>{
+  "mcp": {
+    "pyproc": {
+      "type": "local",
+      "command": ["pyproc-mcp"],
+      "enabled": true
+    }
+  }
+}</code></pre>
+          </div>
+        </section>
+
+        <!-- OpenClaw -->
+        <section id="client-openclaw" class="doc-section">
+          <h2>5. OpenClaw</h2>
+          <p>
+            OpenClaw controls standard local tools processes via commands setup and gateways.
+          </p>
+          <p><strong>Configuration Commands:</strong></p>
+          <div class="code-block-wrapper">
+            <div class="code-header">
+              <span class="code-lang">bash</span>
+              <button class="btn-copy">Copy</button>
+            </div>
+            <pre><code># Register the pyproc server command
+openclaw mcp set pyproc '{"command":"pyproc-mcp","args":[]}'
+
+# Restart the local openclaw gateway
+openclaw gateway restart</code></pre>
+          </div>
+        </section>
+
+        <!-- Hermes Agent -->
+        <section id="client-hermes" class="doc-section">
+          <h2>6. Hermes Agent</h2>
+          <p>
+            Hermes Agent is configured via a global YAML configuration file.
+          </p>
+          <p><strong>Configuration Settings:</strong></p>
+          <p>Modify your config file at <code class="inline-code">~/.hermes/config.yaml</code> by appending the command setup block:</p>
+          <div class="code-block-wrapper">
+            <div class="code-header">
+              <span class="code-lang">yaml</span>
+              <button class="btn-copy">Copy</button>
+            </div>
+            <pre><code>mcp_servers:
+  pyproc:
+    command: "pyproc-mcp"</code></pre>
+          </div>
+        </section>
+
+        <!-- Generic MCP Tutorial -->
+        <section id="client-generic" class="doc-section">
+          <h2>7. Generic MCP Tutorial</h2>
+          <p>
+            Any standard MCP client that executes external processes via command interfaces can integrate with PyProc. Ensure <code class="inline-code">pyproc-mcp</code> is globally accessible in your system shell path (e.g. within active virtual environments).
+          </p>
+          <p>For custom configurations, pass environment variables alongside execution parameters:</p>
+          <ul>
+            <li><strong>Command:</strong> <code class="inline-code">pyproc-mcp</code></li>
+            <li><strong>Environment:</strong>
+              <ul>
+                <li><code class="inline-code">PYPROC_TIMEOUT</code>: Request timeout in seconds.</li>
+                <li><code class="inline-code">PYPROC_SSL_VERIFY</code>: Set to <code class="inline-code">1</code> or <code class="inline-code">true</code> to enforce SSL checks.</li>
+              </ul>
+            </li>
+          </ul>
         </section>
       </main>
     </div>
@@ -172,7 +294,6 @@
     const sections = document.querySelectorAll('.doc-section');
 
     function highlightSidebar() {
-      // Highlight during scrolling on this page
       let index = sections.length;
       while(--index && window.scrollY + 140 < sections[index].offsetTop) {}
       
@@ -197,14 +318,12 @@
         docSidebar.classList.toggle('open');
       });
 
-      // Close sidebar when clicking outside
       document.addEventListener('click', (e) => {
         if (docSidebar.classList.contains('open') && !docSidebar.contains(e.target) && e.target !== sidebarToggle) {
           docSidebar.classList.remove('open');
         }
       });
 
-      // Close sidebar when clicking a link
       docSidebar.querySelectorAll('.sidebar-link').forEach(link => {
         link.addEventListener('click', () => {
           docSidebar.classList.remove('open');
@@ -214,15 +333,14 @@
     
     // Initial highlight on load
     window.addEventListener('DOMContentLoaded', () => {
-      const currentPath = window.location.pathname.split('/').pop() || 'documentation.html';
+      const currentPath = window.location.pathname.split('/').pop() || 'client-setup.html';
       const hash = window.location.hash;
       
       document.querySelectorAll('.sidebar-link').forEach(link => {
         const href = link.getAttribute('href');
         if (href === currentPath + hash || 
             (hash === '' && href === currentPath) ||
-            (currentPath === 'documentation.html' && hash === '' && href === 'documentation.html') ||
-            (currentPath === 'documentation.html' && hash === '' && href === 'documentation.html#intro')) {
+            (currentPath === 'client-setup.html' && hash === '' && href === 'client-setup.html')) {
           link.classList.add('active');
         } else {
           if (!href.startsWith(currentPath)) {
@@ -231,9 +349,7 @@
         }
       });
       
-      if (window.location.hash) {
-        highlightSidebar();
-      }
+      highlightSidebar();
     });
 
     // Copy to clipboard helper

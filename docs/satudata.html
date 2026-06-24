@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Documentation — PyProc MCP</title>
-  <meta name="description" content="Learn how to install, configure, and use PyProc as an MCP server, Python library, or command-line downloader.">
+  <title>ISB Satu Data API — PyProc MCP</title>
+  <meta name="description" content="Access fallback public aggregate Indonesian procurement APIs from LKPP ISB.">
   <link rel="stylesheet" href="assets/style.css">
   <link rel="icon" type="image/png" href="assets/logo.png">
 </head>
@@ -105,49 +105,27 @@
 
       <!-- Main Content -->
       <main class="doc-content">
-        <!-- Section: Introduction -->
-        <section id="intro" class="doc-section">
-          <h1>Documentation</h1>
+        <!-- Section: Satu Data API -->
+        <section id="satudata-api" class="doc-section">
+          <h1>LKPP ISB Satu Data API Reference</h1>
           <p>
-            Welcome to the PyProc documentation. PyProc MCP is an interface designed to turn public Indonesian procurement data (from SPSE/Inaproc system portals) into structured, easily queryable resources. It bridges the gap between raw web forms and automation tools, scripts, and Large Language Model (LLM) agents.
+            In addition to direct SPSE scraper calls, PyProc offers fallback support using the government-maintained <strong>Satu Data LKPP API</strong>. This endpoint is optimal for fetching regional reference tables and structured public aggregates.
           </p>
-          <div class="callout callout-info">
-            <div class="callout-title">Key Feature: Model Context Protocol (MCP)</div>
-            <p>PyProc natively exports standard MCP tools, making it instantly compatible with Cursor, Claude Desktop, Continue, and custom AI agents.</p>
-          </div>
-        </section>
-
-        <!-- Section: Installation -->
-        <section id="installation" class="doc-section">
-          <h2>Installation</h2>
-          <p>PyProc requires Python &ge; 3.9. You can install it with pip depending on your usage mode.</p>
           
-          <h3>Standard Release (Library & CLI only)</h3>
+          <h3>Usage Examples</h3>
           <div class="code-block-wrapper">
             <div class="code-header">
               <span class="code-lang">bash</span>
               <button class="btn-copy">Copy</button>
             </div>
-            <pre><code><span class="code-func">pip</span> install pyproc</code></pre>
-          </div>
+            <pre><code># Search K/L/PD reference directories by keyword
+pyproc masterklpd --query "keuangan"
 
-          <h3>With MCP Support (Recommended)</h3>
-          <p>Installs additional dependencies like <code class="inline-code">mcp</code> and <code class="inline-code">uvicorn</code> for hosting the server:</p>
-          <div class="code-block-wrapper">
-            <div class="code-header">
-              <span class="code-lang">bash (mcp extra)</span>
-              <button class="btn-copy">Copy</button>
-            </div>
-            <pre><code><span class="code-func">pip</span> install pyproc[mcp]</code></pre>
-          </div>
+# Launch the interactive terminal console listing LPSE codes
+pyproc satudata masterlpse
 
-          <h3>Development Version</h3>
-          <div class="code-block-wrapper">
-            <div class="code-header">
-              <span class="code-lang">bash (bleeding edge)</span>
-              <button class="btn-copy">Copy</button>
-            </div>
-            <pre><code><span class="code-func">pip</span> install git+https://github.com/wakataw/pyproc.git</code></pre>
+# Direct download of public tenders for a specific LPSE ID and budget year
+pyproc satudata tenderumum --kode-lpse 119 --tahun-anggaran 2026 --output json</code></pre>
           </div>
         </section>
       </main>
@@ -172,7 +150,6 @@
     const sections = document.querySelectorAll('.doc-section');
 
     function highlightSidebar() {
-      // Highlight during scrolling on this page
       let index = sections.length;
       while(--index && window.scrollY + 140 < sections[index].offsetTop) {}
       
@@ -197,14 +174,12 @@
         docSidebar.classList.toggle('open');
       });
 
-      // Close sidebar when clicking outside
       document.addEventListener('click', (e) => {
         if (docSidebar.classList.contains('open') && !docSidebar.contains(e.target) && e.target !== sidebarToggle) {
           docSidebar.classList.remove('open');
         }
       });
 
-      // Close sidebar when clicking a link
       docSidebar.querySelectorAll('.sidebar-link').forEach(link => {
         link.addEventListener('click', () => {
           docSidebar.classList.remove('open');
@@ -214,15 +189,14 @@
     
     // Initial highlight on load
     window.addEventListener('DOMContentLoaded', () => {
-      const currentPath = window.location.pathname.split('/').pop() || 'documentation.html';
+      const currentPath = window.location.pathname.split('/').pop() || 'satudata.html';
       const hash = window.location.hash;
       
       document.querySelectorAll('.sidebar-link').forEach(link => {
         const href = link.getAttribute('href');
         if (href === currentPath + hash || 
             (hash === '' && href === currentPath) ||
-            (currentPath === 'documentation.html' && hash === '' && href === 'documentation.html') ||
-            (currentPath === 'documentation.html' && hash === '' && href === 'documentation.html#intro')) {
+            (currentPath === 'satudata.html' && hash === '' && href === 'satudata.html')) {
           link.classList.add('active');
         } else {
           if (!href.startsWith(currentPath)) {
@@ -231,9 +205,7 @@
         }
       });
       
-      if (window.location.hash) {
-        highlightSidebar();
-      }
+      highlightSidebar();
     });
 
     // Copy to clipboard helper
