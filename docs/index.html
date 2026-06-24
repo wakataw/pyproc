@@ -450,7 +450,16 @@
         if (idx === index) {
           btn.classList.add('active');
           if (window.innerWidth <= 768) {
-            btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            const navContainer = btn.parentElement;
+            if (navContainer) {
+              const containerWidth = navContainer.clientWidth;
+              const btnOffsetLeft = btn.offsetLeft;
+              const btnWidth = btn.clientWidth;
+              navContainer.scrollTo({
+                left: btnOffsetLeft - (containerWidth / 2) + (btnWidth / 2),
+                behavior: 'smooth'
+              });
+            }
           }
         }
         else btn.classList.remove('active');
