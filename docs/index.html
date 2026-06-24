@@ -69,7 +69,11 @@
             <span class="terminal-btn maximize"></span>
           </div>
           <div class="terminal-title">mcp-client --server pyproc-mcp</div>
-          <div style="width: 40px;"></div> <!-- Spacer -->
+          <button id="terminal-restart-btn" class="terminal-restart-btn" title="Restart Animation" aria-label="Restart Animation">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+            </svg>
+          </button>
         </div>
         <div class="terminal-body" id="terminal-screen" style="height: 380px; overflow-y: auto; overflow-x: hidden; text-align: left; display: flex; flex-direction: column; position: relative; padding: 0;">
           <!-- Sticky User Prompt at the top -->
@@ -497,6 +501,10 @@
     const stickyInput = document.getElementById('terminal-sticky-input');
     const stickyCursor = document.getElementById('terminal-sticky-cursor');
     const scrollContent = document.getElementById('terminal-scroll-content');
+    const terminalContainer = document.querySelector('.terminal-container');
+    let animationTimeout = null;
+    let typingTimeout = null;
+    let isAnimationPlaying = false;
 
     function appendLine(element) {
       scrollContent.appendChild(element);
@@ -506,27 +514,57 @@
     function typeText(element, text, index, speed, callback) {
       if (index < text.length) {
         element.innerHTML += text.charAt(index);
-        setTimeout(() => typeText(element, text, index + 1, speed, callback), speed);
+        typingTimeout = setTimeout(() => typeText(element, text, index + 1, speed, callback), speed);
       } else {
         if (callback) callback();
       }
     }
 
+    function resetAnimationState() {
+      if (animationTimeout) {
+        clearTimeout(animationTimeout);
+        animationTimeout = null;
+      }
+      if (typingTimeout) {
+        clearTimeout(typingTimeout);
+        typingTimeout = null;
+      }
+      scrollContent.innerHTML = '';
+      stickyPrompt.style.display = 'none';
+      stickyInput.textContent = '';
+      if (!stickyPrompt.querySelector('#terminal-sticky-cursor')) {
+        const cursor = document.createElement('span');
+        cursor.className = 'cursor-blink';
+        cursor.id = 'terminal-sticky-cursor';
+        cursor.style.marginLeft = '5px';
+        stickyPrompt.appendChild(cursor);
+      }
+      currentStep = 0;
+      isAnimationPlaying = false;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        const isTallerThanViewport = entry.boundingClientRect.height > window.innerHeight;
+        const isFullyVisible = entry.intersectionRatio >= 0.99 || (isTallerThanViewport && entry.isIntersecting);
+        
+        if (isFullyVisible) {
+          if (!isAnimationPlaying) {
+            isAnimationPlaying = true;
+            runAnimation();
+          }
+        } else {
+          resetAnimationState();
+        }
+      });
+    }, { threshold: [0, 0.99] });
+
     function runAnimation() {
       if (currentStep >= steps.length) {
         // Reset animation after a delay
-        setTimeout(() => {
-          scrollContent.innerHTML = '';
-          stickyPrompt.style.display = 'none';
-          stickyInput.textContent = '';
-          if (!stickyPrompt.querySelector('#terminal-sticky-cursor')) {
-            const cursor = document.createElement('span');
-            cursor.className = 'cursor-blink';
-            cursor.id = 'terminal-sticky-cursor';
-            cursor.style.marginLeft = '5px';
-            stickyPrompt.appendChild(cursor);
-          }
-          currentStep = 0;
+        animationTimeout = setTimeout(() => {
+          resetAnimationState();
+          isAnimationPlaying = true;
           runAnimation();
         }, 8000);
         return;
@@ -536,12 +574,13 @@
       
       if (step.type === 'prompt') {
         stickyPrompt.style.display = 'flex';
+        stickyInput.textContent = ''; // Ensure clean start
         
         typeText(stickyInput, step.text, 0, 40, () => {
           const cursor = document.getElementById('terminal-sticky-cursor');
           if (cursor) cursor.remove();
           currentStep++;
-          setTimeout(runAnimation, 600);
+          animationTimeout = setTimeout(runAnimation, 600);
         });
       } 
       
@@ -558,9 +597,8 @@
         line.appendChild(textSpan);
         
         appendLine(line);
-
         currentStep++;
-        setTimeout(runAnimation, 1200);
+        animationTimeout = setTimeout(runAnimation, 1200);
       } 
       
       else if (step.type === 'tool-call') {
@@ -571,7 +609,7 @@
         
         appendLine(line);
         currentStep++;
-        setTimeout(runAnimation, 800);
+        animationTimeout = setTimeout(runAnimation, 800);
       } 
       
       else if (step.type === 'tool-result') {
@@ -582,7 +620,7 @@
         
         appendLine(line);
         currentStep++;
-        setTimeout(runAnimation, 800);
+        animationTimeout = setTimeout(runAnimation, 800);
       } 
       
       else if (step.type === 'response') {
@@ -593,7 +631,7 @@
         
         appendLine(line);
         currentStep++;
-        setTimeout(runAnimation, 1500);
+        animationTimeout = setTimeout(runAnimation, 1500);
       }
     }
 
@@ -816,7 +854,21 @@
 
     // Start on load
     window.addEventListener('DOMContentLoaded', () => {
-      setTimeout(runAnimation, 500);
+      // Observe terminal viewport visibility to run animation only if fully in viewport
+      observer.observe(terminalContainer);
+      
+      // Restart button listener
+      const restartBtn = document.getElementById('terminal-restart-btn');
+      if (restartBtn) {
+        restartBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          resetAnimationState();
+          isAnimationPlaying = true;
+          runAnimation();
+        });
+      }
+
       showStackCard(0, true, false); // initial load instant scroll
       startCardRotation();
       startUseCaseSlider();
