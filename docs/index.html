@@ -71,8 +71,15 @@
           <div class="terminal-title">mcp-client --server pyproc-mcp</div>
           <div style="width: 40px;"></div> <!-- Spacer -->
         </div>
-        <div class="terminal-body" id="terminal-screen">
-          <!-- Animation inserts lines here -->
+        <div class="terminal-body" id="terminal-screen" style="height: 380px; overflow-y: auto; text-align: left; display: flex; flex-direction: column; position: relative;">
+          <!-- Sticky User Prompt at the top -->
+          <div id="terminal-sticky-prompt" style="position: sticky; top: 0; background: var(--bg-secondary); padding-bottom: 0.75rem; margin-bottom: 0.75rem; border-bottom: 1px dashed var(--border-color); z-index: 10; display: none; align-items: center; text-align: left; width: 100%;">
+            <span class="terminal-prompt">$</span>
+            <span class="terminal-input" id="terminal-sticky-input" style="color: #fff; font-weight: 500;"></span>
+            <span class="cursor-blink" id="terminal-sticky-cursor" style="margin-left: 5px;"></span>
+          </div>
+          <!-- Scrollable Output Content -->
+          <div id="terminal-scroll-content" style="text-align: left;"></div>
         </div>
       </div>
     </div>
@@ -80,7 +87,7 @@
   <section id="use-cases" class="section">
     <div class="container">
       <div class="section-header">
-        <span class="section-tag">Etalase Catalog</span>
+        <span class="section-tag">Capabilities Engine</span>
         <h2 class="section-title">Enable Procurement Intelligence</h2>
         <p>Harness real-time API bindings and tools to discover opportunities, optimize competition, and automate data retrieval.</p>
       </div>
@@ -149,19 +156,19 @@
         <!-- Interactive Card Stack Slider -->
         <div class="card-stack-wrapper">
           <div class="card-stack-nav">
-            <button class="stack-nav-btn active" onclick="showStackCard(0)">
+            <button class="stack-nav-btn active" onclick="handleTabClick(0)">
               <div class="stack-nav-title">MCP Integration</div>
               <div class="stack-nav-desc">Cursor & Claude JSON configs</div>
             </button>
-            <button class="stack-nav-btn" onclick="showStackCard(1)">
+            <button class="stack-nav-btn" onclick="handleTabClick(1)">
               <div class="stack-nav-title">Python SDK Library</div>
               <div class="stack-nav-desc">Robust web parsing wrapping</div>
             </button>
-            <button class="stack-nav-btn" onclick="showStackCard(2)">
+            <button class="stack-nav-btn" onclick="handleTabClick(2)">
               <div class="stack-nav-title">CLI (Realtime SPSE)</div>
               <div class="stack-nav-desc">Download listing index to CSV</div>
             </button>
-            <button class="stack-nav-btn" onclick="showStackCard(3)">
+            <button class="stack-nav-btn" onclick="handleTabClick(3)">
               <div class="stack-nav-title">CLI (ISB Fallback)</div>
               <div class="stack-nav-desc">Bulk master records fetch</div>
             </button>
@@ -175,12 +182,12 @@
                 <button class="btn-copy">Copy</button>
               </div>
               <pre><code>{
-  "mcpServers": {
-    "pyproc": {
-      "command": "pyproc-mcp",
-      "env": {
-        "PYPROC_TIMEOUT": "30",
-        "PYPROC_RATE_LIMIT_DELAY": "1.0"
+  "<span class="code-kw">mcpServers</span>": {
+    "<span class="code-kw">pyproc</span>": {
+      "<span class="code-kw">command</span>": "<span class="code-str">pyproc-mcp</span>",
+      "<span class="code-kw">env</span>": {
+        "<span class="code-kw">PYPROC_TIMEOUT</span>": "<span class="code-str">30</span>",
+        "<span class="code-kw">PYPROC_RATE_LIMIT_DELAY</span>": "<span class="code-str">1.0</span>"
       }
     }
   }
@@ -192,16 +199,16 @@
                 <span class="code-lang">python</span>
                 <button class="btn-copy">Copy</button>
               </div>
-              <pre><code>from pyproc import Lpse, JenisPengadaan
+              <pre><code><span class="code-kw">from</span> <span class="code-var">pyproc</span> <span class="code-kw">import</span> <span class="code-func">Lpse</span>, <span class="code-func">JenisPengadaan</span>
 
-# Query Kemenkeu LPSE
-with Lpse('kemenkeu') as lpse:
-    packages = lpse.get_paket_tender(
-        search_keyword='laptop',
-        tahun=2025,
-        kategori=JenisPengadaan.PENGADAAN_BARANG
+<span class="code-comment"># Query Kemenkeu LPSE</span>
+<span class="code-kw">with</span> <span class="code-func">Lpse</span>(<span class="code-str">'kemenkeu'</span>) <span class="code-kw">as</span> <span class="code-var">lpse</span>:
+    <span class="code-var">packages</span> = <span class="code-var">lpse</span>.<span class="code-func">get_paket_tender</span>(
+        <span class="code-var">search_keyword</span>=<span class="code-str">'laptop'</span>,
+        <span class="code-var">tahun</span>=<span class="code-str">2025</span>,
+        <span class="code-var">kategori</span>=<span class="code-func">JenisPengadaan</span>.<span class="code-var">PENGADAAN_BARANG</span>
     )
-    print(packages['data'])</code></pre>
+    <span class="code-func">print</span>(<span class="code-var">packages</span>[<span class="code-str">'data'</span>])</code></pre>
             </div>
             <!-- Card 2: CLI Realtime -->
             <div class="stack-card behind">
@@ -209,11 +216,11 @@ with Lpse('kemenkeu') as lpse:
                 <span class="code-lang">bash (CLI Realtime)</span>
                 <button class="btn-copy">Copy</button>
               </div>
-              <pre><code># Download tender data from Jakarta LPSE
-pyproc spse jakarta --keyword "keamanan siber" --tahun-anggaran 2025 --output-format json
+              <pre><code><span class="code-comment"># Download tender data from Jakarta LPSE</span>
+<span class="code-func">pyproc</span> <span class="code-var">spse</span> jakarta <span class="code-kw">--keyword</span> <span class="code-str">"keamanan siber"</span> <span class="code-kw">--tahun-anggaran</span> <span class="code-str">2025</span> <span class="code-kw">--output-format</span> json
 
-# Search multiple hosts at once
-pyproc spse jakarta,kemenkeu --jenis-paket non_tender</code></pre>
+<span class="code-comment"># Search multiple hosts at once</span>
+<span class="code-func">pyproc</span> <span class="code-var">spse</span> jakarta,kemenkeu <span class="code-kw">--jenis-paket</span> <span class="code-str">non_tender</span></code></pre>
             </div>
             <!-- Card 3: CLI ISB Satu Data -->
             <div class="stack-card hidden">
@@ -221,11 +228,11 @@ pyproc spse jakarta,kemenkeu --jenis-paket non_tender</code></pre>
                 <span class="code-lang">bash (ISB Satu Data API)</span>
                 <button class="btn-copy">Copy</button>
               </div>
-              <pre><code># Download curated public tenders using standard LPSE Code
-pyproc satudata tenderumum --kode-lpse 119 --tahun-anggaran 2026 --output csv
+              <pre><code><span class="code-comment"># Download curated public tenders using standard LPSE Code</span>
+<span class="code-func">pyproc</span> <span class="code-var">satudata</span> tenderumum <span class="code-kw">--kode-lpse</span> <span class="code-str">119</span> <span class="code-kw">--tahun-anggaran</span> <span class="code-str">2026</span> <span class="code-kw">--output</span> csv
 
-# Launch interactive console to browse LPSE Unit metadata
-pyproc satudata masterlpse</code></pre>
+<span class="code-comment"># Launch interactive console to browse LPSE Unit metadata</span>
+<span class="code-func">pyproc</span> <span class="code-var">satudata</span> masterlpse</code></pre>
             </div>
           </div>
         </div>
@@ -323,9 +330,13 @@ pyproc satudata masterlpse</code></pre>
     ];
 
     let currentStep = 0;
+    const stickyPrompt = document.getElementById('terminal-sticky-prompt');
+    const stickyInput = document.getElementById('terminal-sticky-input');
+    const stickyCursor = document.getElementById('terminal-sticky-cursor');
+    const scrollContent = document.getElementById('terminal-scroll-content');
 
     function appendLine(element) {
-      terminalScreen.appendChild(element);
+      scrollContent.appendChild(element);
       terminalScreen.scrollTop = terminalScreen.scrollHeight;
     }
 
@@ -342,7 +353,16 @@ pyproc satudata masterlpse</code></pre>
       if (currentStep >= steps.length) {
         // Reset animation after a delay
         setTimeout(() => {
-          terminalScreen.innerHTML = '';
+          scrollContent.innerHTML = '';
+          stickyPrompt.style.display = 'none';
+          stickyInput.textContent = '';
+          if (!stickyPrompt.querySelector('#terminal-sticky-cursor')) {
+            const cursor = document.createElement('span');
+            cursor.className = 'cursor-blink';
+            cursor.id = 'terminal-sticky-cursor';
+            cursor.style.marginLeft = '5px';
+            stickyPrompt.appendChild(cursor);
+          }
           currentStep = 0;
           runAnimation();
         }, 8000);
@@ -352,26 +372,11 @@ pyproc satudata masterlpse</code></pre>
       const step = steps[currentStep];
       
       if (step.type === 'prompt') {
-        const line = document.createElement('div');
-        line.className = 'terminal-line';
+        stickyPrompt.style.display = 'flex';
         
-        const promptSpan = document.createElement('span');
-        promptSpan.className = 'terminal-prompt';
-        promptSpan.textContent = '$';
-        line.appendChild(promptSpan);
-        
-        const inputSpan = document.createElement('span');
-        inputSpan.className = 'terminal-input';
-        line.appendChild(inputSpan);
-        
-        const cursor = document.createElement('span');
-        cursor.className = 'cursor-blink';
-        line.appendChild(cursor);
-        
-        appendLine(line);
-
-        typeText(inputSpan, step.text, 0, 40, () => {
-          cursor.remove();
+        typeText(stickyInput, step.text, 0, 40, () => {
+          const cursor = document.getElementById('terminal-sticky-cursor');
+          if (cursor) cursor.remove();
           currentStep++;
           setTimeout(runAnimation, 600);
         });
@@ -397,8 +402,9 @@ pyproc satudata masterlpse</code></pre>
       
       else if (step.type === 'tool-call') {
         const line = document.createElement('div');
-        line.className = 'terminal-line terminal-tool-call';
-        line.innerHTML = `<span style="color: var(--accent-violet); font-weight: bold;">[Call] ${step.title}</span><pre style="margin-top: 0.25rem; font-size: 0.85rem; color: var(--text-secondary);">${JSON.stringify(step.args, null, 2)}</pre>`;
+        line.className = 'terminal-line';
+        line.style.marginBottom = '1rem';
+        line.innerHTML = `<div class="terminal-tool-call" style="text-align: left;"><span style="color: var(--accent-violet); font-weight: bold;">[Call] ${step.title}</span><pre style="margin-top: 0.25rem; font-size: 0.85rem; color: var(--text-secondary); text-align: left;">${JSON.stringify(step.args, null, 2)}</pre></div>`;
         
         appendLine(line);
         currentStep++;
@@ -407,8 +413,9 @@ pyproc satudata masterlpse</code></pre>
       
       else if (step.type === 'tool-result') {
         const line = document.createElement('div');
-        line.className = 'terminal-line terminal-tool-result';
-        line.innerHTML = `<span style="color: var(--accent-emerald); font-weight: bold;">[Result]</span><pre style="margin-top: 0.25rem; font-size: 0.85rem; color: var(--text-secondary);">${JSON.stringify(step.data, null, 2)}</pre>`;
+        line.className = 'terminal-line';
+        line.style.marginBottom = '1rem';
+        line.innerHTML = `<div class="terminal-tool-result" style="text-align: left;"><span style="color: var(--accent-emerald); font-weight: bold;">[Result]</span><pre style="margin-top: 0.25rem; font-size: 0.85rem; color: var(--text-secondary); text-align: left;">${JSON.stringify(step.data, null, 2)}</pre></div>`;
         
         appendLine(line);
         currentStep++;
@@ -418,6 +425,7 @@ pyproc satudata masterlpse</code></pre>
       else if (step.type === 'response') {
         const line = document.createElement('div');
         line.className = 'terminal-line terminal-response';
+        line.style.textAlign = 'left';
         line.innerHTML = step.html;
         
         appendLine(line);
@@ -427,7 +435,11 @@ pyproc satudata masterlpse</code></pre>
     }
 
     // Code card stack slider controller
+    let activeCardIndex = 0;
+    let cardRotationInterval;
+
     function showStackCard(index) {
+      activeCardIndex = index;
       const cards = document.querySelectorAll('.stack-card');
       const btns = document.querySelectorAll('.stack-nav-btn');
       
@@ -437,9 +449,8 @@ pyproc satudata masterlpse</code></pre>
       });
       
       cards.forEach((card, idx) => {
-        card.className = 'stack-card'; // Reset to base classes
+        card.className = 'stack-card';
         
-        // Calculate the stacked position relative to the active card
         const diff = (idx - index + cards.length) % cards.length;
         
         if (diff === 0) {
@@ -452,6 +463,23 @@ pyproc satudata masterlpse</code></pre>
           card.classList.add('hidden');
         }
       });
+    }
+
+    function startCardRotation() {
+      cardRotationInterval = setInterval(() => {
+        activeCardIndex = (activeCardIndex + 1) % 4;
+        showStackCard(activeCardIndex);
+      }, 5000);
+    }
+
+    function stopCardRotation() {
+      clearInterval(cardRotationInterval);
+    }
+
+    function handleTabClick(index) {
+      stopCardRotation();
+      showStackCard(index);
+      startCardRotation();
     }
 
     // Code copy event listener for index.html
@@ -474,7 +502,8 @@ pyproc satudata masterlpse</code></pre>
     // Start on load
     window.addEventListener('DOMContentLoaded', () => {
       setTimeout(runAnimation, 500);
-      showStackCard(0); // Initialize stack
+      showStackCard(0);
+      startCardRotation();
     });
   </script>
 </body>

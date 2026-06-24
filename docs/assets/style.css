@@ -665,6 +665,7 @@ a:hover {
   box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
   display: flex;
   flex-direction: column;
+  text-align: left;
 }
 
 .stack-card pre {
@@ -673,12 +674,19 @@ a:hover {
   overflow-x: auto;
   flex: 1;
   background: var(--bg-secondary);
+  text-align: left;
 }
 
 .stack-card code {
   font-family: var(--font-mono);
   font-size: 0.85rem;
 }
+
+.code-kw { color: #f43f5e; font-weight: 600; }
+.code-str { color: #10b981; }
+.code-func { color: #06b6d4; font-weight: 500; }
+.code-var { color: #c084fc; }
+.code-comment { color: #71717a; font-style: italic; }
 
 /* Card 3D overlapping states */
 .stack-card.active {
@@ -728,6 +736,30 @@ a:hover {
   .card-stack-container {
     width: 100%;
     height: 280px;
+  }
+  
+  .stack-card.active {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+    z-index: 10;
+  }
+
+  .stack-card.next {
+    transform: translate3d(0, 15px, -30px);
+    opacity: 0.7;
+    z-index: 9;
+  }
+
+  .stack-card.behind {
+    transform: translate3d(0, 30px, -60px);
+    opacity: 0.4;
+    z-index: 8;
+  }
+
+  .stack-card.hidden {
+    transform: translate3d(0, 45px, -90px);
+    opacity: 0;
+    z-index: 7;
   }
 }
 
@@ -1134,7 +1166,13 @@ code.inline-code {
 
 @media (max-width: 576px) {
   .hero-title { font-size: 2.25rem; }
-  .hero-ctas { flex-direction: column; gap: 0.75rem; width: 100%; max-width: 320px; }
+  .hero-ctas {
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+    max-width: 320px;
+    margin: 0 auto 4rem auto;
+  }
   .hero-ctas .btn { width: 100%; }
   .navbar-container { padding: 0 1rem; }
   .nav-links { display: none; }
