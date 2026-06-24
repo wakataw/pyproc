@@ -416,6 +416,7 @@ a:hover {
   border-top-color: var(--accent-violet);
   border-radius: 50%;
   animation: spin 1s infinite linear;
+  flex-shrink: 0;
 }
 
 @keyframes spin {
@@ -591,6 +592,12 @@ a:hover {
   margin: 0 auto 2rem auto;
 }
 
+
+.stack-nav-btn-cloned,
+.stack-card-cloned {
+  display: none !important;
+}
+
 /* Card Stack Slider */
 .card-stack-wrapper {
   display: flex;
@@ -610,6 +617,7 @@ a:hover {
   gap: 0.75rem;
   width: 280px;
   flex-shrink: 0;
+  scroll-behavior: auto !important;
 }
 
 .stack-nav-btn {
@@ -652,6 +660,7 @@ a:hover {
   position: relative;
   height: 320px;
   perspective: 1000px;
+  scroll-behavior: auto !important;
 }
 
 .stack-card {
@@ -678,11 +687,16 @@ a:hover {
   flex: 1;
   background: var(--bg-secondary);
   text-align: left;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  word-break: break-word;
 }
 
 .stack-card code {
   font-family: var(--font-mono);
   font-size: 0.85rem;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .code-kw { color: #f43f5e; font-weight: 600; }
@@ -735,6 +749,30 @@ a:hover {
 
   .terminal-container {
     margin-bottom: 4rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+  
+  .terminal-body {
+    overflow-x: hidden !important;
+  }
+
+  .terminal-title {
+    font-size: 0.7rem !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 160px;
+  }
+
+  .stack-nav-btn-cloned {
+    display: block !important;
+  }
+
+  .stack-card-cloned {
+    display: flex !important;
   }
 
   .use-case-slider-container {
@@ -798,14 +836,46 @@ a:hover {
   
   .card-stack-container {
     width: 100%;
-    height: 380px !important;
+    height: auto !important;
+    min-height: 340px !important;
     margin-bottom: 2.5rem !important;
+    perspective: none !important;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    scroll-snap-type: x mandatory !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+    gap: 4rem !important;
+    padding: 0.5rem 1.5rem !important;
+    box-sizing: border-box !important;
+  }
+  
+  .card-stack-container::-webkit-scrollbar {
+    display: none !important;
+  }
+  
+  .stack-card {
+    position: relative !important;
+    flex: 0 0 calc(100vw - 5.5rem) !important;
+    max-width: 480px !important;
+    height: 320px !important;
+    scroll-snap-align: center !important;
+    transform: none !important;
+    opacity: 1 !important;
+    z-index: 1 !important;
+    pointer-events: auto !important;
+    top: auto !important;
+    left: auto !important;
+    box-shadow: none !important;
   }
   
   .stack-card pre {
     white-space: pre-wrap !important;
     word-wrap: break-word !important;
     word-break: break-word !important;
+    padding: 1rem !important;
     overflow-x: hidden !important;
   }
   
@@ -814,28 +884,14 @@ a:hover {
     word-break: break-word !important;
   }
   
-  .stack-card.active {
-    transform: translate3d(0, 0, 0);
-    opacity: 1;
-    z-index: 10;
-  }
-
-  .stack-card.next {
-    transform: translate3d(0, 15px, -30px);
-    opacity: 0.7;
-    z-index: 9;
-  }
-
-  .stack-card.behind {
-    transform: translate3d(0, 30px, -60px);
-    opacity: 0.4;
-    z-index: 8;
-  }
-
+  .stack-card.active,
+  .stack-card.next,
+  .stack-card.behind,
   .stack-card.hidden {
-    transform: translate3d(0, 45px, -90px);
-    opacity: 0;
-    z-index: 7;
+    transform: none !important;
+    opacity: 1 !important;
+    z-index: 1 !important;
+    pointer-events: auto !important;
   }
 }
 
@@ -1254,19 +1310,23 @@ code.inline-code {
   .hero-title { font-size: 3rem; }
   .doc-layout { flex-direction: column; gap: 2rem; }
   
+  .logo-link {
+    margin-right: auto;
+  }
+  
   .sidebar-toggle-btn {
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
+    justify-content: center;
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     color: var(--text-primary);
-    padding: 0.4rem 0.75rem;
+    width: 36px;
+    height: 36px;
     border-radius: 6px;
-    font-size: 0.85rem;
-    font-weight: 500;
     cursor: pointer;
     transition: all var(--transition-normal);
+    margin-right: 0.75rem;
   }
 
   .sidebar-toggle-btn:hover {
@@ -1389,5 +1449,11 @@ code.inline-code {
   }
   .pagination-link {
     max-width: 100%;
+  }
+  .pagination-link.prev {
+    align-self: flex-start;
+  }
+  .pagination-link.next {
+    align-self: flex-end;
   }
 }

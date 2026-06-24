@@ -71,11 +71,11 @@
           <div class="terminal-title">mcp-client --server pyproc-mcp</div>
           <div style="width: 40px;"></div> <!-- Spacer -->
         </div>
-        <div class="terminal-body" id="terminal-screen" style="height: 380px; overflow-y: auto; text-align: left; display: flex; flex-direction: column; position: relative; padding: 0;">
+        <div class="terminal-body" id="terminal-screen" style="height: 380px; overflow-y: auto; overflow-x: hidden; text-align: left; display: flex; flex-direction: column; position: relative; padding: 0;">
           <!-- Sticky User Prompt at the top -->
-          <div id="terminal-sticky-prompt" style="position: sticky; top: -1px; margin-top: 0; background: var(--bg-secondary); padding: 1.5rem 1.5rem 0.75rem 1.5rem; border-bottom: 1px dashed var(--border-color); z-index: 10; display: none; align-items: center; text-align: left; width: 100%; box-sizing: border-box;">
+          <div id="terminal-sticky-prompt" style="position: sticky; top: -1px; margin-top: 0; background: var(--bg-secondary); padding: 1.5rem 1.5rem 0.75rem 1.5rem; border-bottom: 1px dashed var(--border-color); z-index: 10; display: none; align-items: center; flex-wrap: wrap; text-align: left; width: 100%; box-sizing: border-box;">
             <span class="terminal-prompt">$</span>
-            <span class="terminal-input" id="terminal-sticky-input" style="color: #fff; font-weight: 500;"></span>
+            <span class="terminal-input" id="terminal-sticky-input" style="color: #fff; font-weight: 500; word-break: break-word;"></span>
             <span class="cursor-blink" id="terminal-sticky-cursor" style="margin-left: 5px;"></span>
           </div>
           <!-- Scrollable Output Content -->
@@ -159,6 +159,25 @@
         <!-- Interactive Card Stack Slider -->
         <div class="card-stack-wrapper">
           <div class="card-stack-nav">
+            <!-- Set 1: Cloned Prev (visible on mobile only) -->
+            <button class="stack-nav-btn stack-nav-btn-cloned" onclick="handleTabClick(0)">
+              <div class="stack-nav-title">MCP Integration</div>
+              <div class="stack-nav-desc">Cursor & Claude JSON configs</div>
+            </button>
+            <button class="stack-nav-btn stack-nav-btn-cloned" onclick="handleTabClick(1)">
+              <div class="stack-nav-title">Python SDK Library</div>
+              <div class="stack-nav-desc">Robust web parsing wrapping</div>
+            </button>
+            <button class="stack-nav-btn stack-nav-btn-cloned" onclick="handleTabClick(2)">
+              <div class="stack-nav-title">CLI (Realtime SPSE)</div>
+              <div class="stack-nav-desc">Download listing index to CSV</div>
+            </button>
+            <button class="stack-nav-btn stack-nav-btn-cloned" onclick="handleTabClick(3)">
+              <div class="stack-nav-title">CLI (ISB Fallback)</div>
+              <div class="stack-nav-desc">Bulk master records fetch</div>
+            </button>
+
+            <!-- Set 2: Original (visible on desktop and mobile) -->
             <button class="stack-nav-btn active" onclick="handleTabClick(0)">
               <div class="stack-nav-title">MCP Integration</div>
               <div class="stack-nav-desc">Cursor & Claude JSON configs</div>
@@ -175,9 +194,89 @@
               <div class="stack-nav-title">CLI (ISB Fallback)</div>
               <div class="stack-nav-desc">Bulk master records fetch</div>
             </button>
+
+            <!-- Set 3: Cloned Next (visible on mobile only) -->
+            <button class="stack-nav-btn stack-nav-btn-cloned" onclick="handleTabClick(0)">
+              <div class="stack-nav-title">MCP Integration</div>
+              <div class="stack-nav-desc">Cursor & Claude JSON configs</div>
+            </button>
+            <button class="stack-nav-btn stack-nav-btn-cloned" onclick="handleTabClick(1)">
+              <div class="stack-nav-title">Python SDK Library</div>
+              <div class="stack-nav-desc">Robust web parsing wrapping</div>
+            </button>
+            <button class="stack-nav-btn stack-nav-btn-cloned" onclick="handleTabClick(2)">
+              <div class="stack-nav-title">CLI (Realtime SPSE)</div>
+              <div class="stack-nav-desc">Download listing index to CSV</div>
+            </button>
+            <button class="stack-nav-btn stack-nav-btn-cloned" onclick="handleTabClick(3)">
+              <div class="stack-nav-title">CLI (ISB Fallback)</div>
+              <div class="stack-nav-desc">Bulk master records fetch</div>
+            </button>
           </div>
           
           <div class="card-stack-container" id="stack-container">
+            <!-- Set 1: Cloned Prev (visible on mobile only) -->
+            <!-- Card 0: MCP -->
+            <div class="stack-card stack-card-cloned active">
+              <div class="code-header">
+                <span class="code-lang">json (mcp-config.json)</span>
+                <button class="btn-copy">Copy</button>
+              </div>
+              <pre><code>{
+  "<span class="code-kw">mcpServers</span>": {
+    "<span class="code-kw">pyproc</span>": {
+      "<span class="code-kw">command</span>": "<span class="code-str">pyproc-mcp</span>",
+      "<span class="code-kw">env</span>": {
+        "<span class="code-kw">PYPROC_TIMEOUT</span>": "<span class="code-str">30</span>",
+        "<span class="code-kw">PYPROC_RATE_LIMIT_DELAY</span>": "<span class="code-str">1.0</span>"
+      }
+    }
+  }
+}</code></pre>
+            </div>
+            <!-- Card 1: Python SDK -->
+            <div class="stack-card stack-card-cloned next">
+              <div class="code-header">
+                <span class="code-lang">python</span>
+                <button class="btn-copy">Copy</button>
+              </div>
+              <pre><code><span class="code-kw">from</span> <span class="code-var">pyproc</span> <span class="code-kw">import</span> <span class="code-func">Lpse</span>, <span class="code-func">JenisPengadaan</span>
+
+<span class="code-comment"># Query Kemenkeu LPSE</span>
+<span class="code-kw">with</span> <span class="code-func">Lpse</span>(<span class="code-str">'kemenkeu'</span>) <span class="code-kw">as</span> <span class="code-var">lpse</span>:
+    <span class="code-var">packages</span> = <span class="code-var">lpse</span>.<span class="code-func">get_paket_tender</span>(
+        <span class="code-var">search_keyword</span>=<span class="code-str">'laptop'</span>,
+        <span class="code-var">tahun</span>=<span class="code-str">2025</span>,
+        <span class="code-var">kategori</span>=<span class="code-func">JenisPengadaan</span>.<span class="code-var">PENGADAAN_BARANG</span>
+    )
+    <span class="code-func">print</span>(<span class="code-var">packages</span>[<span class="code-str">'data'</span>])</code></pre>
+            </div>
+            <!-- Card 2: CLI Realtime -->
+            <div class="stack-card stack-card-cloned behind">
+              <div class="code-header">
+                <span class="code-lang">bash (CLI Realtime)</span>
+                <button class="btn-copy">Copy</button>
+              </div>
+              <pre><code><span class="code-comment"># Download tender data from Jakarta LPSE</span>
+<span class="code-func">pyproc</span> <span class="code-var">spse</span> jakarta <span class="code-kw">--keyword</span> <span class="code-str">"keamanan siber"</span> <span class="code-kw">--tahun-anggaran</span> <span class="code-str">2025</span> <span class="code-kw">--output-format</span> json
+
+<span class="code-comment"># Search multiple hosts at once</span>
+<span class="code-func">pyproc</span> <span class="code-var">spse</span> jakarta,kemenkeu <span class="code-kw">--jenis-paket</span> <span class="code-str">non_tender</span></code></pre>
+            </div>
+            <!-- Card 3: CLI ISB Satu Data -->
+            <div class="stack-card stack-card-cloned hidden">
+              <div class="code-header">
+                <span class="code-lang">bash (ISB Satu Data API)</span>
+                <button class="btn-copy">Copy</button>
+              </div>
+              <pre><code><span class="code-comment"># Download curated public tenders using standard LPSE Code</span>
+<span class="code-func">pyproc</span> <span class="code-var">satudata</span> tenderumum <span class="code-kw">--kode-lpse</span> <span class="code-str">119</span> <span class="code-kw">--tahun-anggaran</span> <span class="code-str">2026</span> <span class="code-kw">--output</span> csv
+
+<span class="code-comment"># Launch interactive console to browse LPSE Unit metadata</span>
+<span class="code-func">pyproc</span> <span class="code-var">satudata</span> masterlpse</code></pre>
+            </div>
+
+            <!-- Set 2: Original (visible on desktop and mobile) -->
             <!-- Card 0: MCP -->
             <div class="stack-card active">
               <div class="code-header">
@@ -227,6 +326,67 @@
             </div>
             <!-- Card 3: CLI ISB Satu Data -->
             <div class="stack-card hidden">
+              <div class="code-header">
+                <span class="code-lang">bash (ISB Satu Data API)</span>
+                <button class="btn-copy">Copy</button>
+              </div>
+              <pre><code><span class="code-comment"># Download curated public tenders using standard LPSE Code</span>
+<span class="code-func">pyproc</span> <span class="code-var">satudata</span> tenderumum <span class="code-kw">--kode-lpse</span> <span class="code-str">119</span> <span class="code-kw">--tahun-anggaran</span> <span class="code-str">2026</span> <span class="code-kw">--output</span> csv
+
+<span class="code-comment"># Launch interactive console to browse LPSE Unit metadata</span>
+<span class="code-func">pyproc</span> <span class="code-var">satudata</span> masterlpse</code></pre>
+            </div>
+
+            <!-- Set 3: Cloned Next (visible on mobile only) -->
+            <!-- Card 0: MCP -->
+            <div class="stack-card stack-card-cloned active">
+              <div class="code-header">
+                <span class="code-lang">json (mcp-config.json)</span>
+                <button class="btn-copy">Copy</button>
+              </div>
+              <pre><code>{
+  "<span class="code-kw">mcpServers</span>": {
+    "<span class="code-kw">pyproc</span>": {
+      "<span class="code-kw">command</span>": "<span class="code-str">pyproc-mcp</span>",
+      "<span class="code-kw">env</span>": {
+        "<span class="code-kw">PYPROC_TIMEOUT</span>": "<span class="code-str">30</span>",
+        "<span class="code-kw">PYPROC_RATE_LIMIT_DELAY</span>": "<span class="code-str">1.0</span>"
+      }
+    }
+  }
+}</code></pre>
+            </div>
+            <!-- Card 1: Python SDK -->
+            <div class="stack-card stack-card-cloned next">
+              <div class="code-header">
+                <span class="code-lang">python</span>
+                <button class="btn-copy">Copy</button>
+              </div>
+              <pre><code><span class="code-kw">from</span> <span class="code-var">pyproc</span> <span class="code-kw">import</span> <span class="code-func">Lpse</span>, <span class="code-func">JenisPengadaan</span>
+
+<span class="code-comment"># Query Kemenkeu LPSE</span>
+<span class="code-kw">with</span> <span class="code-func">Lpse</span>(<span class="code-str">'kemenkeu'</span>) <span class="code-kw">as</span> <span class="code-var">lpse</span>:
+    <span class="code-var">packages</span> = <span class="code-var">lpse</span>.<span class="code-func">get_paket_tender</span>(
+        <span class="code-var">search_keyword</span>=<span class="code-str">'laptop'</span>,
+        <span class="code-var">tahun</span>=<span class="code-str">2025</span>,
+        <span class="code-var">kategori</span>=<span class="code-func">JenisPengadaan</span>.<span class="code-var">PENGADAAN_BARANG</span>
+    )
+    <span class="code-func">print</span>(<span class="code-var">packages</span>[<span class="code-str">'data'</span>])</code></pre>
+            </div>
+            <!-- Card 2: CLI Realtime -->
+            <div class="stack-card stack-card-cloned behind">
+              <div class="code-header">
+                <span class="code-lang">bash (CLI Realtime)</span>
+                <button class="btn-copy">Copy</button>
+              </div>
+              <pre><code><span class="code-comment"># Download tender data from Jakarta LPSE</span>
+<span class="code-func">pyproc</span> <span class="code-var">spse</span> jakarta <span class="code-kw">--keyword</span> <span class="code-str">"keamanan siber"</span> <span class="code-kw">--tahun-anggaran</span> <span class="code-str">2025</span> <span class="code-kw">--output-format</span> json
+
+<span class="code-comment"># Search multiple hosts at once</span>
+<span class="code-func">pyproc</span> <span class="code-var">spse</span> jakarta,kemenkeu <span class="code-kw">--jenis-paket</span> <span class="code-str">non_tender</span></code></pre>
+            </div>
+            <!-- Card 3: CLI ISB Satu Data -->
+            <div class="stack-card stack-card-cloned hidden">
               <div class="code-header">
                 <span class="code-lang">bash (ISB Satu Data API)</span>
                 <button class="btn-copy">Copy</button>
@@ -407,7 +567,7 @@
         const line = document.createElement('div');
         line.className = 'terminal-line';
         line.style.marginBottom = '1rem';
-        line.innerHTML = `<div class="terminal-tool-call" style="text-align: left;"><span style="color: var(--accent-violet); font-weight: bold;">[Call] ${step.title}</span><pre style="margin-top: 0.25rem; font-size: 0.85rem; color: var(--text-secondary); text-align: left;">${JSON.stringify(step.args, null, 2)}</pre></div>`;
+        line.innerHTML = `<div class="terminal-tool-call" style="text-align: left;"><span style="color: var(--accent-violet); font-weight: bold;">[Call] ${step.title}</span><pre style="margin-top: 0.25rem; font-size: 0.85rem; color: var(--text-secondary); text-align: left; white-space: pre-wrap; word-break: break-all;">${JSON.stringify(step.args, null, 2)}</pre></div>`;
         
         appendLine(line);
         currentStep++;
@@ -418,7 +578,7 @@
         const line = document.createElement('div');
         line.className = 'terminal-line';
         line.style.marginBottom = '1rem';
-        line.innerHTML = `<div class="terminal-tool-result" style="text-align: left;"><span style="color: var(--accent-emerald); font-weight: bold;">[Result]</span><pre style="margin-top: 0.25rem; font-size: 0.85rem; color: var(--text-secondary); text-align: left;">${JSON.stringify(step.data, null, 2)}</pre></div>`;
+        line.innerHTML = `<div class="terminal-tool-result" style="text-align: left;"><span style="color: var(--accent-emerald); font-weight: bold;">[Result]</span><pre style="margin-top: 0.25rem; font-size: 0.85rem; color: var(--text-secondary); text-align: left; white-space: pre-wrap; word-break: break-all;">${JSON.stringify(step.data, null, 2)}</pre></div>`;
         
         appendLine(line);
         currentStep++;
@@ -440,46 +600,153 @@
     // Code card stack slider controller
     let activeCardIndex = 0;
     let cardRotationInterval;
+    let isScrollingProgrammatically = false;
+    let programmaticScrollTimeout;
 
-    function showStackCard(index) {
+    function showStackCard(index, programmatically = true, smooth = true) {
       activeCardIndex = index;
       const cards = document.querySelectorAll('.stack-card');
       const btns = document.querySelectorAll('.stack-nav-btn');
       
+      // Update buttons
       btns.forEach((btn, idx) => {
-        if (idx === index) {
+        if (idx % 4 === index) {
           btn.classList.add('active');
-          if (window.innerWidth <= 768) {
-            const navContainer = btn.parentElement;
-            if (navContainer) {
-              const containerWidth = navContainer.clientWidth;
-              const btnOffsetLeft = btn.offsetLeft;
-              const btnWidth = btn.clientWidth;
-              navContainer.scrollTo({
-                left: btnOffsetLeft - (containerWidth / 2) + (btnWidth / 2),
-                behavior: 'smooth'
-              });
-            }
-          }
+        } else {
+          btn.classList.remove('active');
         }
-        else btn.classList.remove('active');
       });
       
+      // Update cards classes
       cards.forEach((card, idx) => {
-        card.className = 'stack-card';
+        card.classList.remove('active', 'next', 'behind', 'hidden');
         
-        const diff = (idx - index + cards.length) % cards.length;
-        
-        if (diff === 0) {
-          card.classList.add('active');
-        } else if (diff === 1) {
-          card.classList.add('next');
-        } else if (diff === 2) {
-          card.classList.add('behind');
+        if (window.innerWidth > 768) {
+          // On desktop, Set 2 cards are at indices 4 to 7. Apply 3D classes only to Set 2.
+          if (idx >= 4 && idx <= 7) {
+            const diff = (idx - 4 - index + 4) % 4;
+            if (diff === 0) card.classList.add('active');
+            else if (diff === 1) card.classList.add('next');
+            else if (diff === 2) card.classList.add('behind');
+            else card.classList.add('hidden');
+          } else {
+            card.classList.add('hidden');
+          }
         } else {
-          card.classList.add('hidden');
+          // On mobile, just mark active status for styling if needed
+          if (idx % 4 === index) {
+            card.classList.add('active');
+          }
         }
       });
+
+      // Programmatic scroll centering on mobile
+      if (window.innerWidth <= 768 && programmatically) {
+        const stackContainer = document.getElementById('stack-container');
+        const navContainer = document.querySelector('.card-stack-nav');
+        const behavior = smooth ? 'smooth' : 'auto';
+        
+        if (stackContainer && cards.length >= 8) {
+          let targetCardIndex = index + 4;
+          if (cards.length >= 12) {
+            const containerRect = stackContainer.getBoundingClientRect();
+            const containerCenterX = containerRect.left + containerRect.width / 2;
+            let closestIndex = 4;
+            let minDistance = Infinity;
+            for (let i = 0; i < cards.length; i++) {
+              const card = cards[i];
+              if (!card) continue;
+              const cardRect = card.getBoundingClientRect();
+              const cardCenterX = cardRect.left + cardRect.width / 2;
+              const distance = Math.abs(cardCenterX - containerCenterX);
+              if (distance < minDistance) {
+                minDistance = distance;
+                closestIndex = i;
+              }
+            }
+
+            const targets = [index, index + 4, index + 8];
+            let minDiff = Infinity;
+            targets.forEach(t => {
+              const diff = Math.abs(t - closestIndex);
+              if (diff < minDiff) {
+                minDiff = diff;
+                targetCardIndex = t;
+              }
+            });
+          }
+
+          const activeCard = cards[targetCardIndex];
+          if (activeCard) {
+            isScrollingProgrammatically = true;
+            clearTimeout(programmaticScrollTimeout);
+            stackContainer.scrollTo({
+              left: activeCard.offsetLeft - (stackContainer.clientWidth - activeCard.clientWidth) / 2,
+              behavior: behavior
+            });
+            programmaticScrollTimeout = setTimeout(() => {
+              const targetCardInSet2 = cards[index + 4];
+              if (targetCardInSet2) {
+                stackContainer.scrollTo({
+                  left: targetCardInSet2.offsetLeft - (stackContainer.clientWidth - targetCardInSet2.clientWidth) / 2,
+                  behavior: 'auto'
+                });
+              }
+              setTimeout(() => {
+                isScrollingProgrammatically = false;
+              }, 100);
+            }, smooth ? 600 : 50);
+          }
+        }
+
+        if (navContainer && btns.length >= 8) {
+          let targetBtnIndex = index + 4;
+          if (btns.length >= 12) {
+            const navRect = navContainer.getBoundingClientRect();
+            const navCenterX = navRect.left + navRect.width / 2;
+            let closestBtnIndex = 4;
+            let minBtnDistance = Infinity;
+            for (let i = 0; i < btns.length; i++) {
+              const btn = btns[i];
+              if (!btn) continue;
+              const btnRect = btn.getBoundingClientRect();
+              const btnCenterX = btnRect.left + btnRect.width / 2;
+              const distance = Math.abs(btnCenterX - navCenterX);
+              if (distance < minBtnDistance) {
+                minBtnDistance = distance;
+                closestBtnIndex = i;
+              }
+            }
+
+            const btnTargets = [index, index + 4, index + 8];
+            let minBtnDiff = Infinity;
+            btnTargets.forEach(t => {
+              const diff = Math.abs(t - closestBtnIndex);
+              if (diff < minBtnDiff) {
+                minBtnDiff = diff;
+                targetBtnIndex = t;
+              }
+            });
+          }
+
+          const activeBtn = btns[targetBtnIndex];
+          if (activeBtn) {
+            navContainer.scrollTo({
+              left: activeBtn.offsetLeft - (navContainer.clientWidth - activeBtn.clientWidth) / 2,
+              behavior: behavior
+            });
+            setTimeout(() => {
+              const targetBtnInSet2 = btns[index + 4];
+              if (targetBtnInSet2) {
+                navContainer.scrollTo({
+                  left: targetBtnInSet2.offsetLeft - (navContainer.clientWidth - targetBtnInSet2.clientWidth) / 2,
+                  behavior: 'auto'
+                });
+              }
+            }, smooth ? 600 : 50);
+          }
+        }
+      }
     }
 
     function startCardRotation() {
@@ -550,9 +817,81 @@
     // Start on load
     window.addEventListener('DOMContentLoaded', () => {
       setTimeout(runAnimation, 500);
-      showStackCard(0);
+      showStackCard(0, true, false); // initial load instant scroll
       startCardRotation();
       startUseCaseSlider();
+
+      // Mobile swipe slider synchronization for stack-container
+      const stackContainer = document.getElementById('stack-container');
+      const navContainer = document.querySelector('.card-stack-nav');
+
+      if (navContainer) {
+        navContainer.addEventListener('scroll', () => {
+          if (window.innerWidth > 768 || isScrollingProgrammatically) return;
+          const btns = document.querySelectorAll('.stack-nav-btn');
+          if (btns.length < 8) return;
+          const setWidth = btns[4].offsetLeft - btns[0].offsetLeft;
+          
+          if (navContainer.scrollLeft < setWidth - (navContainer.clientWidth / 2)) {
+            navContainer.scrollLeft += setWidth;
+          } else if (navContainer.scrollLeft > setWidth * 2 - (navContainer.clientWidth / 2)) {
+            navContainer.scrollLeft -= setWidth;
+          }
+        });
+      }
+
+      if (stackContainer) {
+        stackContainer.addEventListener('scroll', () => {
+          if (window.innerWidth > 768 || isScrollingProgrammatically) return;
+          const cards = document.querySelectorAll('.stack-card');
+          if (cards.length < 8) return;
+          const setWidth = cards[4].offsetLeft - cards[0].offsetLeft;
+          
+          // Seamless loop scroll jump reset
+          if (stackContainer.scrollLeft < setWidth - (stackContainer.clientWidth / 2)) {
+            isScrollingProgrammatically = true;
+            stackContainer.scrollLeft += setWidth;
+            setTimeout(() => { isScrollingProgrammatically = false; }, 50);
+          } else if (stackContainer.scrollLeft > setWidth * 2 - (stackContainer.clientWidth / 2)) {
+            isScrollingProgrammatically = true;
+            stackContainer.scrollLeft -= setWidth;
+            setTimeout(() => { isScrollingProgrammatically = false; }, 50);
+          }
+          
+          const containerRect = stackContainer.getBoundingClientRect();
+          const containerCenterX = containerRect.left + containerRect.width / 2;
+          
+          let closestIndex = 4;
+          let minDistance = Infinity;
+          
+          for (let i = 4; i <= 7; i++) {
+            const card = cards[i];
+            if (!card) continue;
+            const cardRect = card.getBoundingClientRect();
+            const cardCenterX = cardRect.left + cardRect.width / 2;
+            const distance = Math.abs(cardCenterX - containerCenterX);
+            if (distance < minDistance) {
+              minDistance = distance;
+              closestIndex = i;
+            }
+          }
+          
+          const indexNormalized = closestIndex - 4;
+          if (indexNormalized !== activeCardIndex) {
+            activeCardIndex = indexNormalized;
+            showStackCard(indexNormalized, false);
+          }
+        });
+        
+        stackContainer.addEventListener('touchstart', () => {
+          stopCardRotation();
+        });
+        
+        stackContainer.addEventListener('touchend', () => {
+          stopCardRotation();
+          startCardRotation();
+        });
+      }
     });
   </script>
 </body>
