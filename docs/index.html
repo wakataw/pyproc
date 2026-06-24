@@ -71,15 +71,15 @@
           <div class="terminal-title">mcp-client --server pyproc-mcp</div>
           <div style="width: 40px;"></div> <!-- Spacer -->
         </div>
-        <div class="terminal-body" id="terminal-screen" style="height: 380px; overflow-y: auto; text-align: left; display: flex; flex-direction: column; position: relative;">
+        <div class="terminal-body" id="terminal-screen" style="height: 380px; overflow-y: auto; text-align: left; display: flex; flex-direction: column; position: relative; padding: 0;">
           <!-- Sticky User Prompt at the top -->
-          <div id="terminal-sticky-prompt" style="position: sticky; top: 0; background: var(--bg-secondary); padding-bottom: 0.75rem; margin-bottom: 0.75rem; border-bottom: 1px dashed var(--border-color); z-index: 10; display: none; align-items: center; text-align: left; width: 100%;">
+          <div id="terminal-sticky-prompt" style="position: sticky; top: -1px; margin-top: 0; background: var(--bg-secondary); padding: 1.5rem 1.5rem 0.75rem 1.5rem; border-bottom: 1px dashed var(--border-color); z-index: 10; display: none; align-items: center; text-align: left; width: 100%; box-sizing: border-box;">
             <span class="terminal-prompt">$</span>
             <span class="terminal-input" id="terminal-sticky-input" style="color: #fff; font-weight: 500;"></span>
             <span class="cursor-blink" id="terminal-sticky-cursor" style="margin-left: 5px;"></span>
           </div>
           <!-- Scrollable Output Content -->
-          <div id="terminal-scroll-content" style="text-align: left;"></div>
+          <div id="terminal-scroll-content" style="text-align: left; padding: 0 1.5rem 1.5rem 1.5rem;"></div>
         </div>
       </div>
     </div>
@@ -92,53 +92,56 @@
         <p>Harness real-time API bindings and tools to discover opportunities, optimize competition, and automate data retrieval.</p>
       </div>
 
-      <div class="use-case-grid">
-        <div class="use-case-card">
-          <div class="card-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+      <!-- Use Case Auto Slider on Mobile -->
+      <div class="use-case-slider-container" style="width: 100%; overflow: hidden;">
+        <div class="use-case-grid" id="use-case-track" style="transition: transform 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);">
+          <div class="use-case-card">
+            <div class="card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+            </div>
+            <h3 class="card-title">Instant Market Penetration</h3>
+            <p class="card-desc">Instantly scrape and filter high-value government tenders across 1,000+ LPSE agencies. Stop searching manually; automate your discovery pipeline.</p>
           </div>
-          <h3 class="card-title">Instant Market Penetration</h3>
-          <p class="card-desc">Instantly scrape and filter high-value government tenders across 1,000+ LPSE agencies. Stop searching manually; automate your discovery pipeline.</p>
-        </div>
 
-        <div class="use-case-card">
-          <div class="card-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20v-6M6 20V10M18 20V4M4 4h16v16H4z"/></svg>
+          <div class="use-case-card">
+            <div class="card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20v-6M6 20V10M18 20V4M4 4h16v16H4z"/></svg>
+            </div>
+            <h3 class="card-title">Unfair Bidding Advantage</h3>
+            <p class="card-desc">Decode winner historical bid prices, competitor margins, and evaluation parameters using clean, structured data and LLM insights.</p>
           </div>
-          <h3 class="card-title">Unfair Bidding Advantage</h3>
-          <p class="card-desc">Decode winner historical bid prices, competitor margins, and evaluation parameters using clean, structured data and LLM insights.</p>
-        </div>
 
-        <div class="use-case-card">
-          <div class="card-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          <div class="use-case-card">
+            <div class="card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            </div>
+            <h3 class="card-title">Precision Contractor Profiling</h3>
+            <p class="card-desc">Audit vendor portfolios, NPWP validation histories, and target locations to evaluate your competitors or identify strategic partners.</p>
           </div>
-          <h3 class="card-title">Precision Contractor Profiling</h3>
-          <p class="card-desc">Audit vendor portfolios, NPWP validation histories, and target locations to evaluate your competitors or identify strategic partners.</p>
-        </div>
 
-        <div class="use-case-card">
-          <div class="card-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          <div class="use-case-card">
+            <div class="card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            </div>
+            <h3 class="card-title">Zero-Delay Deadline Tracker</h3>
+            <p class="card-desc">Lock in milestones with automated step-by-step schedules parsed directly from initial announcements to contracts. Never miss a submission window.</p>
           </div>
-          <h3 class="card-title">Zero-Delay Deadline Tracker</h3>
-          <p class="card-desc">Lock in milestones with automated step-by-step schedules parsed directly from initial announcements to contracts. Never miss a submission window.</p>
-        </div>
 
-        <div class="use-case-card">
-          <div class="card-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+          <div class="use-case-card">
+            <div class="card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+            </div>
+            <h3 class="card-title">High-Volume Data Pipelines</h3>
+            <p class="card-desc">Download entire SPSE archives into structured databases. Power your analytics, CRM, or custom data lakes using clean CSV or JSON formats.</p>
           </div>
-          <h3 class="card-title">High-Volume Data Pipelines</h3>
-          <p class="card-desc">Download entire SPSE archives into structured databases. Power your analytics, CRM, or custom data lakes using clean CSV or JSON formats.</p>
-        </div>
 
-        <div class="use-case-card">
-          <div class="card-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+          <div class="use-case-card">
+            <div class="card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+            </div>
+            <h3 class="card-title">Agentic Workflow Ready</h3>
+            <p class="card-desc">Integrate Cursor, Continue, or Claude Desktop. Empower AI agents to dynamically inspect bid criteria and check vendor compliance on the fly.</p>
           </div>
-          <h3 class="card-title">Agentic Workflow Ready</h3>
-          <p class="card-desc">Integrate Cursor, Continue, or Claude Desktop. Empower AI agents to dynamically inspect bid criteria and check vendor compliance on the fly.</p>
         </div>
       </div>
     </div>
@@ -444,7 +447,12 @@
       const btns = document.querySelectorAll('.stack-nav-btn');
       
       btns.forEach((btn, idx) => {
-        if (idx === index) btn.classList.add('active');
+        if (idx === index) {
+          btn.classList.add('active');
+          if (window.innerWidth <= 768) {
+            btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+          }
+        }
         else btn.classList.remove('active');
       });
       
@@ -482,6 +490,31 @@
       startCardRotation();
     }
 
+    // Use Case Mobile Slider
+    let useCaseIndex = 0;
+    const useCaseCardsCount = 6;
+    let useCaseInterval;
+
+    function startUseCaseSlider() {
+      if (useCaseInterval) clearInterval(useCaseInterval);
+      useCaseInterval = setInterval(() => {
+        if (window.innerWidth <= 768) {
+          const track = document.getElementById('use-case-track');
+          if (track) {
+            useCaseIndex = (useCaseIndex + 1) % useCaseCardsCount;
+            track.style.transform = `translateX(calc(-${useCaseIndex * 100}% - ${useCaseIndex * 1.5}rem))`;
+          }
+        }
+      }, 4000);
+    }
+
+    window.addEventListener('resize', () => {
+      if (window.innerWidth > 768) {
+        const track = document.getElementById('use-case-track');
+        if (track) track.style.transform = '';
+      }
+    });
+
     // Code copy event listener for index.html
     document.querySelectorAll('.btn-copy').forEach(button => {
       button.addEventListener('click', () => {
@@ -504,6 +537,7 @@
       setTimeout(runAnimation, 500);
       showStackCard(0);
       startCardRotation();
+      startUseCaseSlider();
     });
   </script>
 </body>

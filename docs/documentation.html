@@ -18,6 +18,17 @@
         <span>PyProc</span>
         <span class="logo-badge">v0.3.3</span>
       </a>
+      
+      <!-- Sidebar Toggle (Mobile Only) -->
+      <button id="sidebar-toggle" class="sidebar-toggle-btn" aria-label="Toggle Documentation Menu">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+        <span>Docs Menu</span>
+      </button>
+
       <nav>
         <ul class="nav-links">
           <li><a href="index.html" class="nav-link">Home</a></li>
@@ -555,6 +566,31 @@ openclaw gateway restart</code></pre>
     }
 
     window.addEventListener('scroll', highlightSidebar);
+    
+    // Sidebar toggle for mobile
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+    const docSidebar = document.querySelector('.doc-sidebar');
+
+    if (sidebarToggle && docSidebar) {
+      sidebarToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        docSidebar.classList.toggle('open');
+      });
+
+      // Close sidebar when clicking outside
+      document.addEventListener('click', (e) => {
+        if (docSidebar.classList.contains('open') && !docSidebar.contains(e.target) && e.target !== sidebarToggle) {
+          docSidebar.classList.remove('open');
+        }
+      });
+
+      // Close sidebar when clicking a link
+      docSidebar.querySelectorAll('.sidebar-link').forEach(link => {
+        link.addEventListener('click', () => {
+          docSidebar.classList.remove('open');
+        });
+      });
+    }
     
     // Initial highlight on load
     window.addEventListener('DOMContentLoaded', () => {
