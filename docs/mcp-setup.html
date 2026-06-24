@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Client Setup — PyProc MCP</title>
-  <meta name="description" content="Detailed guide on installing the PyProc MCP server in Claude Code, Google Antigravity, Codex, OpenCode, and OpenClaw.">
+  <title>MCP Server Configuration — PyProc MCP</title>
+  <meta name="description" content="Learn how to generate configuration files and run PyProc as a Model Context Protocol (MCP) server.">
   <link rel="stylesheet" href="assets/style.css">
   <link rel="icon" type="image/png" href="assets/logo.png">
 </head>
@@ -110,227 +110,95 @@
 
       <!-- Main Content -->
       <main class="doc-content">
-        <h1>AI Agent Integrations: Client Configurations</h1>
-        <p>
-          You can install and execute the PyProc MCP server inside various developer AI interfaces, IDE editors, command-line clients, and autonomous agents.
-        </p>
-
-        <!-- Claude Desktop -->
-        <section id="client-claude-desktop" class="doc-section">
-          <h2>1. Claude Desktop</h2>
+        <!-- Section: MCP Server Setup -->
+        <section id="mcp-setup" class="doc-section">
+          <h1>MCP Server Configuration</h1>
           <p>
-            Claude Desktop communicates with MCP servers to extend Claude's knowledge. Add the configuration block below to your Claude Desktop config file:
+            The Model Context Protocol (MCP) server allows LLM clients to communicate directly with PyProc's tools.
+            PyProc supports two interface execution modes: <strong>stdio</strong> (Standard Input/Output) and <strong>http</strong> (SSE-based Server-Sent Events).
           </p>
-          <ul>
-            <li><strong>macOS:</strong> <code class="inline-code">~/Library/Application Support/Claude/claude_desktop_config.json</code></li>
-            <li><strong>Windows:</strong> <code class="inline-code">%APPDATA%\Claude\claude_desktop_config.json</code></li>
-          </ul>
+
+          <div class="callout callout-info">
+            <div class="callout-title">Interface Types</div>
+            <ul>
+              <li><strong>stdio:</strong> The client spawns the MCP server as a sub-process and communicates via standard input/output. This is optimal for local applications like Claude Desktop, Claude Code, and Cursor.</li>
+              <li><strong>http:</strong> The MCP server runs as a standalone HTTP server using Server-Sent Events (SSE). This is useful for remote setups, virtualized workspaces, or integrations where a permanent connection is preferred.</li>
+            </ul>
+          </div>
+          
+          <h2>Generating Configuration Profiles</h2>
+          <p>To easily construct schema-compliant configuration lines for your AI environment, use the built-in generator options. This command will print the JSON configuration block directly onto your shell terminal.</p>
+          
+          <h3>1. Stdio Interface Configuration</h3>
+          <p>Generate the configuration profile for standard process client integrations:</p>
           
           <div class="code-block-wrapper">
             <div class="code-header">
-              <span class="code-lang">json</span>
-              <button class="btn-copy">Copy</button>
+              <span class="code-lang">bash</span>
+              <button class="btn-copy">Copy Command</button>
+            </div>
+            <pre><code>pyproc mcp --generate-config</code></pre>
+          </div>
+
+          <p>This command prints the following JSON configuration to stdout:</p>
+          <div class="code-block-wrapper">
+            <div class="code-header">
+              <span class="code-lang">json (generated config)</span>
+              <button class="btn-copy">Copy JSON</button>
             </div>
             <pre><code>{
   "mcpServers": {
     "pyproc": {
-      "command": "pyproc-mcp",
+      "command": "/home/user/projects/pyproc/.venv/bin/pyproc-mcp",
       "env": {
-        "PYPROC_TIMEOUT": "30"
+        "PYPROC_TIMEOUT": "30",
+        "PYPROC_RATE_LIMIT_DELAY": "1.0",
+        "PYPROC_LOG_LEVEL": "INFO",
+        "PYPROC_SSL_VERIFY": "0",
+        "PYPROC_MCP_WORKERS": "4"
       }
     }
   }
 }</code></pre>
           </div>
-        </section>
 
-        <!-- Cursor -->
-        <section id="client-cursor" class="doc-section">
-          <h2>2. Cursor</h2>
-          <p>
-            Cursor supports custom local command-based MCP server endpoints.
-          </p>
-          <p>To register PyProc in Cursor, navigate to <strong>Settings &rarr; Features &rarr; MCP</strong>:</p>
-          <ol>
-            <li>Click <strong>+ Add New MCP Server</strong>.</li>
-            <li>Set <strong>Name</strong> to <code class="inline-code">pyproc</code>.</li>
-            <li>Set <strong>Type</strong> to <code class="inline-code">command</code>.</li>
-            <li>Set <strong>Command</strong> to: <code class="inline-code">pyproc-mcp</code>.</li>
-          </ol>
-        </section>
+          <h3>2. HTTP Interface Configuration</h3>
+          <p>Generate the configuration profile for HTTP-SSE connections (e.g. running the server on port 9090):</p>
 
-        <!-- Claude Code -->
-        <section id="client-claude" class="doc-section">
-          <h2>3. Claude Code</h2>
-          <p>
-            Claude Code resolves local MCP servers using standard process launching.
-          </p>
-          <p><strong>Installation Command:</strong></p>
           <div class="code-block-wrapper">
             <div class="code-header">
               <span class="code-lang">bash</span>
-              <button class="btn-copy">Copy</button>
+              <button class="btn-copy">Copy Command</button>
             </div>
-            <pre><code><span class="code-func">claude</span> mcp add pyproc -- pyproc-mcp</code></pre>
+            <pre><code>pyproc mcp --interface http --port 9090 --generate-config</code></pre>
           </div>
-          <p><strong>Manual Config Scope:</strong></p>
-          <p>Alternatively, edit your global user config file at <code class="inline-code">~/.claude.json</code> or project-local config at <code class="inline-code">.claude/mcp.json</code>:</p>
+
+          <p>This command prints the following JSON configuration to stdout:</p>
           <div class="code-block-wrapper">
             <div class="code-header">
-              <span class="code-lang">json</span>
-              <button class="btn-copy">Copy</button>
+              <span class="code-lang">json (generated config)</span>
+              <button class="btn-copy">Copy JSON</button>
             </div>
             <pre><code>{
   "mcpServers": {
     "pyproc": {
-      "command": "pyproc-mcp"
+      "type": "streamableHttp",
+      "url": "http://localhost:9090/"
     }
   }
 }</code></pre>
           </div>
-        </section>
-
-        <!-- Antigravity -->
-        <section id="client-antigravity" class="doc-section">
-          <h2>4. Google Antigravity</h2>
-          <p>
-            Antigravity registers external MCP tooling dynamically inside its modular sidecar engine.
-          </p>
-          <p><strong>Manual Configuration:</strong></p>
-          <p>Add the server configuration payload to your global config file at <code class="inline-code">~/.gemini/config/mcp_config.json</code> or project-local configuration directory at <code class="inline-code">.agents/mcp_config.json</code>:</p>
-          <div class="code-block-wrapper">
-            <div class="code-header">
-              <span class="code-lang">json</span>
-              <button class="btn-copy">Copy</button>
-            </div>
-            <pre><code>{
-  "mcpServers": {
-    "pyproc": {
-      "command": "pyproc-mcp"
-    }
-  }
-}</code></pre>
-          </div>
-        </section>
-
-        <!-- Codex -->
-        <section id="client-codex" class="doc-section">
-          <h2>5. Codex</h2>
-          <p>
-            Codex manages tool execution lists inside TOML configurations.
-          </p>
-          <p><strong>Installation Command:</strong></p>
-          <div class="code-block-wrapper">
-            <div class="code-header">
-              <span class="code-lang">bash</span>
-              <button class="btn-copy">Copy</button>
-            </div>
-            <pre><code>codex mcp add pyproc -- pyproc-mcp</code></pre>
-          </div>
-          <p><strong>TOML Configuration:</strong></p>
-          <p>Add to your settings at <code class="inline-code">~/.codex/config.toml</code> or local <code class="inline-code">.codex/config.toml</code>:</p>
-          <div class="code-block-wrapper">
-            <div class="code-header">
-              <span class="code-lang">toml</span>
-              <button class="btn-copy">Copy</button>
-            </div>
-            <pre><code>[mcp_servers.pyproc]
-command = "pyproc-mcp"
-args = []</code></pre>
-          </div>
-        </section>
-
-        <!-- OpenCode -->
-        <section id="client-opencode" class="doc-section">
-          <h2>6. OpenCode</h2>
-          <p>
-            OpenCode loads servers using custom configurations referencing local execution blocks.
-          </p>
-          <p><strong>JSON Configuration:</strong></p>
-          <p>Add to your settings file at <code class="inline-code">~/.config/opencode/opencode.json</code> or project root <code class="inline-code">opencode.json</code>:</p>
-          <div class="code-block-wrapper">
-            <div class="code-header">
-              <span class="code-lang">json</span>
-              <button class="btn-copy">Copy</button>
-            </div>
-            <pre><code>{
-  "mcp": {
-    "pyproc": {
-      "type": "local",
-      "command": ["pyproc-mcp"],
-      "enabled": true
-    }
-  }
-}</code></pre>
-          </div>
-        </section>
-
-        <!-- OpenClaw -->
-        <section id="client-openclaw" class="doc-section">
-          <h2>7. OpenClaw</h2>
-          <p>
-            OpenClaw controls standard local tools processes via commands setup and gateways.
-          </p>
-          <p><strong>Configuration Commands:</strong></p>
-          <div class="code-block-wrapper">
-            <div class="code-header">
-              <span class="code-lang">bash</span>
-              <button class="btn-copy">Copy</button>
-            </div>
-            <pre><code># Register the pyproc server command
-openclaw mcp set pyproc '{"command":"pyproc-mcp","args":[]}'
-
-# Restart the local openclaw gateway
-openclaw gateway restart</code></pre>
-          </div>
-        </section>
-
-        <!-- Hermes Agent -->
-        <section id="client-hermes" class="doc-section">
-          <h2>8. Hermes Agent</h2>
-          <p>
-            Hermes Agent is configured via a global YAML configuration file.
-          </p>
-          <p><strong>Configuration Settings:</strong></p>
-          <p>Modify your config file at <code class="inline-code">~/.hermes/config.yaml</code> by appending the command setup block:</p>
-          <div class="code-block-wrapper">
-            <div class="code-header">
-              <span class="code-lang">yaml</span>
-              <button class="btn-copy">Copy</button>
-            </div>
-            <pre><code>mcp_servers:
-  pyproc:
-    command: "pyproc-mcp"</code></pre>
-          </div>
-        </section>
-
-        <!-- Generic MCP Tutorial -->
-        <section id="client-generic" class="doc-section">
-          <h2>9. Generic MCP Tutorial</h2>
-          <p>
-            Any standard MCP client that executes external processes via command interfaces can integrate with PyProc. Ensure <code class="inline-code">pyproc-mcp</code> is globally accessible in your system shell path (e.g. within active virtual environments).
-          </p>
-          <p>For custom configurations, pass environment variables alongside execution parameters:</p>
-          <ul>
-            <li><strong>Command:</strong> <code class="inline-code">pyproc-mcp</code></li>
-            <li><strong>Environment:</strong>
-              <ul>
-                <li><code class="inline-code">PYPROC_TIMEOUT</code>: Request timeout in seconds.</li>
-                <li><code class="inline-code">PYPROC_SSL_VERIFY</code>: Set to <code class="inline-code">1</code> or <code class="inline-code">true</code> to enforce SSL checks.</li>
-              </ul>
-            </li>
-          </ul>
         </section>
 
         <!-- Pagination Navigation -->
         <div class="doc-pagination">
-          <a href="mcp-setup.html" class="pagination-link prev">
+          <a href="documentation.html" class="pagination-link prev">
             <span class="pagination-label">&larr; Previous</span>
-            <span class="pagination-title">Server Configuration</span>
+            <span class="pagination-title">Introduction & Installation</span>
           </a>
-          <a href="cli.html" class="pagination-link next">
+          <a href="client-setup.html" class="pagination-link next">
             <span class="pagination-label">Next &rarr;</span>
-            <span class="pagination-title">CLI Reference</span>
+            <span class="pagination-title">AI Client Integration</span>
           </a>
         </div>
       </main>
@@ -384,14 +252,14 @@ openclaw gateway restart</code></pre>
     
     // Initial highlight on load
     window.addEventListener('DOMContentLoaded', () => {
-      const currentPath = window.location.pathname.split('/').pop() || 'client-setup.html';
+      const currentPath = window.location.pathname.split('/').pop() || 'mcp-setup.html';
       const hash = window.location.hash;
       
       document.querySelectorAll('.sidebar-link').forEach(link => {
         const href = link.getAttribute('href');
         if (href === currentPath + hash || 
             (hash === '' && href === currentPath) ||
-            (currentPath === 'client-setup.html' && hash === '' && href === 'client-setup.html')) {
+            (currentPath === 'mcp-setup.html' && hash === '' && href === 'mcp-setup.html')) {
           link.classList.add('active');
         } else {
           if (!href.startsWith(currentPath)) {

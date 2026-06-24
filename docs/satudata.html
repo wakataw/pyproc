@@ -13,12 +13,6 @@
   <!-- Floating Glassmorphic Navbar -->
   <header class="navbar">
     <div class="navbar-container">
-      <a href="index.html" class="logo-link">
-        <img src="assets/logo.png" alt="PyProc Logo" class="logo-img">
-        <span>PyProc</span>
-        <span class="logo-badge">v0.3.3</span>
-      </a>
-      
       <!-- Sidebar Toggle (Mobile Only) -->
       <button id="sidebar-toggle" class="sidebar-toggle-btn" aria-label="Toggle Documentation Menu">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -26,8 +20,13 @@
           <line x1="3" y1="6" x2="21" y2="6"></line>
           <line x1="3" y1="18" x2="21" y2="18"></line>
         </svg>
-        <span>Docs Menu</span>
       </button>
+
+      <a href="index.html" class="logo-link">
+        <img src="assets/logo.png" alt="PyProc Logo" class="logo-img">
+        <span>PyProc</span>
+        <span class="logo-badge">v0.3.3</span>
+      </a>
 
       <nav>
         <ul class="nav-links">
@@ -67,15 +66,15 @@
           <li><a href="documentation.html#installation" class="sidebar-link" id="side-installation">Installation</a></li>
         </ul>
 
-        <h4 class="sidebar-title">Usage Modes</h4>
+        <h4 class="sidebar-title">MCP Setup</h4>
         <ul class="sidebar-menu">
-          <li><a href="mcp-server.html" class="sidebar-link" id="side-mcp-server">MCP Server Setup</a></li>
-          <li><a href="cli.html" class="sidebar-link" id="side-cli">CLI Reference</a></li>
-          <li><a href="satudata.html" class="sidebar-link" id="side-satudata-api">ISB Satu Data API</a></li>
+          <li><a href="mcp-setup.html" class="sidebar-link" id="side-mcp-setup">Server Configuration</a></li>
         </ul>
 
-        <h4 class="sidebar-title">AI Client Setup</h4>
+        <h4 class="sidebar-title">AI Client Integration</h4>
         <ul class="sidebar-menu font-small">
+          <li><a href="client-setup.html#client-claude-desktop" class="sidebar-link" id="side-client-claude-desktop">Claude Desktop</a></li>
+          <li><a href="client-setup.html#client-cursor" class="sidebar-link" id="side-client-cursor">Cursor</a></li>
           <li><a href="client-setup.html#client-claude" class="sidebar-link" id="side-client-claude">Claude Code</a></li>
           <li><a href="client-setup.html#client-antigravity" class="sidebar-link" id="side-client-antigravity">Antigravity</a></li>
           <li><a href="client-setup.html#client-codex" class="sidebar-link" id="side-client-codex">Codex</a></li>
@@ -83,6 +82,12 @@
           <li><a href="client-setup.html#client-openclaw" class="sidebar-link" id="side-client-openclaw">OpenClaw</a></li>
           <li><a href="client-setup.html#client-hermes" class="sidebar-link" id="side-client-hermes">Hermes Agent</a></li>
           <li><a href="client-setup.html#client-generic" class="sidebar-link" id="side-client-generic">Generic Tutorial</a></li>
+        </ul>
+
+        <h4 class="sidebar-title">Other Usage Modes</h4>
+        <ul class="sidebar-menu">
+          <li><a href="cli.html" class="sidebar-link" id="side-cli">CLI Reference</a></li>
+          <li><a href="satudata.html" class="sidebar-link" id="side-satudata-api">ISB Satu Data API</a></li>
         </ul>
 
         <h4 class="sidebar-title">Configuration</h4>
@@ -135,26 +140,16 @@ pyproc satudata tenderumum --kode-lpse 119 --tahun-anggaran 2026 --output json</
             <span class="pagination-label">&larr; Previous</span>
             <span class="pagination-title">CLI Reference</span>
           </a>
-          <a href="client-setup.html" class="pagination-link next">
+          <a href="configuration.html" class="pagination-link next">
             <span class="pagination-label">Next &rarr;</span>
-            <span class="pagination-title">AI Client Setup</span>
+            <span class="pagination-title">Configuration & Responsible Use</span>
           </a>
         </div>
       </main>
     </div>
   </div>
 
-  <!-- Footer -->
-  <footer class="footer">
-    <div class="container">
-      <div class="footer-bottom" style="border-top: none; padding-top: 0;">
-        <p>&copy; 2026 Agung Pratama and PyProc Contributors. Released under the MIT License.</p>
-        <div class="footer-disclaimer">
-          <strong>Disclaimer:</strong> This project is not affiliated with LKPP/LPSE/SPSE. Use responsibly.
-        </div>
-      </div>
-    </div>
-  </footer>
+
 
   <!-- Script for Sidebar and Copy Buttons -->
   <script>
