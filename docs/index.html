@@ -80,11 +80,22 @@
             <span class="terminal-btn maximize"></span>
           </div>
           <div class="terminal-title">mcp-client --server pyproc-mcp</div>
-          <button id="terminal-restart-btn" class="terminal-restart-btn" title="Restart Animation" aria-label="Restart Animation">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
-            </svg>
-          </button>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <button id="terminal-pause-btn" class="terminal-restart-btn" title="Pause Animation" aria-label="Pause Animation">
+              <svg id="pause-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="6" y="4" width="4" height="16"></rect>
+                <rect x="14" y="4" width="4" height="16"></rect>
+              </svg>
+              <svg id="play-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+              </svg>
+            </button>
+            <button id="terminal-restart-btn" class="terminal-restart-btn" title="Restart Animation" aria-label="Restart Animation">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+              </svg>
+            </button>
+          </div>
         </div>
         <div class="terminal-body" id="terminal-screen" style="height: 380px; overflow-y: auto; overflow-x: hidden; text-align: left; display: flex; flex-direction: column; position: relative; padding: 0;">
           <!-- Sticky User Prompt at the top -->
@@ -486,14 +497,14 @@
 🔟 <strong>10 Paket Tender Terbesar — Badan Gizi Nasional (MBG)</strong><br>
 <br>
 1. <strong>Jasa Konsultansi MK Wil. III Jawa</strong><br>
-Pemenang: <span class="col-winner">PT AMYTHAS</span><br>
+Pemenang: <span class="col-winner">PT A*****S</span><br>
 Hps: <span class="col-hps">Rp 20.71M</span><br>
 Nilai Kontrak: <span class="col-contract">Rp 18.66M</span><br>
 Instansi: BGN<br>
 Tahun: 2025<br>
 <br>
 2. <strong>Server & Data Center BGN</strong><br>
-Pemenang: <span class="col-winner">Lintas Anomali</span><br>
+Pemenang: <span class="col-winner">L*****s A*****i</span><br>
 Hps: <span class="col-hps">Rp 17.59M</span><br>
 Nilai Kontrak: <span class="col-contract">Rp 17.59M</span><br>
 Instansi: BGN<br>
@@ -507,7 +518,7 @@ Instansi: BGN<br>
 Tahun: 2025<br>
 <br>
 4. <strong>Jasa Konsultansi MK Wilayah VI</strong><br>
-Pemenang: <span class="col-winner">PT Fajar Nusa KSO</span><br>
+Pemenang: <span class="col-winner">PT F***r N**a KSO</span><br>
 Hps: <span class="col-hps">Rp 16.21M</span><br>
 Nilai Kontrak: <span class="col-contract">Rp 14.93M</span><br>
 Instansi: BGN<br>
@@ -535,14 +546,14 @@ Instansi: BGN<br>
 Tahun: 2025<br>
 <br>
 8. <strong>Cluster 4 Pembangunan SPPG Jatim</strong><br>
-Pemenang: <span class="col-winner">CV Melati Kurai</span><br>
+Pemenang: <span class="col-winner">CV M****i K***i</span><br>
 Hps: <span class="col-hps">Rp 8.88M</span><br>
 Nilai Kontrak: <span class="col-contract">Rp 7.44M</span><br>
 Instansi: BGN<br>
 Tahun: 2025<br>
 <br>
 9. <strong>Tim DTO Pusdatin Badan Gizi Nasional</strong><br>
-Pemenang: <span class="col-winner">Sangkuriang Int.</span><br>
+Pemenang: <span class="col-winner">S*********g I**.</span><br>
 Hps: <span class="col-hps">Rp 6.97M</span><br>
 Nilai Kontrak: <span class="col-contract">Rp 6.97M</span><br>
 Instansi: BGN<br>
@@ -567,6 +578,53 @@ Tahun: 2025`
     let typingTimeout = null;
     let isAnimationPlaying = false;
 
+    // Animation pause & play state variables
+    let isAnimationPaused = false;
+    let isManuallyPaused = false;
+    let resumeAction = null;
+
+    function updatePauseButtonUI() {
+      const pauseIcon = document.getElementById('pause-icon');
+      const playIcon = document.getElementById('play-icon');
+      const pauseBtn = document.getElementById('terminal-pause-btn');
+      if (pauseIcon && playIcon && pauseBtn) {
+        if (isAnimationPaused) {
+          pauseIcon.style.display = 'none';
+          playIcon.style.display = 'block';
+          pauseBtn.title = 'Resume Animation';
+          pauseBtn.setAttribute('aria-label', 'Resume Animation');
+        } else {
+          pauseIcon.style.display = 'block';
+          playIcon.style.display = 'none';
+          pauseBtn.title = 'Pause Animation';
+          pauseBtn.setAttribute('aria-label', 'Pause Animation');
+        }
+      }
+    }
+
+    function pauseAnimation() {
+      if (isAnimationPaused) return;
+      isAnimationPaused = true;
+      if (typingTimeout) {
+        clearTimeout(typingTimeout);
+        typingTimeout = null;
+      }
+      if (animationTimeout) {
+        clearTimeout(animationTimeout);
+        animationTimeout = null;
+      }
+      updatePauseButtonUI();
+    }
+
+    function resumeAnimation() {
+      if (!isAnimationPaused) return;
+      isAnimationPaused = false;
+      updatePauseButtonUI();
+      if (resumeAction && isAnimationPlaying) {
+        resumeAction();
+      }
+    }
+
     function appendLine(element) {
       scrollContent.appendChild(element);
       terminalScreen.scrollTop = terminalScreen.scrollHeight;
@@ -575,8 +633,12 @@ Tahun: 2025`
     function typeText(element, text, index, speed, callback) {
       if (index < text.length) {
         element.innerHTML += text.charAt(index);
-        typingTimeout = setTimeout(() => typeText(element, text, index + 1, speed, callback), speed);
+        resumeAction = () => typeText(element, text, index + 1, speed, callback);
+        if (!isAnimationPaused) {
+          typingTimeout = setTimeout(resumeAction, speed);
+        }
       } else {
+        resumeAction = null;
         if (callback) callback();
       }
     }
@@ -614,8 +676,12 @@ Tahun: 2025`
             }
           }
           terminalScreen.scrollTop = terminalScreen.scrollHeight;
-          typingTimeout = setTimeout(processNext, speed);
+          resumeAction = processNext;
+          if (!isAnimationPaused) {
+            typingTimeout = setTimeout(processNext, speed);
+          }
         } else {
+          resumeAction = null;
           if (callback) callback();
         }
       }
@@ -744,6 +810,10 @@ Tahun: 2025`
       }
       currentStep = 0;
       isAnimationPlaying = false;
+      isAnimationPaused = false;
+      isManuallyPaused = false;
+      resumeAction = null;
+      updatePauseButtonUI();
     }
 
     const observer = new IntersectionObserver((entries) => {
@@ -770,11 +840,14 @@ Tahun: 2025`
     function runAnimation() {
       if (currentStep >= steps.length) {
         // Reset animation after a delay
-        animationTimeout = setTimeout(() => {
+        resumeAction = () => {
           resetAnimationState();
           isAnimationPlaying = true;
           runAnimation();
-        }, 8000);
+        };
+        if (!isAnimationPaused) {
+          animationTimeout = setTimeout(resumeAction, 8000);
+        }
         return;
       }
 
@@ -788,7 +861,10 @@ Tahun: 2025`
           const cursor = document.getElementById('terminal-sticky-cursor');
           if (cursor) cursor.remove();
           currentStep++;
-          animationTimeout = setTimeout(runAnimation, 400);
+          resumeAction = runAnimation;
+          if (!isAnimationPaused) {
+            animationTimeout = setTimeout(runAnimation, 400);
+          }
         });
       } 
       
@@ -806,7 +882,10 @@ Tahun: 2025`
         
         appendLine(line);
         currentStep++;
-        animationTimeout = setTimeout(runAnimation, 600);
+        resumeAction = runAnimation;
+        if (!isAnimationPaused) {
+          animationTimeout = setTimeout(runAnimation, 600);
+        }
       } 
       
       else if (step.type === 'thought-block') {
@@ -814,7 +893,9 @@ Tahun: 2025`
         line.className = 'terminal-line';
         line.style.color = 'var(--text-muted)';
         line.style.fontStyle = 'italic';
-        line.style.paddingLeft = '0.5rem';
+        line.style.paddingLeft = '0';
+        line.style.paddingTop = '0.25rem';
+        line.style.paddingBottom = '0.25rem';
         line.style.marginBottom = '0.25rem';
         line.style.display = 'flex';
         line.style.alignItems = 'center';
@@ -834,7 +915,10 @@ Tahun: 2025`
         
         appendLine(line);
         currentStep++;
-        animationTimeout = setTimeout(runAnimation, 500);
+        resumeAction = runAnimation;
+        if (!isAnimationPaused) {
+          animationTimeout = setTimeout(runAnimation, 500);
+        }
       }
       
       else if (step.type === 'tool-call') {
@@ -845,7 +929,10 @@ Tahun: 2025`
         
         appendLine(line);
         currentStep++;
-        animationTimeout = setTimeout(runAnimation, 400);
+        resumeAction = runAnimation;
+        if (!isAnimationPaused) {
+          animationTimeout = setTimeout(runAnimation, 400);
+        }
       } 
       
       else if (step.type === 'tool-result') {
@@ -856,7 +943,10 @@ Tahun: 2025`
         
         appendLine(line);
         currentStep++;
-        animationTimeout = setTimeout(runAnimation, 400);
+        resumeAction = runAnimation;
+        if (!isAnimationPaused) {
+          animationTimeout = setTimeout(runAnimation, 400);
+        }
       } 
       
       else if (step.type === 'response') {
@@ -868,7 +958,10 @@ Tahun: 2025`
         
         typeHtml(line, step.html, 4, 1, () => {
           currentStep++;
-          animationTimeout = setTimeout(runAnimation, 800);
+          resumeAction = runAnimation;
+          if (!isAnimationPaused) {
+            animationTimeout = setTimeout(runAnimation, 800);
+          }
         });
       }
     }
@@ -1129,6 +1222,36 @@ Tahun: 2025`
           resetAnimationState();
           isAnimationPlaying = true;
           runAnimation();
+        });
+      }
+
+      // Pause/play toggle button listener
+      const pauseBtn = document.getElementById('terminal-pause-btn');
+      if (pauseBtn) {
+        pauseBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (isAnimationPaused) {
+            isManuallyPaused = false;
+            resumeAnimation();
+          } else {
+            isManuallyPaused = true;
+            pauseAnimation();
+          }
+        });
+      }
+
+      // Hover to pause / leave to resume listeners
+      if (terminalContainer) {
+        terminalContainer.addEventListener('mouseenter', () => {
+          if (isAnimationPlaying && !isSetupAnimationPlaying) {
+            pauseAnimation();
+          }
+        });
+        terminalContainer.addEventListener('mouseleave', () => {
+          if (isAnimationPlaying && !isSetupAnimationPlaying && !isManuallyPaused) {
+            resumeAnimation();
+          }
         });
       }
 

@@ -549,9 +549,7 @@ a:hover {
 
 .terminal-response {
   color: var(--text-primary);
-  border-top: 1px dashed var(--border-color);
-  padding-top: 0.75rem;
-  margin-top: 0.75rem;
+  margin-top: 0.25rem;
 }
 
 /* Styled Terminal ASCII Table */
