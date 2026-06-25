@@ -1,5 +1,5 @@
 /* PyProc MCP Documentation CSS */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
 :root {
   --bg-primary: #030303;
@@ -21,8 +21,8 @@
   --accent-emerald-rgb: 16, 185, 129;
   --accent-amber: #f59e0b;
 
-  --font-heading: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-heading: 'Instrument Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-body: 'Instrument Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
   --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -265,9 +265,9 @@ a:hover {
   text-align: center;
 }
 
-@media (min-width: 992px) {
+@media (min-width: 769px) {
   .hero {
-    padding-top: 110px;
+    padding-top: 120px;
     padding-bottom: 0;
     justify-content: flex-start;
   }
@@ -275,17 +275,22 @@ a:hover {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     min-height: calc(100vh - 110px);
+    gap: 3rem;
   }
   .hero .terminal-container {
     margin-bottom: -350px;
     position: relative;
     z-index: 10;
   }
-  #use-cases {
-    padding-top: calc(6rem + 350px);
-  }
+}
+
+.hero-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
 }
 
 .hero-tag {
@@ -299,7 +304,7 @@ a:hover {
   border-radius: 9999px;
   font-size: 0.85rem;
   font-weight: 500;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
   font-family: var(--font-mono);
 }
 
@@ -319,15 +324,24 @@ a:hover {
 }
 
 .hero-title {
-  font-size: 3.5rem;
-  font-weight: 800;
-  line-height: 1.1;
+  font-size: 2.25rem; /* text-4xl */
+  font-weight: 600; /* font-semibold */
+  letter-spacing: -0.025em; /* tracking-tight */
+  text-wrap: balance; /* text-balance */
+  line-height: 1.15;
   max-width: 900px;
-  margin: 0 auto 1.5rem auto;
+  margin: 0 auto 1.25rem auto;
   background: linear-gradient(135deg, #fff 30%, #a1a1aa 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+
+@media (min-width: 640px) {
+  .hero-title {
+    font-size: 3.75rem; /* sm:text-6xl */
+  }
+}
+
 
 .hero-title span.glow-text {
   background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet));
@@ -339,15 +353,57 @@ a:hover {
   font-size: 1.15rem;
   color: var(--text-secondary);
   max-width: 600px;
-  margin: 0 auto 2rem auto;
+  margin: 0 auto 3rem auto;
 }
 
 .hero-ctas {
   display: flex;
   gap: 1rem;
   justify-content: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
 }
+
+.hero-install-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  width: 100%;
+}
+
+.hero-install-box {
+  display: flex;
+  align-items: center;
+  background: rgba(9, 9, 11, 0.6);
+  border: 1px solid var(--border-color);
+  padding: 0.5rem 1.25rem;
+  border-radius: 9999px;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), inset 0 1px 1px rgba(255, 255, 255, 0.05);
+}
+
+.install-prompt {
+  color: var(--accent-cyan);
+  margin-right: 0.5rem;
+  user-select: none;
+  font-weight: 600;
+}
+
+.install-cmd {
+  color: var(--text-primary);
+  margin-right: 1.25rem;
+  user-select: all;
+}
+
+.hero-install-box .btn-copy {
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
 
 /* Animated Terminal Component */
 .terminal-container {
@@ -520,6 +576,13 @@ a:hover {
 
 #use-cases {
   border-top: none;
+  padding-top: 0;
+}
+
+@media (min-width: 769px) {
+  #use-cases {
+    padding-top: calc(6rem + 350px);
+  }
 }
 
 .section-header {
@@ -548,6 +611,8 @@ a:hover {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 2rem;
+  padding-top: 12px;
+  margin-top: -12px;
 }
 
 .use-case-card {
@@ -791,7 +856,7 @@ a:hover {
 /* Responsive fixes for card stack and sliders */
 @media (max-width: 768px) {
   .hero {
-    padding-top: 120px !important;
+    padding-top: 80px !important;
     padding-bottom: 4rem !important;
     justify-content: flex-start !important;
     min-height: auto !important;
@@ -849,6 +914,8 @@ a:hover {
     flex-wrap: nowrap !important;
     gap: 1.5rem !important;
     width: max-content !important;
+    padding-top: 12px !important;
+    margin-top: -12px !important;
   }
   
   .use-case-card {
@@ -1381,7 +1448,6 @@ code.inline-code {
 
 /* Responsive Utilities */
 @media (max-width: 991px) {
-  .hero-title { font-size: 2.75rem; }
   .doc-layout { flex-direction: column; gap: 2rem; }
   
   .logo-link {
@@ -1440,17 +1506,18 @@ code.inline-code {
 }
 
 @media (max-width: 576px) {
-  .hero-title { font-size: 2rem; }
   .hero-ctas {
     flex-direction: column;
     gap: 0.75rem;
     width: 100%;
     max-width: 320px;
-    margin: 0 auto 4rem auto;
+    margin: 0 auto 32px auto;
+  }
+  .hero-install-container {
+    margin-bottom: 32px;
   }
   .hero-ctas .btn { width: 100%; }
   .navbar-container { padding: 0 1rem; }
-  .nav-links { display: none; }
   .container { padding: 0 1rem; }
   .terminal-body { font-size: 0.8rem; min-height: 420px; }
 }
@@ -1529,5 +1596,13 @@ code.inline-code {
   }
   .pagination-link.next {
     align-self: flex-end;
+  }
+  .nav-links li:not(:last-child) {
+    display: none;
+  }
+  .btn-github {
+    font-size: 0;
+    gap: 0;
+    padding: 0.5rem;
   }
 }

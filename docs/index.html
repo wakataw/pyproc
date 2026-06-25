@@ -42,23 +42,34 @@
       <div class="glow-mesh"></div>
     </div>
     <div class="container">
-      <div class="hero-tag">
-        <span></span> MCP SERVER FOR LLM CLIENTS
+      <div class="hero-content">
+        <div class="hero-tag">
+          <span></span> MCP SERVER FOR LLM CLIENTS
+        </div>
+        <h1 class="hero-title">
+          Real-Time Indonesian Procurement Data for <span class="glow-text">AI Agents</span>
+        </h1>
+        <p class="hero-subtitle">
+          PyProc MCP turns public SPSE/Inaproc procurement data into standard MCP tools, libraries, and CLI subcommands. Bring real-time bidding intelligence straight to Claude, Cursor, and custom agents.
+        </p>
+        
+        <div class="hero-ctas">
+          <a href="documentation.html" class="btn btn-primary">
+            Get Started
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+          </a>
+          <a href="api.html" class="btn btn-secondary">Explore API Docs</a>
+        </div>
+
+        <div class="hero-install-container">
+          <div class="hero-install-box">
+            <span class="install-prompt">$</span>
+            <code class="install-cmd"><span class="code-kw">pip</span> <span class="code-func">install</span> <span class="code-str">"pyproc[mcp]"</span></code>
+            <button class="btn-copy">Copy</button>
+          </div>
+        </div>
       </div>
-      <h1 class="hero-title">
-        Real-Time Indonesian Procurement Data for <span class="glow-text">AI Agents</span>
-      </h1>
-      <p class="hero-subtitle">
-        PyProc MCP turns public SPSE/Inaproc procurement data into standard MCP tools, libraries, and CLI subcommands. Bring real-time bidding intelligence straight to Claude, Cursor, and custom agents.
-      </p>
-      
-      <div class="hero-ctas">
-        <a href="documentation.html" class="btn btn-primary">
-          Get Started
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-        </a>
-        <a href="api.html" class="btn btn-secondary">Explore API Docs</a>
-      </div>
+
 
       <!-- Animated Terminal Mimicking Prompting & LLM Thinking -->
       <div class="terminal-container">
@@ -520,6 +531,107 @@
       }
     }
 
+    let setupStepIndex = 0;
+    let setupTimeout = null;
+    let isSetupAnimationPlaying = false;
+
+    const setupSteps = [
+      { type: 'line', text: '$ pip install "pyproc[mcp]"', color: '#fff' },
+      { type: 'line', text: 'Collecting pyproc[mcp]', color: 'var(--text-secondary)' },
+      { type: 'line', text: '  Downloading pyproc-1.2.0-py3-none-any.whl (142 kB)', color: 'var(--text-secondary)' },
+      { type: 'progress' },
+      { type: 'line', text: 'Successfully installed pyproc-1.2.0 mcp-0.1.0', color: 'var(--accent-emerald)' },
+      { type: 'line', text: '$ pyproc mcp --generate-config', color: '#fff' },
+      { type: 'line', text: 'Creating configuration file at ~/.config/pyproc/config.yaml...', color: 'var(--text-secondary)' },
+      { type: 'line', text: '$ mcp-server --interface stdio', color: '#fff' },
+      { type: 'line', text: '⚡ PyProc MCP Server starting...', color: 'var(--accent-cyan)' },
+      { type: 'loading', text: 'Loading capability engines...', duration: 1200 },
+      { type: 'line', text: '🟢 PyProc MCP is ready and listening on stdio!', color: 'var(--accent-emerald)' },
+      { type: 'line', text: '   Waiting for LLM client connection...', color: 'var(--text-muted)' }
+    ];
+
+    function startSetupAnimation() {
+      scrollContent.innerHTML = '';
+      stickyPrompt.style.display = 'none';
+      stickyInput.textContent = '';
+      setupStepIndex = 0;
+      isSetupAnimationPlaying = true;
+      runSetupAnimation();
+    }
+
+    function stopSetupAnimation() {
+      isSetupAnimationPlaying = false;
+      if (setupTimeout) {
+        clearTimeout(setupTimeout);
+        setupTimeout = null;
+      }
+    }
+
+    function runSetupAnimation() {
+      if (!isSetupAnimationPlaying) return;
+      if (setupStepIndex >= setupSteps.length) {
+        return;
+      }
+
+      const step = setupSteps[setupStepIndex];
+      const line = document.createElement('div');
+      line.className = 'terminal-line';
+      line.style.textAlign = 'left';
+      line.style.fontFamily = 'var(--font-mono)';
+      line.style.fontSize = '0.9rem';
+      line.style.marginBottom = '0.5rem';
+
+      if (step.type === 'line') {
+        line.style.color = step.color || 'var(--text-primary)';
+        line.textContent = step.text;
+        appendLine(line);
+        setupStepIndex++;
+        setupTimeout = setTimeout(runSetupAnimation, step.text.startsWith('$') ? 800 : 500);
+      } else if (step.type === 'progress') {
+        let percent = 0;
+        line.style.color = 'var(--accent-cyan)';
+        appendLine(line);
+        
+        function updateProgress() {
+          if (!isSetupAnimationPlaying) return;
+          if (percent <= 100) {
+            const width = Math.round(percent / 2.5);
+            const bar = '='.repeat(width) + ' '.repeat(40 - width);
+            line.innerHTML = `<span style="color: var(--text-secondary);">Installing...</span> [${bar}] ${percent}%`;
+            percent += Math.floor(Math.random() * 15) + 8;
+            if (percent > 100) percent = 100;
+            
+            terminalScreen.scrollTop = terminalScreen.scrollHeight;
+            
+            if (percent === 100) {
+              setupStepIndex++;
+              setupTimeout = setTimeout(runSetupAnimation, 500);
+            } else {
+              setupTimeout = setTimeout(updateProgress, 80 + Math.random() * 100);
+            }
+          }
+        }
+        updateProgress();
+      } else if (step.type === 'loading') {
+        const spinner = document.createElement('span');
+        spinner.className = 'spinner';
+        spinner.style.display = 'inline-block';
+        spinner.style.marginRight = '0.5rem';
+        spinner.style.verticalAlign = 'middle';
+        
+        const textSpan = document.createElement('span');
+        textSpan.textContent = step.text;
+        textSpan.style.color = 'var(--text-secondary)';
+        
+        line.appendChild(spinner);
+        line.appendChild(textSpan);
+        appendLine(line);
+        
+        setupStepIndex++;
+        setupTimeout = setTimeout(runSetupAnimation, step.duration || 1500);
+      }
+    }
+
     function resetAnimationState() {
       if (animationTimeout) {
         clearTimeout(animationTimeout);
@@ -549,12 +661,17 @@
         const isFullyVisible = entry.intersectionRatio >= 0.99 || (isTallerThanViewport && entry.isIntersecting);
         
         if (isFullyVisible) {
+          stopSetupAnimation();
           if (!isAnimationPlaying) {
+            resetAnimationState();
             isAnimationPlaying = true;
             runAnimation();
           }
         } else {
           resetAnimationState();
+          if (!isSetupAnimationPlaying) {
+            startSetupAnimation();
+          }
         }
       });
     }, { threshold: [0, 0.99] });
@@ -835,12 +952,35 @@
       }
     });
 
-    // Code copy event listener for index.html
+    // Code copy event listener for index.html with fallback support
     document.querySelectorAll('.btn-copy').forEach(button => {
       button.addEventListener('click', () => {
-        const container = button.closest('.stack-card') || button.closest('.code-block-wrapper');
+        const container = button.closest('.stack-card') || button.closest('.code-block-wrapper') || button.closest('.hero-install-box');
         const code = container.querySelector('code').innerText;
-        navigator.clipboard.writeText(code).then(() => {
+        
+        const copyToClipboard = (text) => {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            return navigator.clipboard.writeText(text);
+          } else {
+            // Fallback for non-secure contexts / local files
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+              document.execCommand('copy');
+              document.body.removeChild(textarea);
+              return Promise.resolve();
+            } catch (err) {
+              document.body.removeChild(textarea);
+              return Promise.reject(err);
+            }
+          }
+        };
+
+        copyToClipboard(code).then(() => {
           const original = button.innerText;
           button.innerText = 'Copied!';
           button.style.color = 'var(--accent-emerald)';
@@ -848,6 +988,8 @@
             button.innerText = original;
             button.style.color = '';
           }, 2000);
+        }).catch(err => {
+          console.error('Failed to copy text: ', err);
         });
       });
     });
