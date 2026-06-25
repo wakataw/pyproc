@@ -13,10 +13,10 @@
   --text-secondary: #a1a1aa;
   --text-muted: #71717a;
   
-  --accent-cyan: #3b82f6;
-  --accent-cyan-rgb: 59, 130, 246;
-  --accent-violet: #ce1126;
-  --accent-violet-rgb: 206, 17, 38;
+  --accent-cyan: #ef4444;
+  --accent-cyan-rgb: 239, 68, 68;
+  --accent-violet: #991b1b;
+  --accent-violet-rgb: 153, 27, 27;
   --accent-emerald: #10b981;
   --accent-emerald-rgb: 16, 185, 129;
   --accent-amber: #f59e0b;
@@ -126,7 +126,7 @@ a:hover {
   font-size: 0.7rem;
   background: rgba(var(--accent-violet-rgb), 0.15);
   border: 1px solid rgba(var(--accent-violet-rgb), 0.3);
-  color: #f87171;
+  color: #fca5a5;
   padding: 0.1rem 0.5rem;
   border-radius: 9999px;
   font-family: var(--font-mono);
@@ -821,7 +821,7 @@ a:hover {
 .code-kw { color: #f43f5e; font-weight: 600; }
 .code-str { color: #10b981; }
 .code-func { color: #06b6d4; font-weight: 500; }
-.code-var { color: #f87171; }
+.code-var { color: #fca5a5; }
 .code-comment { color: #71717a; font-style: italic; }
 
 /* Card 3D overlapping states */
