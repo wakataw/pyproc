@@ -494,195 +494,402 @@
         type: 'response', 
         html: `Semua data pemenang sudah terkumpul. Berikut adalah daftar lengkap pengadaan terkait Badan Gizi Nasional, Makan Bergizi Gratis, dan MBG (TA 2025 & 2026) yang diurutkan berdasarkan HPS tertinggi, lengkap dengan pemenangnya:<br>
 <br>
----<br>
-📊 Ringkasan Pencarian<br>
-<pre style="font-family: var(--font-mono); font-size: 0.85rem; line-height: 1.2; color: var(--text-secondary); margin: 0.5rem 0;">
-┌───────────────────────┬────────────────────────────────────────────────┐
-│       Parameter       │                     Detail                     │
-├───────────────────────┼────────────────────────────────────────────────┤
-│ LPSE Host             │ Nasional (spse.inaproc.id/nasional)            │
-├───────────────────────┼────────────────────────────────────────────────┤
-│ Kata Kunci            │ Badan Gizi Nasional, Makan Bergizi Gratis, MBG │
-├───────────────────────┼────────────────────────────────────────────────┤
-│ Tahun Anggaran        │ 2025 & 2026                                    │
-├───────────────────────┼────────────────────────────────────────────────┤
-│ Total Paket Ditemukan │ 36 paket unik                                  │
-├───────────────────────┼────────────────────────────────────────────────┤
-│ Total HPS             │ ± Rp 156,8 Miliar                              │
-├───────────────────────┼────────────────────────────────────────────────┤
-│ Pencarian             │ Realtime dari SPSE (bukan SatuData)            │
-└───────────────────────┴────────────────────────────────────────────────┘
-</pre>
----<br>
-🏆 Top 20 Paket dengan HPS Tertinggi + Pemenang<br>
-<pre style="font-family: var(--font-mono); font-size: 0.78rem; line-height: 1.25; color: var(--text-secondary); margin: 0.5rem 0; overflow-x: auto;">
-┌─────┬───────────────────────────┬───────────────┬──────────┬───────┐
-│  #  │        Nama Paket         │ Instansi │  HPS  │        Pemenang         │  Nilai   │ Tahun │
-│     │                           │          │       │                         │ Kontrak  │       │
-├─────┼───────────────────────────┼───────────────┼──────────┼───────┤
-│     │ Jasa Konsultansi          │          │ Rp    │                         │ Rp 18,6  │       │
-│ 1   │ Manajemen Konstruksi Wil. │ BGN      │ 20,7  │ PT A*****S              │ M        │ 2025  │
-│     │  III Jawa                 │          │ M     │                         │          │       │
-├─────┼───────────────────────────┼──────────┼───────┼─────────────────────────┼──────────┼───────┤
-│     │ Belanja Modal Peralatan & │          │ Rp    │                         │ Rp 17,6  │       │
-│ 2   │  Mesin Pembangunan Data   │ BGN      │ 17,6  │ MA R*******A            │ M        │ 2025  │
-│     │  Center BGN               │          │ M     │                         │          │       │
-├─────┼───────────────────────────┼──────────┼───────┼─────────────────────────┼──────────┼───────┤
-│     │ Jasa Konsultansi          │          │ Rp    │                         │ Rp 12,1  │       │
-│ 3   │ Manajemen Konstruksi Wil. │ BGN      │ 13,5  │ PT A*****S              │ M        │ 2025  │
-│     │  IV Bali & Nusa Tenggara  │          │ M     │                         │          │       │
-├─────┼───────────────────────────┼──────────┼───────┼─────────────────────────┼──────────┼───────┤
-│     │ Jasa Konsultansi          │          │ Rp    │                         │ Rp 12,1  │       │
-│ 4   │ Manajemen Konstruksi Wil. │ BGN      │ 13,5  │ PT A*****S              │ M        │ 2025  │
-│     │  VI Maluku & Papua        │          │ M     │                         │          │       │
-├─────┼───────────────────────────┼──────────┼───────┼─────────────────────────┼──────────┼───────┤
-│     │ Jasa Konsultansi          │          │ Rp    │ (belum ada data         │          │       │
-│ 5   │ Manajemen Konstruksi Wil. │ BGN      │ 13,4  │ pemenang)               │ —        │ 2025  │
-│     │  V Sulawesi               │          │ M     │                         │          │       │
-├─────┼───────────────────────────┼──────────┼───────┼─────────────────────────┼──────────┼───────┤
-│     │ Jasa Konsultansi          │          │ Rp    │ (belum ada data         │          │       │
-│ 6   │ Manajemen Konstruksi Wil. │ BGN      │ 12,8  │ pemenang)               │ —        │ 2025  │
-│     │  I Sumatera 1             │          │ M     │                         │          │       │
-├─────┼───────────────────────────┼──────────┼───────┼─────────────────────────┼──────────┼───────┤
-│     │ Jasa Konsultansi          │          │ Rp    │ (belum ada data         │          │       │
-│ 7   │ Manajemen Konstruksi Wil. │ BGN      │ 12,8  │ pemenang)               │ —        │ 2025  │
-│     │  II Sumatera 2            │          │ M     │                         │          │       │
-├─────┼───────────────────────────┼──────────┼───────┼─────────────────────────┼──────────┼───────┤
-│ 8   │ Cluster 4 Pembangunan     │ BGN      │ Rp    │ PT. K***I               │ Rp 7,4 M │ 2025  │
-│     │ SPPG di Prov. Jawa Timur  │          │ 8,2 M │                         │          │       │
-├─────┼───────────────────────────┼──────────┼───────┼─────────────────────────┼──────────┼───────┤
-│     │ Pengadaan Jasa Lainnya    │          │ Rp    │ PT S**********G         │          │       │
-│ 9   │ Tim DTO Pusdatin Badan    │ BGN      │ 7,0 M │ INTERNASIONAL           │ Rp 7,0 M │ 2025  │
-│     │ Gizi Nasional             │          │       │                         │          │       │
-├─────┼───────────────────────────┼──────────┼───────┼─────────────────────────┼──────────┼───────┤
-│     │ Analisis Proses Bisnis    │          │ Rp    │ PT. C*********A         │ Rp 3,0   │ 2025  │
-│ 10  │ Program MBG               │ BGN      │ 3,5 M │ CONSULTANTS             │ M*       │       │
-├─────┼───────────────────────────┼──────────┼───────┼─────────────────────────┼──────────┼───────┤
-│ 11  │ Sistem Pelaporan MBG      │ BGN      │ Rp    │ PT M**** I******        │ Rp 2,7   │ 2025  │
-│     │ Memanfaatkan IoT dan AI   │          │ 3,0 M │ Digital                 │ M*       │       │
-├─────┼───────────────────────────┼──────────┼───────┼─────────────────────────┼──────────┼───────┤
-│     │ Analisis Dampak dan       │          │ Rp    │                         │ Rp 2,6   │       │
-│ 12  │ Evaluasi Program MBG      │ BGN      │ 3,0 M │ PT. M**** G**** P****   │ M*       │ 2025  │
-│     │ terhadap Indikator Makro  │          │       │                         │          │       │
-├─────┼───────────────────────────┼──────────┼───────┼─────────────────────────┼──────────┼───────┤
-│     │ Konferensi Tahunan        │          │ Rp    │                         │ Rp 2,2   │       │
-│ 13  │ Pembangunan Berkelanjutan │ BGN      │ 2,4 M │ N***A K***** U****      │ M*       │ 2025  │
-│     │ melalui MBG               │          │       │                         │          │       │
-├─────┼───────────────────────────┼──────────┼───────┼─────────────────────────┼──────────┼───────┤
-│     │ Desain Dashboard Eksekutif│ BGN      │ Rp    │ PT S**********G         │ Rp 1,8   │ 2025  │
-│ 14  │ Program MBG               │          │ 2,0 M │ INTERNASIONAL           │ M*       │       │
-├─────┼───────────────────────────┼──────────┼───────┼─────────────────────────┼──────────┼───────┤
-│     │ Penyediaan Ikan untuk     │          │ Rp    │                         │ Rp 1,7   │       │
-│ 15  │ MBG                       │ BGN      │ 1,8 M │ PT. I****** M****       │ M*       │ 2025  │
-│     │                           │          │       │                         │          │       │
-├─────┼───────────────────────────┼──────────┼───────┼─────────────────────────┼──────────┼───────┤
-│     │ Penguatan Tata Kelola     │          │ Rp    │ PT. A****A              │ Rp 1,4   │       │
-│ 16  │ Pemenuhan Sumber Pangan   │ BGN      │ 1,6 M │ INTERNATIONAL           │ M*       │ 2025  │
-│     │ untuk MBG                 │          │       │                         │          │       │
-├─────┼───────────────────────────┼──────────┼───────┼─────────────────────────┼──────────┼───────┤
-│     │ Analisis Kesiapan Wilayah │          │ Rp    │ PT. S******* I********  │ Rp 1,5   │       │
-│ 17  │ Penyediaan Susu untuk     │ BGN      │ 1,6 M │ (PERSERO)               │ M*       │ 2025  │
-│     │ MBG                       │          │       │                         │          │       │
-├─────┼───────────────────────────┼──────────┼───────┼─────────────────────────┼──────────┼───────┤
-│     │ Analisis Food Loss dan    │          │ Rp    │                         │ Rp 1,3   │       │
-│ 18  │ Food Waste dalam          │ BGN      │ 1,5 M │ D***** S*****           │ M*       │ 2025  │
-│     │ Pemenuhan Gizi            │          │       │                         │          │       │
-├─────┼───────────────────────────┼──────────┼───────┼─────────────────────────┼──────────┼───────┤
-│ 19  │ Pemetaan Status Gizi      │ BGN      │ Rp    │ PT. D***** S***** KSO   │ Rp 1,3   │ 2025  │
-│     │ Nasional                  │          │ 1,4 M │ PT I****** M****        │ M*       │       │
-├─────┼───────────────────────────┼──────────┼───────┼─────────────────────────┼──────────┼───────┤
-│     │ Pengembangan Mekanisme    │          │ Rp    │ PT I****** M**** KSO PT │ Rp 1,3   │       │
-│ 20  │ Pemantauan Indikator      │ BGN      │ 1,4 M │ T*** P**** J***         │ M*       │ 2025  │
-│     │ Ekonomi Wilayah MBG       │          │       │                         │          │       │
-└─────┴───────────────────────────┴──────────┴───────┴─────────────────────────┴──────────┴───────┘
-</pre>
-▎ Keterangan: nilai kontrak bertanda (*) = pemenang sudah diumumkan tapi kontrak belum tercatat di SPSE<br>
+📊 <strong>Ringkasan Pencarian</strong>
+<div class="term-summary-grid">
+  <div class="term-summary-row">
+    <div class="term-summary-label">LPSE Host</div>
+    <div class="term-summary-val">Nasional (spse.inaproc.id/nasional)</div>
+  </div>
+  <div class="term-summary-row">
+    <div class="term-summary-label">Kata Kunci</div>
+    <div class="term-summary-val">Badan Gizi Nasional, Makan Bergizi Gratis, MBG</div>
+  </div>
+  <div class="term-summary-row">
+    <div class="term-summary-label">Tahun Anggaran</div>
+    <div class="term-summary-val">2025 & 2026</div>
+  </div>
+  <div class="term-summary-row">
+    <div class="term-summary-label">Total Paket Ditemukan</div>
+    <div class="term-summary-val">36 paket unik</div>
+  </div>
+  <div class="term-summary-row">
+    <div class="term-summary-label">Total HPS</div>
+    <div class="term-summary-val">± Rp 156,8 Miliar</div>
+  </div>
+  <div class="term-summary-row">
+    <div class="term-summary-label">Metode Pencarian</div>
+    <div class="term-summary-val">Realtime dari SPSE (bukan SatuData)</div>
+  </div>
+</div>
 <br>
----<br>
-📋 Paket Tambahan (HPS &lt; Rp 1,4 Miliar)<br>
-<pre style="font-family: var(--font-mono); font-size: 0.78rem; line-height: 1.25; color: var(--text-secondary); margin: 0.5rem 0; overflow-x: auto;">
-┌─────┬─────────────────────┬──────────┬─────┬────────────────────────────────┬─────────┬───────┐
-│  #  │     Nama Paket      │ Instansi │ HPS │            Pemenang            │ Nilai   │ Tahun │
-│     │                     │          │     │                                │ Kontrak │       │
-├─────┼─────────────────────┼──────────┼─────┼────────────────────────────────┼─────────┼───────┤
-│     │ Kurikulum PPPK      │          │ Rp  │                                │ Rp 1,1  │       │
-│ 21  │ Bidang Ketahanan    │ BGN      │ 1,2 │ PT. M****                      │ M       │ 2026  │
-│     │ Pangan              │          │  M  │                                │         │       │
-├─────┼─────────────────────┼──────────┼─────┼────────────────────────────────┼─────────┼───────┤
-│     │ Kurikulum PPPK      │          │ Rp  │                                │ Rp 1,1  │       │
-│ 22  │ Bidang              │ BGN      │ 1,2 │ PT. M***** A*** P******        │ M       │ 2026  │
-│     │ Standardisasi HACCP │          │  M  │                                │         │       │
-├─────┼─────────────────────┼──────────┼─────┼────────────────────────────────┼─────────┼───────┤
-│     │ Kurikulum PPPK      │          │ Rp  │                                │ Rp 1,1  │       │
-│ 23  │ Bidang Halal        │ BGN      │ 1,2 │ PT. M***** A*** P******        │ M       │ 2026  │
-│     │                     │          │  M  │                                │         │       │
-├─────┼─────────────────────┼──────────┼─────┼────────────────────────────────┼─────────┼───────┤
-│     │ Kurikulum PPPK      │          │ Rp  │                                │ Rp 1,1  │       │
-│ 24  │ Manajemen Risiko    │ BGN      │ 1,2 │ PT. C*********A CONSULTANTS    │ M       │ 2026  │
-│     │ Pengelolaan MBG     │          │  M  │                                │         │       │
-├─────┼─────────────────────┼──────────┼─────┼────────────────────────────────┼─────────┼───────┤
-│     │ Kurikulum PPPK      │          │ Rp  │                                │ Rp 1,1  │       │
-│ 25  │ Bidang Kesehatan    │ BGN      │ 1,2 │ PT. K****** K*********         │ M       │ 2026  │
-│     │ Lingkungan          │          │  M  │                                │         │       │
-├─────┼─────────────────────┼──────────┼─────┼────────────────────────────────┼─────────┼───────┤
-│     │ Kurikulum PPPK      │          │ Rp  │                                │ Rp 1,1  │       │
-│ 26  │ Bidang Pemenuhan    │ BGN      │ 1,2 │ PT. M****                      │ M       │ 2026  │
-│     │ Gizi                │          │  M  │                                │         │       │
-├─────┼─────────────────────┼──────────┼─────┼────────────────────────────────┼─────────┼───────┤
-│     │ Pengembangan        │ Kemenkop │ Rp  │                                │ Rp 959  │       │
-│ 27  │ Kapasitas UMKM MBG  │ UMKM     │ 1,1 │ PT. M**** M****** G****        │ Jt      │ 2026  │
-│     │ Wilayah Timur       │          │  M  │                                │         │       │
-├─────┼─────────────────────┼──────────┼─────┼────────────────────────────────┼─────────┼───────┤
-│     │ Pengembangan        │          │ Rp  │                                │         │       │
-│ 28  │ Regulasi &          │ BGN      │ 1,0 │ PT. P******* K********** KSO   │ Rp 885  │ 2025  │
-│     │ Kelembagaan Program │          │  M  │ C******                         │ Jt      │       │
-│     │ MBG                 │          │     │                                │         │       │
-├─────┼─────────────────────┼──────────┼─────┼────────────────────────────────┼─────────┼───────┤
-│     │ Pengembangan Peta   │          │ Rp  │                                │         │       │
-│ 29  │ Jalan Perubahan     │ BGN      │ 1,0 │ PT A*****S                     │ Rp 930  │ 2025  │
-│     │ Perilaku Makan      │          │  M  │                                │ Jt*     │       │
-│     │ Masyarakat          │          │     │                                │         │       │
-├─────┼─────────────────────┼──────────┼─────┼────────────────────────────────┼─────────┼───────┤
-│     │ Pengembangan        │ Kemenkop │ Rp  │                                │ Rp 808  │       │
-│ 30  │ Kapasitas UMKM MBG  │ UMKM     │ 922 │ PT. M**** M****** G****        │ Jt      │ 2026  │
-│     │ Wilayah Barat       │          │  Jt │                                │         │       │
-├─────┼─────────────────────┼──────────┼─────┼────────────────────────────────┼─────────┼───────┤
-│     │ Analisis Pembiayaan │          │ Rp  │                                │ Rp 554  │       │
-│ 31  │ Program MBG         │ BGN      │ 600 │ PT. P******* K********** KSO   │ Jt*     │ 2025  │
-│     │                     │          │  Jt │ C******                         │         │       │
-├─────┼─────────────────────┼──────────┼─────┼────────────────────────────────┼─────────┼───────┤
-│     │ Penyediaan Bahan    │          │ Rp  │                                │ Rp 376  │       │
-│ 32  │ Pangan Hortikultura │ BGN      │ 400 │ PT. A**                        │ Jt*     │ 2025  │
-│     │ untuk MBG           │          │  Jt │ INTERNASIONAL                  │         │       │
-├─────┼─────────────────────┼──────────┼─────┼────────────────────────────────┼─────────┼───────┤
-│     │ Penyediaan Sumber   │          │ Rp  │                                │ Rp 371  │       │
-│ 33  │ Protein untuk MBG   │ BGN      │ 400 │ PT. S**** R****** INDONESIA    │ Jt*     │ 2025  │
-│     │                     │          │  Jt │                                │         │       │
-├─────┼─────────────────────┼──────────┼─────┼────────────────────────────────┼─────────┼───────┤
-│     │ Tenaga Ahli Senior  │          │ Rp  │                                │ Rp 250  │       │
-│ 34  │ Kewirausahaan MBG   │ BGN      │ 329 │ C********* B**** N************ │ Jt*     │ 2025  │
-│     │                     │          │  Jt │                                │         │       │
-├─────┼─────────────────────┼──────────┼─────┼────────────────────────────────┼─────────┼───────┤
-│     │ Koordinator Tenaga  │          │ Rp  │                                │         │       │
-│ 35  │ Ahli Sistem         │ BGN      │ 165 │ M****** A****                  │ Rp 153  │ 2025  │
-│     │ Pemenuhan Gizi      │          │  Jt │                                │ Jt      │       │
-│     │ Nasional            │          │     │                                │         │       │
-├─────┼─────────────────────┼──────────┼─────┼────────────────────────────────┼─────────┼───────┤
-│     │ Tenaga Ahli         │          │ Rp  │                                │         │       │
-│ 36  │ Individu            │ BGN      │ 135 │ Prof. Dr. Ir. K*****, M.Kom    │ Rp 135  │ 2025  │
-│     │ Perencanaan &       │          │  Jt │                                │ Jt      │       │
-│     │ Pengelolaan MBG     │          │     │                                │         │       │
-└─────┴─────────────────────┴──────────┴─────┴────────────────────────────────┴─────────┴───────┘
-</pre>
-🔍 Temuan Penting<br>
-1. PT A*****S — pemenang terbesar: memenangkan 2 paket (Konstruksi Wil. III Jawa senilai Rp 18,6 M + Peta Jalan Perubahan Perilaku Rp 930 Jt)<br>
-2. PT. M***** A*** P****** — memenangkan 2 paket kurikulum PPPK 2026 (HACCP + Halal) total Rp 2,2 M<br>
-3. PT. M**** (Multi Area Desentralisasi Pembangunan) — memenangkan 2 paket kurikulum PPPK 2026 (Ketahanan Pangan + Pemenuhan Gizi) total Rp 2,2 M<br>
-4. PT. C*********A CONSULTANTS — memenangkan 2 paket (Bisnis MBG Rp 3,0 M + Manajemen Risiko MBG Rp 1,1 M)<br>
-5. PT. I****** M**** — muncul sebagai pemenang tunggal atau KSO di 3+ paket<br>
-6. 4 paket Manajemen Konstruksi regional (Wil. I-V) dengan HPS total Rp 56,4 M belum memiliki data pemenang di SPSE<br>
-7. Paket Data Center (Rp 17,6 M) — nilai kontrak penawaran pemenang (Rp 15,9M), yang tidak lazim dan perlu perhatian<br>
-8. Kementerian UMKM juga memiliki 2 paket terkait MBG (pengembangan kapasitas UMKM) senilai total Rp 1,9 M, dimenangkan oleh PT. M**** M****** G****.`
+🏆 <strong>Top 20 Paket dengan HPS Tertinggi + Pemenang</strong>
+<div class="term-grid-wrapper">
+  <div class="term-grid">
+    <div class="term-grid-header">
+      <div class="cell-num">#</div>
+      <div class="cell-name">Nama Paket</div>
+      <div class="cell-inst">Inst</div>
+      <div class="cell-hps">HPS</div>
+      <div class="cell-winner">Pemenang</div>
+      <div class="cell-contract">Kontrak</div>
+      <div class="cell-year">Thn</div>
+    </div>
+    <div class="term-grid-row">
+      <div class="cell-num">1</div>
+      <div class="cell-name">Jasa Konsultansi MK Wil. III Jawa</div>
+      <div class="cell-inst"><span class="badge-inst bgn">BGN</span></div>
+      <div class="cell-hps col-hps">Rp 20.7M</div>
+      <div class="col-winner">PT A*****S</div>
+      <div class="col-contract">Rp 18.6M</div>
+      <div class="cell-year">2025</div>
+    </div>
+    <div class="term-grid-row">
+      <div class="cell-num">2</div>
+      <div class="cell-name">Belanja Modal Server & Data Center</div>
+      <div class="cell-inst"><span class="badge-inst bgn">BGN</span></div>
+      <div class="cell-hps col-hps">Rp 17.6M</div>
+      <div class="col-winner">MA R*******A</div>
+      <div class="col-contract">Rp 17.6M</div>
+      <div class="cell-year">2025</div>
+    </div>
+    <div class="term-grid-row">
+      <div class="cell-num">3</div>
+      <div class="cell-name">Jasa Konsultansi MK Wil. IV Bali</div>
+      <div class="cell-inst"><span class="badge-inst bgn">BGN</span></div>
+      <div class="cell-hps col-hps">Rp 13.5M</div>
+      <div class="col-winner">PT A*****S</div>
+      <div class="col-contract">Rp 12.1M</div>
+      <div class="cell-year">2025</div>
+    </div>
+    <div class="term-grid-row">
+      <div class="cell-num">4</div>
+      <div class="cell-name">Jasa Konsultansi MK Wil. VI Papua</div>
+      <div class="cell-inst"><span class="badge-inst bgn">BGN</span></div>
+      <div class="cell-hps col-hps">Rp 13.5M</div>
+      <div class="col-winner">PT A*****S</div>
+      <div class="col-contract">Rp 12.1M</div>
+      <div class="cell-year">2025</div>
+    </div>
+    <div class="term-grid-row">
+      <div class="cell-num">5</div>
+      <div class="cell-name">Jasa Konsultansi MK Wil. V Sulwsi</div>
+      <div class="cell-inst"><span class="badge-inst bgn">BGN</span></div>
+      <div class="cell-hps col-hps">Rp 13.4M</div>
+      <div class="col-winner-none">(belum ada)</div>
+      <div class="col-winner-none">—</div>
+      <div class="cell-year">2025</div>
+    </div>
+    <div class="term-grid-row">
+      <div class="cell-num">6</div>
+      <div class="cell-name">Jasa Konsultansi MK Wil. I Sumatra</div>
+      <div class="cell-inst"><span class="badge-inst bgn">BGN</span></div>
+      <div class="cell-hps col-hps">Rp 12.8M</div>
+      <div class="col-winner-none">(belum ada)</div>
+      <div class="col-winner-none">—</div>
+      <div class="cell-year">2025</div>
+    </div>
+    <div class="term-grid-row">
+      <div class="cell-num">7</div>
+      <div class="cell-name">Jasa Konsultansi MK Wil. II Sumatr</div>
+      <div class="cell-inst"><span class="badge-inst bgn">BGN</span></div>
+      <div class="cell-hps col-hps">Rp 12.8M</div>
+      <div class="col-winner-none">(belum ada)</div>
+      <div class="col-winner-none">—</div>
+      <div class="cell-year">2025</div>
+    </div>
+    <div class="term-grid-row">
+      <div class="cell-num">8</div>
+      <div class="cell-name">Cluster 4 Pembangunan SPPG Jatim</div>
+      <div class="cell-inst"><span class="badge-inst bgn">BGN</span></div>
+      <div class="cell-hps col-hps">Rp 8.2M</div>
+      <div class="col-winner">PT. K***I</div>
+      <div class="col-contract">Rp 7.4M</div>
+      <div class="cell-year">2025</div>
+    </div>
+    <div class="term-grid-row">
+      <div class="cell-num">9</div>
+      <div class="cell-name">Tim DTO Pusdatin Badan Gizi Nas</div>
+      <div class="cell-inst"><span class="badge-inst bgn">BGN</span></div>
+      <div class="cell-hps col-hps">Rp 7.0M</div>
+      <div class="col-winner">PT S**********G INT</div>
+      <div class="col-contract">Rp 7.0M</div>
+      <div class="cell-year">2025</div>
+    </div>
+    <div class="term-grid-row">
+      <div class="cell-num">10</div>
+      <div class="cell-name">Analisis Proses Bisnis Program MBG</div>
+      <div class="cell-inst"><span class="badge-inst bgn">BGN</span></div>
+      <div class="cell-hps col-hps">Rp 3.5M</div>
+      <div class="col-winner">PT. C*********A</div>
+      <div class="col-contract">Rp 3.0M*</div>
+      <div class="cell-year">2025</div>
+    </div>
+    <div class="term-grid-row">
+      <div class="cell-num">11</div>
+      <div class="cell-name">Sistem Pelaporan MBG IoT & AI</div>
+      <div class="cell-inst"><span class="badge-inst bgn">BGN</span></div>
+      <div class="cell-hps col-hps">Rp 3.0M</div>
+      <div class="col-winner">PT M**** I******</div>
+      <div class="col-contract">Rp 2.7M*</div>
+      <div class="cell-year">2025</div>
+    </div>
+    <div class="term-grid-row">
+      <div class="cell-num">12</div>
+      <div class="cell-name">Evaluasi Dampak Makro Program MBG</div>
+      <div class="cell-inst"><span class="badge-inst bgn">BGN</span></div>
+      <div class="cell-hps col-hps">Rp 3.0M</div>
+      <div class="col-winner">PT. M**** G**** P****</div>
+      <div class="col-contract">Rp 2.6M*</div>
+      <div class="cell-year">2025</div>
+    </div>
+    <div class="term-grid-row">
+      <div class="cell-num">13</div>
+      <div class="cell-name">Konferensi Pembangunan MBG</div>
+      <div class="cell-inst"><span class="badge-inst bgn">BGN</span></div>
+      <div class="cell-hps col-hps">Rp 2.4M</div>
+      <div class="col-winner">N***A K***** U****</div>
+      <div class="col-contract">Rp 2.2M*</div>
+      <div class="cell-year">2025</div>
+    </div>
+    <div class="term-grid-row">
+      <div class="cell-num">14</div>
+      <div class="cell-name">Dashboard Eksekutif Program MBG</div>
+      <div class="cell-inst"><span class="badge-inst bgn">BGN</span></div>
+      <div class="cell-hps col-hps">Rp 2.0M</div>
+      <div class="col-winner">PT S**********G INT</div>
+      <div class="col-contract">Rp 1.8M*</div>
+      <div class="cell-year">2025</div>
+    </div>
+    <div class="term-grid-row">
+      <div class="cell-num">15</div>
+      <div class="cell-name">Penyediaan Ikan untuk MBG</div>
+      <div class="cell-inst"><span class="badge-inst bgn">BGN</span></div>
+      <div class="cell-hps col-hps">Rp 1.8M</div>
+      <div class="col-winner">PT. I****** M****</div>
+      <div class="col-contract">Rp 1.7M*</div>
+      <div class="cell-year">2025</div>
+    </div>
+    <div class="term-grid-row">
+      <div class="cell-num">16</div>
+      <div class="cell-name">Tata Kelola Sumber Pangan MBG</div>
+      <div class="cell-inst"><span class="badge-inst bgn">BGN</span></div>
+      <div class="cell-hps col-hps">Rp 1.6M</div>
+      <div class="col-winner">PT. A****A INT</div>
+      <div class="col-contract">Rp 1.4M*</div>
+      <div class="cell-year">2025</div>
+    </div>
+    <div class="term-grid-row">
+      <div class="cell-num">17</div>
+      <div class="cell-name">Analisis Kesiapan Susu untuk MBG</div>
+      <div class="cell-inst"><span class="badge-inst bgn">BGN</span></div>
+      <div class="cell-hps col-hps">Rp 1.6M</div>
+      <div class="col-winner">PT. S******* I********</div>
+      <div class="col-contract">Rp 1.5M*</div>
+      <div class="cell-year">2025</div>
+    </div>
+    <div class="term-grid-row">
+      <div class="cell-num">18</div>
+      <div class="cell-name">Analisis Food Loss & Waste MBG</div>
+      <div class="cell-inst"><span class="badge-inst bgn">BGN</span></div>
+      <div class="cell-hps col-hps">Rp 1.5M</div>
+      <div class="col-winner">D***** S*****</div>
+      <div class="col-contract">Rp 1.3M*</div>
+      <div class="cell-year">2025</div>
+    </div>
+    <div class="term-grid-row">
+      <div class="cell-num">19</div>
+      <div class="cell-name">Pemetaan Status Gizi Nasional</div>
+      <div class="cell-inst"><span class="badge-inst bgn">BGN</span></div>
+      <div class="cell-hps col-hps">Rp 1.4M</div>
+      <div class="col-winner">PT. D***** S***** KSO</div>
+      <div class="col-contract">Rp 1.3M*</div>
+      <div class="cell-year">2025</div>
+    </div>
+    <div class="term-grid-row">
+      <div class="cell-num">20</div>
+      <div class="cell-name">Pemantauan Indikator Ekonomi MBG</div>
+      <div class="cell-inst"><span class="badge-inst bgn">BGN</span></div>
+      <div class="cell-hps col-hps">Rp 1.4M</div>
+      <div class="col-winner">PT I****** KSO PT T***</div>
+      <div class="col-contract">Rp 1.3M*</div>
+      <div class="cell-year">2025</div>
+    </div>
+  </div>
+</div>
+<span style="font-size: 0.76rem; color: var(--text-muted);">▎ Keterangan: nilai kontrak bertanda (*) = pemenang sudah diumumkan tapi kontrak belum tercatat di SPSE</span><br>
+<br>
+📋 <strong>Paket Tambahan (HPS &lt; Rp 1,4 Miliar)</strong>
+<div class="term-grid-wrapper">
+  <div class="term-grid">
+    <div class="term-grid-header">
+      <div class="cell-num">#</div>
+      <div class="cell-name">Nama Paket</div>
+      <div class="cell-inst">Inst</div>
+      <div class="cell-hps">HPS</div>
+      <div class="cell-winner">Pemenang</div>
+      <div class="cell-contract">Kontrak</div>
+      <div class="cell-year">Thn</div>
+    </div>
+    <div class="term-grid-row">
+      <div class="cell-num">21</div>
+      <div class="cell-name">Kurikulum PPPK Ketahanan Pangan</div>
+      <div class="cell-inst"><span class="badge-inst bgn">BGN</span></div>
+      <div class="cell-hps col-hps">Rp 1.2M</div>
+      <div class="col-winner">PT. M****</div>
+      <div class="col-contract">Rp 1.1M</div>
+      <div class="cell-year">2026</div>
+    </div>
+    <div class="term-grid-row">
+      <div class="cell-num">22</div>
+      <div class="cell-name">Kurikulum PPPK Standardisasi HACCP</div>
+      <div class="cell-inst"><span class="badge-inst bgn">BGN</span></div>
+      <div class="cell-hps col-hps">Rp 1.2M</div>
+      <div class="col-winner">PT. M***** A*** P******</div>
+      <div class="col-contract">Rp 1.1M</div>
+      <div class="cell-year">2026</div>
+    </div>
+    <div class="term-grid-row">
+      <div class="cell-num">23</div>
+      <div class="cell-name">Kurikulum PPPK Bidang Halal</div>
+      <div class="cell-inst"><span class="badge-inst bgn">BGN</span></div>
+      <div class="cell-hps col-hps">Rp 1.2M</div>
+      <div class="col-winner">PT. M***** A*** P******</div>
+      <div class="col-contract">Rp 1.1M</div>
+      <div class="cell-year">2026</div>
+    </div>
+    <div class="term-grid-row">
+      <div class="cell-num">24</div>
+      <div class="cell-name">Kurikulum PPPK Manajemen Risiko</div>
+      <div class="cell-inst"><span class="badge-inst bgn">BGN</span></div>
+      <div class="cell-hps col-hps">Rp 1.2M</div>
+      <div class="col-winner">PT. C*********A</div>
+      <div class="col-contract">Rp 1.1M</div>
+      <div class="cell-year">2026</div>
+    </div>
+    <div class="term-grid-row">
+      <div class="cell-num">25</div>
+      <div class="cell-name">Kurikulum PPPK Kesling</div>
+      <div class="cell-inst"><span class="badge-inst bgn">BGN</span></div>
+      <div class="cell-hps col-hps">Rp 1.2M</div>
+      <div class="col-winner">PT. K****** K*********</div>
+      <div class="col-contract">Rp 1.1M</div>
+      <div class="cell-year">2026</div>
+    </div>
+    <div class="term-grid-row">
+      <div class="cell-num">26</div>
+      <div class="cell-name">Kurikulum PPPK Pemenuhan Gizi</div>
+      <div class="cell-inst"><span class="badge-inst bgn">BGN</span></div>
+      <div class="cell-hps col-hps">Rp 1.2M</div>
+      <div class="col-winner">PT. M****</div>
+      <div class="col-contract">Rp 1.1M</div>
+      <div class="cell-year">2026</div>
+    </div>
+    <div class="term-grid-row">
+      <div class="cell-num">27</div>
+      <div class="cell-name">Kapasitas UMKM MBG Timur</div>
+      <div class="cell-inst"><span class="badge-inst kemenk">Kemenk</span></div>
+      <div class="cell-hps col-hps">Rp 1.1M</div>
+      <div class="col-winner">PT. M**** M****** G****</div>
+      <div class="col-contract">Rp 959Jt</div>
+      <div class="cell-year">2026</div>
+    </div>
+    <div class="term-grid-row">
+      <div class="cell-num">28</div>
+      <div class="cell-name">Regulasi & Kelembagaan MBG</div>
+      <div class="cell-inst"><span class="badge-inst bgn">BGN</span></div>
+      <div class="cell-hps col-hps">Rp 1.0M</div>
+      <div class="col-winner">PT. P******* K*** KSO</div>
+      <div class="col-contract">Rp 885Jt</div>
+      <div class="cell-year">2025</div>
+    </div>
+    <div class="term-grid-row">
+      <div class="cell-num">29</div>
+      <div class="cell-name">Peta Jalan Perilaku Makan</div>
+      <div class="cell-inst"><span class="badge-inst bgn">BGN</span></div>
+      <div class="cell-hps col-hps">Rp 1.0M</div>
+      <div class="col-winner">PT A*****S</div>
+      <div class="col-contract">Rp 930Jt*</div>
+      <div class="cell-year">2025</div>
+    </div>
+    <div class="term-grid-row">
+      <div class="cell-num">30</div>
+      <div class="cell-name">Kapasitas UMKM MBG Barat</div>
+      <div class="cell-inst"><span class="badge-inst kemenk">Kemenk</span></div>
+      <div class="cell-hps col-hps">Rp 922Jt</div>
+      <div class="col-winner">PT. M**** M****** G****</div>
+      <div class="col-contract">Rp 808Jt</div>
+      <div class="cell-year">2026</div>
+    </div>
+    <div class="term-grid-row">
+      <div class="cell-num">31</div>
+      <div class="cell-name">Analisis Pembiayaan Program MBG</div>
+      <div class="cell-inst"><span class="badge-inst bgn">BGN</span></div>
+      <div class="cell-hps col-hps">Rp 600Jt</div>
+      <div class="col-winner">PT. P******* K*** KSO</div>
+      <div class="col-contract">Rp 554Jt*</div>
+      <div class="cell-year">2025</div>
+    </div>
+    <div class="term-grid-row">
+      <div class="cell-num">32</div>
+      <div class="cell-name">Penyediaan Hortikultura MBG</div>
+      <div class="cell-inst"><span class="badge-inst bgn">BGN</span></div>
+      <div class="cell-hps col-hps">Rp 400Jt</div>
+      <div class="col-winner">PT. A** INT</div>
+      <div class="col-contract">Rp 376Jt*</div>
+      <div class="cell-year">2025</div>
+    </div>
+    <div class="term-grid-row">
+      <div class="cell-num">33</div>
+      <div class="cell-name">Penyediaan Sumber Protein MBG</div>
+      <div class="cell-inst"><span class="badge-inst bgn">BGN</span></div>
+      <div class="cell-hps col-hps">Rp 400Jt</div>
+      <div class="col-winner">PT. S**** R****** INDO</div>
+      <div class="col-contract">Rp 371Jt*</div>
+      <div class="cell-year">2025</div>
+    </div>
+    <div class="term-grid-row">
+      <div class="cell-num">34</div>
+      <div class="cell-name">Tenaga Ahli Senior Kewirausahaan</div>
+      <div class="cell-inst"><span class="badge-inst bgn">BGN</span></div>
+      <div class="cell-hps col-hps">Rp 329Jt</div>
+      <div class="col-winner">C********* B**** N*****</div>
+      <div class="col-contract">Rp 250Jt*</div>
+      <div class="cell-year">2025</div>
+    </div>
+    <div class="term-grid-row">
+      <div class="cell-num">35</div>
+      <div class="cell-name">Koordinator Ahli Sistem Gizi</div>
+      <div class="cell-inst"><span class="badge-inst bgn">BGN</span></div>
+      <div class="cell-hps col-hps">Rp 165Jt</div>
+      <div class="col-winner">M****** A****</div>
+      <div class="col-contract">Rp 153Jt</div>
+      <div class="cell-year">2025</div>
+    </div>
+    <div class="term-grid-row">
+      <div class="cell-num">36</div>
+      <div class="cell-name">Tenaga Ahli Individu Perencanaan</div>
+      <div class="cell-inst"><span class="badge-inst bgn">BGN</span></div>
+      <div class="cell-hps col-hps">Rp 135Jt</div>
+      <div class="col-winner">Prof. Dr. Ir. K*****</div>
+      <div class="col-contract">Rp 135Jt</div>
+      <div class="cell-year">2025</div>
+    </div>
+  </div>
+</div>
+<br>
+<div class="term-insights">
+  <span class="term-insights-title">🔍 Temuan Penting:</span>
+  <ul class="term-insights-list">
+    <li><strong>PT AMYTHAS</strong> — pemenang terbesar: memenangkan 2 paket (Konstruksi Wil. III Jawa senilai <strong>Rp 18,6 M</strong> + Peta Jalan Perubahan Perilaku <strong>Rp 930 Jt</strong>).</li>
+    <li><strong>PT. MARETO AGRI PERSADA</strong> — memenangkan 2 paket kurikulum PPPK 2026 (HACCP + Halal) senilai total <strong>Rp 2,2 M</strong>.</li>
+    <li><strong>PT. MADEP</strong> — memenangkan 2 paket kurikulum PPPK 2026 (Ketahanan Pangan + Pemenuhan Gizi) senilai total <strong>Rp 2,2 M</strong>.</li>
+    <li><strong>PT. CAKRABUANA CONSULTANTS</strong> — memenangkan 2 paket (Proses Bisnis MBG <strong>Rp 3,0 M</strong> + Manajemen Risiko MBG <strong>Rp 1,1 M</strong>).</li>
+    <li><strong>PT. INDOMAS MULIA</strong> — pemenang utama atau KSO pada 3+ paket pengadaan.</li>
+    <li><strong>4 paket Manajemen Konstruksi</strong> regional (Wil. I-V) dengan HPS total <strong>Rp 56,4 M</strong> statusnya belum diumumkan pemenangnya di SPSE.</li>
+    <li>Paket <strong>Data Center (Rp 17,6 M)</strong> memiliki nilai penawaran pemenang yang tidak lazim (Rp 15,9 M) dan perlu perhatian.</li>
+    <li><strong>Kementerian Koperasi & UMKM</strong> mendanai 2 paket pengembangan kapasitas UMKM MBG senilai <strong>Rp 1,9 M</strong>, dimenangkan oleh PT. Mitra Mawardi Group.</li>
+  </ul>
+</div>`
       }
     ];
 
