@@ -88,10 +88,8 @@
         </div>
         <div class="terminal-body" id="terminal-screen" style="height: 380px; overflow-y: auto; overflow-x: hidden; text-align: left; display: flex; flex-direction: column; position: relative; padding: 0;">
           <!-- Sticky User Prompt at the top -->
-          <div id="terminal-sticky-prompt" style="position: sticky; top: -1px; margin-top: 0; background: var(--bg-secondary); padding: 1.5rem 1.5rem 0.75rem 1.5rem; border-bottom: 1px dashed var(--border-color); z-index: 10; display: none; align-items: center; flex-wrap: wrap; text-align: left; width: 100%; box-sizing: border-box;">
-            <span class="terminal-prompt">❯</span>
-            <span class="terminal-input" id="terminal-sticky-input" style="color: #fff; font-weight: 500; word-break: break-word;"></span>
-            <span class="cursor-blink" id="terminal-sticky-cursor" style="margin-left: 5px;"></span>
+          <div id="terminal-sticky-prompt" style="position: sticky; top: -1px; margin-top: 0; background: var(--bg-secondary); padding: 1.5rem 1.5rem 0.75rem 1.5rem; border-bottom: 1px dashed var(--border-color); z-index: 10; display: none; text-align: left; width: 100%; box-sizing: border-box;">
+            <span class="terminal-prompt" style="color: var(--accent-cyan); margin-right: 0.5rem; font-weight: bold; display: inline-block; user-select: none;">❯</span><span class="terminal-input" id="terminal-sticky-input" style="color: #fff; font-weight: 500; word-break: break-word; white-space: pre-wrap; display: inline;"></span><span class="cursor-blink" id="terminal-sticky-cursor" style="display: inline-block; width: 8px; height: 15px; background-color: var(--text-primary); animation: blink 1s step-end infinite; margin-left: 5px; vertical-align: middle;"></span>
           </div>
           <!-- Scrollable Output Content -->
           <div id="terminal-scroll-content" style="text-align: left; padding: 1.25rem 1.5rem 1.5rem 1.5rem;"></div>
@@ -485,24 +483,28 @@
         type: 'response',
         html: `Berikut adalah 10 paket pengadaan dengan HPS terbesar yang berkaitan dengan Makan Bergizi Gratis (MBG) / Badan Gizi Nasional:<br>
 <br>
----<br>
-🔟 10 Paket Tender Terbesar — Badan Gizi Nasional (MBG)<br>
-<pre class="terminal-table-pre">
-┌───┬──────────────────────────────────────────┬──────────┬──────────────────────┬──────────┐
-│ # │ Nama Paket                               │ HPS      │ Pemenang             │ Kontrak  │
-├───┼──────────────────────────────────────────┼──────────┼──────────────────────┼──────────┤
-│ 1 │ Jasa Konsultansi MK Wil. III Jawa        │ <span class="col-hps">Rp 20.71M</span> │ <span class="col-winner">PT AMYTHAS</span>           │ <span class="col-contract">Rp 18.66M</span> │
-│ 2 │ Server & Data Center BGN                 │ <span class="col-hps">Rp 17.59M</span> │ <span class="col-winner">Lintas Anomali</span>       │ <span class="col-contract">Rp 17.59M</span> │
-│ 3 │ Jasa Konsultansi MK Wilayah IV           │ <span class="col-hps">Rp 17.41M</span> │ <span class="col-winner-none">(tidak tersedia)</span>     │ <span class="col-winner-none">—</span>        │
-│ 4 │ Jasa Konsultansi MK Wilayah VI           │ <span class="col-hps">Rp 16.21M</span> │ <span class="col-winner">PT Fajar Nusa KSO</span>    │ <span class="col-contract">Rp 14.93M</span> │
-│ 5 │ Jasa Konsultansi MK Wilayah V Sulawesi   │ <span class="col-hps">Rp 13.40M</span> │ <span class="col-winner-none">(tidak tersedia)</span>     │ <span class="col-winner-none">—</span>        │
-│ 6 │ Jasa Konsultansi MK Wilayah I Sumatera 1 │ <span class="col-hps">Rp 12.76M</span> │ <span class="col-winner-none">(tidak tersedia)</span>     │ <span class="col-winner-none">—</span>        │
-│ 7 │ Jasa Konsultansi MK Wilayah II Sumatera 2│ <span class="col-hps">Rp 12.76M</span> │ <span class="col-winner-none">(tidak tersedia)</span>     │ <span class="col-winner-none">—</span>        │
-│ 8 │ Cluster 4 Pembangunan SPPG Jatim         │ <span class="col-hps">Rp 8.88M</span>  │ <span class="col-winner">CV Melati Kurai</span>      │ <span class="col-contract">Rp 7.44M</span>  │
-│ 9 │ Tim DTO Pusdatin Badan Gizi Nasional     │ <span class="col-hps">Rp 6.97M</span>  │ <span class="col-winner">Sangkuriang Int.</span>     │ <span class="col-contract">Rp 6.97M</span>  │
-│10 │ Analisis Proses Bisnis Program MBG       │ <span class="col-hps">Rp 3.50M</span>  │ <span class="col-winner-none">(tidak tersedia)</span>     │ <span class="col-winner-none">—</span>        │
-└───┴──────────────────────────────────────────┴──────────┴──────────────────────┴──────────┘
-</pre>`
+🔟 <strong>10 Paket Tender Terbesar — Badan Gizi Nasional (MBG)</strong><br>
+<br>
+1. <strong>Jasa Konsultansi MK Wil. III Jawa</strong><br>
+&nbsp;&nbsp;&nbsp;• HPS: <span class="col-hps">Rp 20.71M</span> | Pemenang: <span class="col-winner">PT AMYTHAS</span> | Kontrak: <span class="col-contract">Rp 18.66M</span><br>
+2. <strong>Server & Data Center BGN</strong><br>
+&nbsp;&nbsp;&nbsp;• HPS: <span class="col-hps">Rp 17.59M</span> | Pemenang: <span class="col-winner">Lintas Anomali</span> | Kontrak: <span class="col-contract">Rp 17.59M</span><br>
+3. <strong>Jasa Konsultansi MK Wilayah IV</strong><br>
+&nbsp;&nbsp;&nbsp;• HPS: <span class="col-hps">Rp 17.41M</span> | Pemenang: <span class="col-winner-none">(tidak tersedia)</span> | Kontrak: <span class="col-winner-none">—</span><br>
+4. <strong>Jasa Konsultansi MK Wilayah VI</strong><br>
+&nbsp;&nbsp;&nbsp;• HPS: <span class="col-hps">Rp 16.21M</span> | Pemenang: <span class="col-winner">PT Fajar Nusa KSO</span> | Kontrak: <span class="col-contract">Rp 14.93M</span><br>
+5. <strong>Jasa Konsultansi MK Wilayah V Sulawesi</strong><br>
+&nbsp;&nbsp;&nbsp;• HPS: <span class="col-hps">Rp 13.40M</span> | Pemenang: <span class="col-winner-none">(tidak tersedia)</span> | Kontrak: <span class="col-winner-none">—</span><br>
+6. <strong>Jasa Konsultansi MK Wilayah I Sumatera 1</strong><br>
+&nbsp;&nbsp;&nbsp;• HPS: <span class="col-hps">Rp 12.76M</span> | Pemenang: <span class="col-winner-none">(tidak tersedia)</span> | Kontrak: <span class="col-winner-none">—</span><br>
+7. <strong>Jasa Konsultansi MK Wilayah II Sumatera 2</strong><br>
+&nbsp;&nbsp;&nbsp;• HPS: <span class="col-hps">Rp 12.76M</span> | Pemenang: <span class="col-winner-none">(tidak tersedia)</span> | Kontrak: <span class="col-winner-none">—</span><br>
+8. <strong>Cluster 4 Pembangunan SPPG Jatim</strong><br>
+&nbsp;&nbsp;&nbsp;• HPS: <span class="col-hps">Rp 8.88M</span> | Pemenang: <span class="col-winner">CV Melati Kurai</span> | Kontrak: <span class="col-contract">Rp 7.44M</span><br>
+9. <strong>Tim DTO Pusdatin Badan Gizi Nasional</strong><br>
+&nbsp;&nbsp;&nbsp;• HPS: <span class="col-hps">Rp 6.97M</span> | Pemenang: <span class="col-winner">Sangkuriang Int.</span> | Kontrak: <span class="col-contract">Rp 6.97M</span><br>
+10. <strong>Analisis Proses Bisnis Program MBG</strong><br>
+&nbsp;&nbsp;&nbsp;• HPS: <span class="col-hps">Rp 3.50M</span> | Pemenang: <span class="col-winner-none">(tidak tersedia)</span> | Kontrak: <span class="col-winner-none">—</span>`
       }
     ];
 
@@ -730,14 +732,14 @@
       const step = steps[currentStep];
       
       if (step.type === 'prompt') {
-        stickyPrompt.style.display = 'flex';
+        stickyPrompt.style.display = 'block';
         stickyInput.textContent = ''; // Ensure clean start
         
-        typeText(stickyInput, step.text, 0, 40, () => {
+        typeText(stickyInput, step.text, 0, 12, () => {
           const cursor = document.getElementById('terminal-sticky-cursor');
           if (cursor) cursor.remove();
           currentStep++;
-          animationTimeout = setTimeout(runAnimation, 600);
+          animationTimeout = setTimeout(runAnimation, 400);
         });
       } 
       
@@ -755,7 +757,7 @@
         
         appendLine(line);
         currentStep++;
-        animationTimeout = setTimeout(runAnimation, 1200);
+        animationTimeout = setTimeout(runAnimation, 600);
       } 
       
       else if (step.type === 'thought-block') {
@@ -769,7 +771,7 @@
         
         appendLine(line);
         currentStep++;
-        animationTimeout = setTimeout(runAnimation, 1200);
+        animationTimeout = setTimeout(runAnimation, 500);
       }
       
       else if (step.type === 'tool-call') {
@@ -780,7 +782,7 @@
         
         appendLine(line);
         currentStep++;
-        animationTimeout = setTimeout(runAnimation, 800);
+        animationTimeout = setTimeout(runAnimation, 400);
       } 
       
       else if (step.type === 'tool-result') {
@@ -791,7 +793,7 @@
         
         appendLine(line);
         currentStep++;
-        animationTimeout = setTimeout(runAnimation, 800);
+        animationTimeout = setTimeout(runAnimation, 400);
       } 
       
       else if (step.type === 'response') {
@@ -801,9 +803,9 @@
         
         appendLine(line);
         
-        typeHtml(line, step.html, 5, 1, () => {
+        typeHtml(line, step.html, 4, 1, () => {
           currentStep++;
-          animationTimeout = setTimeout(runAnimation, 2500);
+          animationTimeout = setTimeout(runAnimation, 800);
         });
       }
     }
